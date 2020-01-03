@@ -136,3 +136,28 @@ Adds 21 to 40 Cold Damage
 16% chance to Blind Enemies on Hit with Attacks
 --------
 Redeemer Item
+
+
+Rarity: Rare
+Rapture Caress
+Fingerless Silk Gloves
+--------
+Energy Shield: 83 (augmented)
+--------
+Requirements:
+Level: 70
+Int: 95
+--------
+Sockets: G 
+--------
+Item Level: 80
+--------
+15% increased Spell Damage (implicit)
+--------
++42 to Dexterity
+Adds 3 to 7 Physical Damage to Attacks
++40 to maximum Energy Shield
++80 to maximum Life
++21% to Cold Resistance
+--------
+Warlord Item

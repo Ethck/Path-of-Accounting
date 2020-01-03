@@ -118,12 +118,14 @@ def query_trade(name=None, itype=None, links=None, corrupted=None, influenced = 
 				str(corrupted).lower()}}}
 
 	if influenced:
+		j['query']['filters']['misc_filters'] = {}
+		j['query']['filters']['misc_filters']['disabled'] = 'false'
+		j['query']['filters']['misc_filters']['filters'] = {}
+		
 		for influence in influenced:
-			j['query']['filters']['misc_filters'] = {}
-			j['query']['filters']['misc_filters']['disabled'] = 'false'
-			j['query']['filters']['misc_filters']['filters'] = {}
+
 			if influenced[influence]:
-				j['query']['filters']['misc_filters']['filters']["influence"] = "yes"
+				j['query']['filters']['misc_filters']['filters'][influence + "_item"] = "true"
 
 
 	if stats:
