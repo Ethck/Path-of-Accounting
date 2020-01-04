@@ -3,6 +3,7 @@ import json
 from tkinter import Tk, TclError
 import re
 import time
+from currency import CURRENCY, CURRENCY_REV
 
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
 #static = requests.get(url="https://www.pathofexile.com/api/trade/data/static").json()
@@ -160,7 +161,14 @@ def query_exchange(qcur, league='Metamorph'):
 	"""
 	Build JSON for fetch request of wanted exchange.
 	"""
-	def_json = {'exchange': {'have': ['chaos'], 'want': ['exa'], 'status': {'option': 'online'}}}
+
+	print(f"[*] All values will be reported as their chaos equivalent.")
+
+	if qcur in CURRENCY:
+		selection = CURRENCY[qcur]
+
+
+	def_json = {'exchange': {'have': ['chaos'], 'want': [selection], 'status': {'option': 'online'}}}
 
 	query = requests.post(f'https://www.pathofexile.com/api/trade/exchange/{league}', json=def_json)
 	res = query.json()
