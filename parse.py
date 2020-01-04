@@ -77,8 +77,17 @@ def fetch(q_res, exchange = False):
 	Fetch results given trade results and exchange status.
 	"""
 	results = []
+	print(q_res)
 	# Limited to crawling by 10 results at a time due to API restrictions, so check first 20
-	for i in range(0, 50, 10):
+	DEFAULT_CAP = 50
+	DEFAULT_INTERVAL = 10
+	cap = DEFAULT_CAP
+	interval = DEFAULT_INTERVAL
+
+	if len(q_res) < DEFAULT_CAP:
+		cap = int((len(q_res) / 10) * 10)
+
+	for i in range(0, cap, interval):
 		url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(q_res["result"][i:i+10])}?query={q_res["id"]}'
 
 		if exchange:
@@ -140,14 +149,15 @@ def query_trade(name=None, itype=None, links=None, corrupted=None, influenced = 
 			proper_affix = find_affix_match(stat)
 			affix_types = ["implicit", "crafted", "explicit"]
 			if any(atype in proper_affix for atype in affix_types):
-				j['query']['stats'][0]['filters'].append({'id': proper_affix, 'value': {'min': 50, 'max': 200}, 'disabled': 'false'})
+				j['query']['stats'][0]['filters'].append({'id': proper_affix, 'value': {'min': 1, 'max': 999}})
 
-	#print(j)
-
+	print(j)
 	
 	query = requests.post(f'https://www.pathofexile.com/api/trade/search/{league}', json=j)
+	print(query.text)
 	res = query.json()
 
+	
 	if query.status_code != 200:
 		print(f'[!] Trade query failed: HTTP {query.status_code}! ')
 		print(res)
@@ -263,8 +273,8 @@ def watch_clipboard():
 					else:
 						print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
 						print('[-] Price assesment for this item has been disabled due to technical limitations.')
-						#trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'links',
-								#'corrupted', 'influenced', 'stats')})
+						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'links',
+								'corrupted', 'influenced', 'stats')})
 					
 					if trade_info:
 						prices = [x['listing']['price'] for x in trade_info]
