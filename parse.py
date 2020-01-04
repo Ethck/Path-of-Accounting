@@ -212,7 +212,7 @@ def watch_clipboard():
 
 				if info:
 					if info.get('rarity') == 'Unique':
-						print(f'[*] Found unique item in clipboard: {info["name"]} {info["type"]}')
+						print(f'[*] Found unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
 
 						if info['corrupted']:
