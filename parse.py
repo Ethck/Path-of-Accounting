@@ -57,13 +57,16 @@ def parse_item_info(text):
 			info['stats'].extend(m[0][1].split('\n'))
 
 			# Clean up the leftover stuff
-			if "--------" in info['stats']:
+			if "(implicit)" in info['stats'][0]:
+				del info['stats'][1:2]
+			elif "--------" in info['stats']:
 				index = info['stats'].index('--------')
 				info['stats'] = info['stats'][:index]
 			else:
 				info['stats'] = info['stats'][:-1]
 			
-			info['stats'].remove("")
+			if "" in info['stats']:
+				info['stats'].remove("")
 
 	return info
 
@@ -110,7 +113,6 @@ def query_trade(name=None, itype=None, links=None, corrupted=None, influenced = 
 	j['query']['status']['option'] = 'online'
 
 	if links:
-		print(links)
 		j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
 
 	if corrupted is not None:
@@ -118,14 +120,15 @@ def query_trade(name=None, itype=None, links=None, corrupted=None, influenced = 
 				str(corrupted).lower()}}}
 
 	if influenced:
-		j['query']['filters']['misc_filters'] = {}
-		j['query']['filters']['misc_filters']['disabled'] = 'false'
-		j['query']['filters']['misc_filters']['filters'] = {}
-		
-		for influence in influenced:
+		if True in influenced.values():
+			j['query']['filters']['misc_filters'] = {}
+			j['query']['filters']['misc_filters']['disabled'] = 'false'
+			j['query']['filters']['misc_filters']['filters'] = {}
+			
+			for influence in influenced:
 
-			if influenced[influence]:
-				j['query']['filters']['misc_filters']['filters'][influence + "_item"] = "true"
+				if influenced[influence]:
+					j['query']['filters']['misc_filters']['filters'][influence + "_item"] = "true"
 
 
 	if stats:
@@ -133,9 +136,12 @@ def query_trade(name=None, itype=None, links=None, corrupted=None, influenced = 
 		j['query']['stats'][0]['type'] = 'and'
 		j['query']['stats'][0]['filters'] = []
 		for stat in stats:
-			j['query']['stats'][0]['filters'].append({'id': find_affix_match(stat), 'value': {'min': 1, 'max': 999999}, 'disabled': 'false'})
+			proper_affix = find_affix_match(stat)
+			affix_types = ["implicit", "crafted", "explicit"]
+			if any(atype in proper_affix for atype in affix_types):
+				j['query']['stats'][0]['filters'].append({'id': proper_affix, 'value': {'min': 50, 'max': 200}, 'disabled': 'false'})
 
-	print(j)
+	#print(j)
 
 	
 	query = requests.post(f'https://www.pathofexile.com/api/trade/search/{league}', json=j)
@@ -170,15 +176,15 @@ def query_exchange(qcur, league='Metamorph'):
 
 def affix_equals(text, affix):
 	query = re.sub(r"\d+", "#", affix)
+	query = re.sub(r"\+", "", query)
 
-	if re.match(r"^\+", query):
-		query = r"\"" + query
+	if query.endswith(r" (implicit)"):
+		text = text + r" (implicit)"
 
-	if re.match(r"^\+", text):
-		text = r"\"" + text
+	if text.endswith("(Local)"):
+		query = query + r" (Local)"
 
-	ret = bool(re.search(text, query, re.M))
-	if ret:
+	if text == query:
 		print(f"Found mod {text}")
 		return True
 
@@ -186,10 +192,24 @@ def affix_equals(text, affix):
 
 def find_affix_match(affix):
 	explicits = stats['result'][1]['entries']
+	implicits = stats['result'][2]['entries']
+	crafted = stats['result'][5]['entries']
 	proper_affix = ""
-	for explicit in explicits:
-		if affix_equals(explicit['text'], affix):
-			proper_affix = explicit['id']
+
+	if "(implicit)" in affix:
+		for implicit in implicits:
+			if affix_equals(implicit['text'], affix):
+				proper_affix = implicit['id']
+
+	elif "(crafted)" in affix:
+		for craft in crafted:
+			if affix_equals(craft['text'], affix):
+				proper_affix = craft['id']
+
+	else:
+		for explicit in explicits:
+			if affix_equals(explicit['text'], affix):
+				proper_affix = explicit['id']
 
 	return proper_affix
 
@@ -212,13 +232,16 @@ def watch_clipboard():
 
 				if info:
 					if info.get('rarity') == 'Unique':
-						print(f'[*] Found unique item in clipboard: {info["name"]} {info["type"]}')
+						print(f'[*] Found unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
 
 						if info['corrupted']:
 							base += f"Corrupted "
 
-						print(base)
+						if info['links'] > 1:
+							base += f"{info['links']} linked "
+
+						print("[-]", base)
 
 						print('[-] Getting prices from pathofexile.com/trade...')
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'links',
@@ -231,16 +254,15 @@ def watch_clipboard():
 
 					else:
 						print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
-						print('[-] Getting prices from pathofexile.com/trade...')
-						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'links',
-								'corrupted', 'influenced', 'stats')})
+						print('[-] Price assesment for this item has been disabled due to technical limitations.')
+						#trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'links',
+								#'corrupted', 'influenced', 'stats')})
 					
 					if trade_info:
 						prices = [x['listing']['price'] for x in trade_info]
 						prices = ['%(amount)s%(currency)s' % x for x in prices]
 						prices = {'%s x %s' % (prices.count(x), x):None for x in prices}
-						print(f'[-] Lowest 20 prices: {", ".join(prices.keys())}')
-						print(prices)
+						print(f'[-] Lowest 50 prices: {", ".join(prices.keys())}')
 
 					elif trade_info is not None:
 						print(f'[!] No results!')
