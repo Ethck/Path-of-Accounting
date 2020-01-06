@@ -353,8 +353,9 @@ def watch_clipboard():
 						if info['corrupted']:
 							base += f"Corrupted "
 
-						if info['links'] > 1:
-							base += f"{info['links']} linked "
+						if "links" in info:
+							if info['links'] > 1:
+								base += f"{info['links']} linked "
 
 						print("[-]", base)
 
