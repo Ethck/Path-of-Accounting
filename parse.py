@@ -353,8 +353,9 @@ def watch_clipboard():
 						if info['corrupted']:
 							base += f"Corrupted "
 
-						if info['links'] > 1:
-							base += f"{info['links']} linked "
+						if "links" in info:
+							if info['links'] > 1:
+								base += f"{info['links']} linked "
 
 						print("[-]", base)
 
@@ -395,7 +396,7 @@ def watch_clipboard():
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
-								price = f"{price['amount']}x{price['currency']}"
+								price = f"{price['amount']} x {price['currency']}"
 							print("[!] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.")
 
 					elif trade_info is not None:
