@@ -23,6 +23,8 @@ def parse_item_info(text):
 	# get some basic info
 	info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][2]}
 
+	if info['itype'] == "--------": #Unided
+		info = {'name': info['itype'], 'rarity': info['rarity'], 'itype': ""}
 	# Oh, it's currency!
 	if info['rarity'] == 'Currency':
 		info['itype'] = info.pop('rarity')
