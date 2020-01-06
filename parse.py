@@ -387,15 +387,16 @@ def watch_clipboard():
 
 							# Make pretty strings.
 							for price_dict in prices:
-								print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{price_dict}" + Fore.WHITE + ", "
+								pretty_price = " ".join(re.split(r"(\d+)", price_dict)[1:])
+								print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
 								total_count += prices[price_dict]
 
-							print(f'[!] Lowest {total_count} prices: {print_string}')
+							print(f'[!] Lowest {total_count} prices: {print_string}\n\n')
 
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
-								price = f"{price['amount']}x{price['currency']}"
+								price = f"{price['amount']} x {price['currency']}"
 							print("[!] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.")
 
 					elif trade_info is not None:
