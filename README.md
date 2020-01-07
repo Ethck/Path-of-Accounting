@@ -1,4 +1,4 @@
-# Path of Accounting
+![Logo](/images/logo.png)
 
 Path of Accounting is a (hopeful) poe Trade Macro replacement that utilizes Path of Exile's Official API.
 
