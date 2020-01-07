@@ -4,7 +4,8 @@ from tkinter import Tk, TclError
 import re
 import time
 from colorama import init, deinit, Fore, Back, Style
-from currency import CURRENCY, CURRENCY_REV
+from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
+						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
 
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
@@ -18,16 +19,23 @@ def parse_item_info(text):
 	m = re.findall(r'^Rarity: (\w+)\r?\n(.+?)\r?\n(.+?)\r?\n', text)
 
 	if not m: # It's not...
-		return {}
+		m = re.findall(r"^Rarity: (.*)\n(.*)", text)
+		if not m:
+			return {}
+		else:
+			info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][0]}
+	else:
 
-	# get some basic info
-	info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][2]}
+		# get some basic info
+		info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][2]}
 
 	if info['itype'] == "--------": #Unided
 		info = {'name': info['itype'], 'rarity': info['rarity'], 'itype': ""}
 	# Oh, it's currency!
 	if info['rarity'] == 'Currency':
 		info['itype'] = info.pop('rarity')
+	elif info['rarity'] == 'Divination Card':
+		info['itype'] == info.pop('rarity')
 
 	else:
 		# Get Qual
@@ -82,6 +90,7 @@ def parse_item_info(text):
 
 
 def fetch(q_res, exchange = False):
+	print(q_res)
 	"""
 	Fetch is the last step of the API. The item's attributes are decided, and this function checks to see if
 	there are any similar items like it listed.
@@ -111,6 +120,7 @@ def fetch(q_res, exchange = False):
 			print(f'[!] Trade result retrieval failed: HTTP {res.status_code}! '
 					f'Message: {res.json().get("error", "unknown error")}')
 			break
+
 		# Return the results from our fetch (this has who to whisper, prices, and more!)
 		results += res.json()['result']
 
@@ -128,7 +138,7 @@ def query_trade(name = None, itype = None, links = None, corrupted = None, influ
 	j = {'query':{'filters':{}}, 'sort': {'price': 'asc'}}
 
 	# If unique, search by name
-	if name and rarity == "Unique":
+	if (rarity == "Unique") or itype == "Divination Card":
 		j['query']['name'] = name
 
 	# Set itemtype. TODO: change to allow similar items of other base types... Unless base matters...
@@ -160,6 +170,7 @@ def query_trade(name = None, itype = None, links = None, corrupted = None, influ
 
 
 	fetch_called = False
+	print(j)
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -369,6 +380,11 @@ def watch_clipboard():
 						print(f'[-] Found currency {info["name"]} in clipboard; '
 								'getting prices from pathofexile.com/trade/exchange...')
 						trade_info = query_exchange(info['name'])
+
+					elif info['itype'] == 'Divination Card':
+						print(f'[-] Found Divination Card {info["name"]}')
+						print('[-] Getting prices from pathofexile.com/trade...')
+						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype')})
 
 					else:
 						# Do intensive search.
