@@ -43,7 +43,7 @@ def parse_item_info(text):
 	if info['rarity'] == 'Currency':
 		info['itype'] = info.pop('rarity')
 	elif info['rarity'] == 'Divination Card':
-		info['itype'] == info.pop('rarity')
+		info['itype'] = info.pop('rarity')
 	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
 		info['itype'] = 'Currency'
 	elif info['itype'] == "--------" and m: #Unided
