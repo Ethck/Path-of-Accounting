@@ -1,6 +1,6 @@
 ![Logo](/images/logo.png)
 
-Path of Accounting is a (hopeful) poe Trade Macro replacement that utilizes Path of Exile's Official API.
+Path of Accounting is a replacement of POE TradeMacro that utilizes Path of Exile's Official API. Built from the ground up, Path of Accounting is lightning fast and has support for just about every item in the game.
 
 Path of Accounting supports the following features right now:
 * Currency Evaluation
@@ -23,3 +23,6 @@ In order to use Path of Accounting right now follow these steps:
 The program reads what is entered into your clipboard in real time and determines whether or not it is Path of Exile related, if it is not the info is immediately discarded. If it is a PoE item, it then queries the official API to determine pricing based on what everyone else has listed that item for.
 
 ![Sample display](/images/display.png)
+
+For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
+For those of you who want to help but don't know how to program, feel free to offer suggestions on the issues page! I can't make this tool better without knowing what everyone want.
