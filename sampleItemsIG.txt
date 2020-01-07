@@ -161,3 +161,56 @@ Adds 3 to 7 Physical Damage to Attacks
 +21% to Cold Resistance
 --------
 Warlord Item
+
+Rarity: Rare
+Grim Ward
+Oiled Vest
+--------
+Quality: +20% (augmented)
+Evasion Rating: 385 (augmented)
+Energy Shield: 17 (augmented)
+--------
+Requirements:
+Level: 70
+Str: 108
+Dex: 68
+Int: 108
+--------
+Sockets: B-B-G-R-B-B 
+--------
+Item Level: 12
+--------
++17 to Intelligence
+10% increased Evasion and Energy Shield
++91 to maximum Life
++11% to Cold Resistance
+19% increased Stun and Block Recovery
++242 to Evasion Rating (crafted)
+
+
+Rarity: Magic
+Rotund Sun Plate of the Lizard
+--------
+Armour: 451
+--------
+Requirements:
+Level: 45
+Str: 124
+--------
+Sockets: G-G-R-R-R 
+--------
+Item Level: 61
+--------
++64 to maximum Life
+Regenerate 2.5 Life per second
+
+
+Rarity: Normal
+Steel Ring
+--------
+Requirements:
+Level: 80
+--------
+Item Level: 78
+--------
+Adds 3 to 11 Physical Damage to Attacks (implicit)

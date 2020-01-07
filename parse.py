@@ -35,6 +35,10 @@ def parse_item_info(text):
 		# get some basic info
 		info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][2]}
 
+
+	m = bool(re.search('Unidentified', text, re.M))
+
+
 	# Oh, it's currency!
 	if info['rarity'] == 'Currency':
 		info['itype'] = info.pop('rarity')
@@ -42,7 +46,7 @@ def parse_item_info(text):
 		info['itype'] == info.pop('rarity')
 	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
 		info['itype'] = 'Currency'
-	elif info['itype'] == "--------": #Unided
+	elif info['itype'] == "--------" and m: #Unided
 		info['itype'] = info['name']
 		# Item Level
 		m = re.findall(r'Item Level: (\d+)', text)
@@ -51,6 +55,8 @@ def parse_item_info(text):
 			info['ilvl'] = int(m[0])
 
 	else:
+		if info['rarity'] == 'Magic' or info['rarity'] == 'Normal':
+			info['itype'] = None
 		# Get Qual
 		m = re.findall(r'^Quality: +(\d+)%', text)
 
@@ -179,12 +185,12 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 				if influenced[influence]:
 					j['query']['filters']['misc_filters']['filters'][influence + "_item"] = "true"
 
-	if name == itype: #Unidentified item
+	if (name == itype or rarity == 'Normal' or rarity == 'Magic') and ilvl != None: #Unidentified item
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 
 	fetch_called = False
-	print(j)
+
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -195,7 +201,6 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 			affix_types = ["implicit", "crafted", "explicit"]
 			if any(atype in proper_affix for atype in affix_types): #If proper_affix is an actual mod...
 				j['query']['stats'][0]['filters'].append({'id': proper_affix, 'value': {'min': 1, 'max': 999}})
-
 		# Now search for similar items, if none found remove a stat and try again. TODO: Refactor and include more vars.
 		num_stats_ignored = 0
 		total_num_stats = len(j['query']['stats'][0]['filters'])
@@ -410,9 +415,13 @@ def watch_clipboard():
 
 					else:
 						# Do intensive search.
-						print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
+						if info['itype'] != info['name'] and info['itype'] != None:
+							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
+						else:
+							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']}")
+
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
-								'corrupted', 'influenced', 'stats')})
+								'corrupted', 'influenced', 'stats', 'rarity')})
 					
 					# If results found
 					if trade_info:
