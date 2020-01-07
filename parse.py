@@ -43,7 +43,12 @@ def parse_item_info(text):
 	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
 		info['itype'] = 'Currency'
 	elif info['itype'] == "--------": #Unided
-		info = {'name': info['itype'], 'rarity': info['rarity'], 'itype': ""}
+		info['itype'] = info['name']
+		# Item Level
+		m = re.findall(r'Item Level: (\d+)', text)
+
+		if m:
+			info['ilvl'] = int(m[0])
 
 	else:
 		# Get Qual
@@ -134,7 +139,7 @@ def fetch(q_res, exchange = False):
 	return results
 
 
-def query_trade(name = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = []):
+def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = []):
 	"""
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
@@ -161,19 +166,21 @@ def query_trade(name = None, itype = None, links = None, corrupted = None, influ
 		j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
 
 	# Set corrupted status
-	if corrupted is not None:
-		j['query']['filters']['misc_filters'] = {'filters': {'corrupted': {'option':
-				str(corrupted).lower()}}}
+	if corrupted:
+		j['query']['filters']['misc_filters'] = {'filters': {'corrupted': {'option': 'true'}}}
+
+	j['query']['filters']['misc_filters'] = {}
+	j['query']['filters']['misc_filters']['filters'] = {}
 
 	# Set influenced status
 	if influenced:
 		if True in influenced.values():
-			j['query']['filters']['misc_filters'] = {}
-			j['query']['filters']['misc_filters']['filters'] = {}
-			
 			for influence in influenced:
 				if influenced[influence]:
 					j['query']['filters']['misc_filters']['filters'][influence + "_item"] = "true"
+
+	if name == itype: #Unidentified item
+		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 
 	fetch_called = False
@@ -404,7 +411,7 @@ def watch_clipboard():
 					else:
 						# Do intensive search.
 						print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
-						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'links',
+						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
 								'corrupted', 'influenced', 'stats')})
 					
 					# If results found
