@@ -7,8 +7,14 @@ from colorama import init, deinit, Fore, Back, Style
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
 
+# Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
+# All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
+
+# This is here so we don't remake it everytime we need it.
+IG_CURRENCY = [CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
+				FOSSILS, VIALS, ESSENCES, DIV_CARDS]
 
 
 def parse_item_info(text):
@@ -29,13 +35,15 @@ def parse_item_info(text):
 		# get some basic info
 		info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][2]}
 
-	if info['itype'] == "--------": #Unided
-		info = {'name': info['itype'], 'rarity': info['rarity'], 'itype': ""}
 	# Oh, it's currency!
 	if info['rarity'] == 'Currency':
 		info['itype'] = info.pop('rarity')
 	elif info['rarity'] == 'Divination Card':
 		info['itype'] == info.pop('rarity')
+	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
+		info['itype'] = 'Currency'
+	elif info['itype'] == "--------": #Unided
+		info = {'name': info['itype'], 'rarity': info['rarity'], 'itype': ""}
 
 	else:
 		# Get Qual
@@ -90,7 +98,6 @@ def parse_item_info(text):
 
 
 def fetch(q_res, exchange = False):
-	print(q_res)
 	"""
 	Fetch is the last step of the API. The item's attributes are decided, and this function checks to see if
 	there are any similar items like it listed.
@@ -243,20 +250,28 @@ def query_exchange(qcur, league='Metamorph'):
 	Build JSON for fetch request of wanted currency exchange.
 	"""
 
-	print(f"[*] All values will be reported as their chaos equivalent.")
+	print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
+	IG_CURRENCY = [CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
+				FOSSILS, VIALS, ESSENCES, DIV_CARDS]
 
-	if qcur in CURRENCY:
-		selection = CURRENCY[qcur]
+	selection = "Exalt"
+	if any(d.get(qcur, None) for d in IG_CURRENCY):
+		for curr_type in IG_CURRENCY:
+			if qcur in curr_type:
+				selection = curr_type[qcur]
+
 
 	# Default JSON
-	def_json = {'exchange': {'have': ['chaos'], 'want': [selection], 'status': {'option': 'online'}}}
+	for haveCurrency in ['chaos', 'exa', 'mir']:
+		def_json = {'exchange': {'have': [haveCurrency], 'want': [selection], 'status': {'option': 'online'}}}
 
-	query = requests.post(f'https://www.pathofexile.com/api/trade/exchange/{league}', json=def_json)
-	res = query.json()
+		query = requests.post(f'https://www.pathofexile.com/api/trade/exchange/{league}', json=def_json)
+		res = query.json()
 
-	if query.status_code != 200:
-		print(f'[!] Trade query failed: HTTP {query.status_code}! ')
-		return "Could not find requested currency exchange value."
+		if len(res['result']) == 0:
+			continue
+		else:
+			break
 
 
 	results = fetch(res, exchange = True)
@@ -384,7 +399,7 @@ def watch_clipboard():
 					elif info['itype'] == 'Divination Card':
 						print(f'[-] Found Divination Card {info["name"]}')
 						print('[-] Getting prices from pathofexile.com/trade...')
-						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype')})
+						trade_info = query_exchange(info['name'])
 
 					else:
 						# Do intensive search.
