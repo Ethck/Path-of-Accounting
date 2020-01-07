@@ -374,9 +374,9 @@ def watch_clipboard():
 	"""
 	print('[*] Watching clipboard (Ctrl+C to stop)...')
 	prev = None
-	while 1:
+	while True:
 		try:
-			text = Tk().clipboard_get()
+			text = root.clipboard_get()
 		except TclError:	 # ignore non-text clipboard contents
 			continue
 		try:
@@ -461,5 +461,7 @@ def watch_clipboard():
 
 if __name__ == "__main__":
 	init(autoreset=True) #Colorama
+	root = Tk()
+	root.withdraw()
 	watch_clipboard()
 	deinit() #Colorama
