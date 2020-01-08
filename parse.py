@@ -230,10 +230,14 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['stats'][0]['type'] = 'and'
 		j['query']['stats'][0]['filters'] = []
 		for stat in stats:
-			proper_affix = find_affix_match(stat)
+			(proper_affix, value) = find_affix_match(stat)
 			affix_types = ["implicit", "crafted", "explicit"]
 			if any(atype in proper_affix for atype in affix_types): #If proper_affix is an actual mod...
-				j['query']['stats'][0]['filters'].append({'id': proper_affix, 'value': {'min': 1, 'max': 999}})
+				j['query']['stats'][0]['filters'].append({'id': proper_affix, 'value': {'min': value, 'max': 999}})
+
+		# Turn life + resists into pseudo-mods
+		j = create_pseudo_mods(j)
+
 		# Now search for similar items, if none found remove a stat and try again. TODO: Refactor and include more vars.
 		num_stats_ignored = 0
 		total_num_stats = len(j['query']['stats'][0]['filters'])
@@ -248,11 +252,15 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 
 			# No results found. Trim the mod list until we find results.
 			if (len(query.json()['result'])) == 0:
-				#Tell the user which mod we are deleting
-				print("[-] Removing the" + Fore.CYAN + f" {stat_translate(j['query']['stats'][0]['filters'][-1])} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
+				
+				# Choose a non-priority mod
+				i = choose_bad_mod(j)
 
-				#Remove last element. To be improved in the future.
-				j['query']['stats'][0]['filters'] = j['query']['stats'][0]['filters'][:-1]
+				# Tell the user which mod we are deleting
+				print("[-] Removing the" + Fore.CYAN + f" {stat_translate(i)} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
+
+				# Remove bad mod.
+				j['query']['stats'][0]['filters'].remove(i)
 				num_stats_ignored += 1
 			else: # Found a result!
 				res = query.json()
@@ -261,11 +269,14 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 
 
 				if result_prices_are_none(results):
-					#Tell the user which mod we are deleting
-					print("[-] Removing the" + Fore.CYAN + f" {stat_translate(j['query']['stats'][0]['filters'][-1])} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
+					# Choose a non-priority mod
+					i = choose_bad_mod(j)
 
-					#Remove last element. To be improved in the future.
-					j['query']['stats'][0]['filters'] = j['query']['stats'][0]['filters'][:-1]
+					# Tell the user which mod we are deleting
+					print("[-] Removing the" + Fore.CYAN + f" {stat_translate(i)} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
+
+					# Remove bad mod.
+					j['query']['stats'][0]['filters'].remove(i)
 					num_stats_ignored += 1
 				else:
 					return results
@@ -275,6 +286,150 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		res = query.json()
 		results = fetch(res)
 		return results
+
+def create_pseudo_mods(j):
+	"""
+	Combines life and resists into pseudo-mods
+
+	Returns item
+	"""
+	# Combine life and resists for pseudo-stats
+	total_ele_resists = 0
+	total_chaos_resist = 0
+	total_life = 0
+
+	# TODO: Find a way to not hard-code
+	# TODO: Support for attributes (including str->life), added phys to attacks, life regen
+	solo_resist_ids = [
+		'explicit.stat_3372524247', # Explicit fire resist
+		'explicit.stat_1671376347', # Explicit lightning resist
+		'explicit.stat_4220027924', # Explicit cold resist
+		'implicit.stat_3372524247', # Implicit fire resist
+		'implicit.stat_1671376347', # Implicit lightning resist
+		'implicit.stat_4220027924', # Implicit cold resist
+		'crafted.stat_3372524247',  # Crafted fire resist
+		'crafted.stat_1671376347',  # Crafted lightning resist
+		'crafted.stat_4220027924',  # Crafted cold resist
+	]
+
+	dual_resist_ids = [
+		'explicit.stat_2915988346', # Explicit fire and cold resists
+		'explicit.stat_3441501978', # Explicit fire and lightning resists
+		'explicit.stat_4277795662', # Explicit cold and lightning resists
+		'implicit.stat_2915988346', # Implicit fire and cold resists
+		'implicit.stat_3441501978', # Implicit fire and lightning resists
+		'implicit.stat_4277795662', # Implicit cold and lightning resists
+		'crafted.stat_2915988346',  # Crafted fire and cold resists
+		'crafted.stat_3441501978',  # Crafted fire and lightning resists
+		'crafted.stat_4277795662',  # Crafted cold and lightning resists
+	]
+
+	triple_resist_ids = [
+		'explicit.stat_2901986750', # Explicit all-res
+		'implicit.stat_2901986750', # Implicit all-res
+		'crafted.stat_2901986750',  # Crafted all-res
+	]
+
+	solo_chaos_resist_ids = [
+		'explicit.stat_2923486259', # Explicit chaos resist
+		'implicit.stat_2923486259', # Implicit chaos resist
+	]
+
+	dual_chaos_resist_ids = [
+		'crafted.stat_378817135',   # Crafted fire and chaos resists
+		'crafted.stat_3393628375',  # Crafted cold and chaos resists
+		'crafted.stat_3465022881',  # Crafted lightning and chaos resists
+	]
+
+	life_ids = [
+		'explicit.stat_3299347043', # Explicit maximum life
+		'implicit.stat_3299347043', # Implicit maximum life
+	]
+
+	combined_filters = []
+	# Solo elemental resists
+	for i in j['query']['stats'][0]['filters']:
+		if i['id'] in solo_resist_ids:
+			total_ele_resists += int(i['value']['min'])
+			combined_filters.append(i)
+
+	# Dual elemental resists
+	for i in j['query']['stats'][0]['filters']:
+		if i['id'] in dual_resist_ids:
+			total_ele_resists += 2*int(i['value']['min'])
+			combined_filters.append(i)
+
+	# Triple elemental resists
+	for i in j['query']['stats'][0]['filters']:
+		if i['id'] in triple_resist_ids:
+			total_ele_resists += 3*int(i['value']['min'])
+			combined_filters.append(i)
+
+	# Solo chaos resists
+	for i in j['query']['stats'][0]['filters']:
+		if i['id'] in solo_chaos_resist_ids:
+			total_chaos_resist += int(i['value']['min'])
+			combined_filters.append(i)
+
+	# Dual chaos resists
+	for i in j['query']['stats'][0]['filters']:
+		if i['id'] in dual_chaos_resist_ids:
+			total_chaos_resist += int(i['value']['min'])
+			total_ele_resists += int(i['value']['min'])
+			combined_filters.append(i)
+
+	# Maximum life
+	for i in j['query']['stats'][0]['filters']:
+		if i['id'] in life_ids:
+			total_life += int(i['value']['min'])
+			combined_filters.append(i)
+
+	# Remove stats that have been combined into pseudo-stat
+	# Round down to nearest 10 for combined stats (off by default)
+	round = False
+	if round:
+		total_ele_resists = total_ele_resists - (total_ele_resists % 10)
+		total_chaos_resist = total_chaos_resist - (total_chaos_resist % 10)
+		total_life = total_life - (total_life % 10)
+
+	j['query']['stats'][0]['filters'] = [e for e in j['query']['stats'][0]['filters'] if e not in combined_filters]
+	
+	if total_ele_resists > 0:
+		j['query']['stats'][0]['filters'].append({'id': 'pseudo.pseudo_total_elemental_resistance', 'value': {'min': total_ele_resists, 'max': 999}})
+		print("[o] Combining the" + Fore.CYAN + f" elemental resistance " + Fore.WHITE + "mods from the list into a pseudo-parameter")
+		print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_ele_resists}% total Elemental Resistance (pseudo)")
+
+	if total_chaos_resist > 0:
+		j['query']['stats'][0]['filters'].append({'id': 'pseudo.pseudo_total_chaos_resistance', 'value': {'min': total_chaos_resist, 'max': 999}})
+		print("[o] Combining the" + Fore.CYAN + f" chaos resistance " + Fore.WHITE + "mods from the list into a pseudo-parameter")
+		print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)")
+
+	if total_life > 0:
+		j['query']['stats'][0]['filters'].append({'id': 'pseudo.pseudo_total_life', 'value': {'min': total_life, 'max': 999}})
+		print("[o] Combining the" + Fore.CYAN + f" maximum life " + Fore.WHITE + "mods from the list into a pseudo-parameter")
+		print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_life} to maximum Life (pseudo)")
+
+	return j
+
+def choose_bad_mod(j):
+	"""
+	Chooses a non-priority mod to delete.
+
+	Returns dictionary
+	"""
+	# Good mod list
+	priority = [
+		'pseudo.pseudo_total_elemental_resistance',
+		'pseudo.pseudo_total_chaos_resistance',
+		'pseudo.pseudo_total_life'
+	]
+
+	# Choose a non-priority mod to delete
+	for i in j['query']['stats'][0]['filters']:
+		if i['id'] not in priority:
+			break
+	
+	return i
 
 
 def result_prices_are_none(j):
@@ -327,49 +482,71 @@ def affix_equals(text, affix):
 	"""
 	Clean up the affix to match the given text so we can find the correct id to search with.
 
-	returns BOOLEAN
+	returns tuple (BOOLEAN, value)
 	"""
+	value = 0
+	match = re.findall(r"\d+", affix)
+	if len(match) > 0:
+		value = match[0]
 	query = re.sub(r"\d+", "#", affix)
 	query = re.sub(r"\+", "", query)
 
+
 	if query.endswith(r" (implicit)"):
 		text = text + r" (implicit)"
+
+	if query.endswith(r" (crafted)"):
+		text = text + r" (crafted)"
+
+	if query.endswith(r" (pseudo)"):
+		text = text + r" (pseudo)"
+		query = r"+" + query
 
 	if text.endswith("(Local)"):
 		query = query + r" (Local)"
 
 	if text == query:
-		print("[+] Found mod " + Fore.GREEN + f"{text}")
-		return True
+		print("[+] Found mod " + Fore.GREEN + f"+{value}{text[1:]}") #TODO: support "# to # damage to attacks" type mods and other similar
+		return (True, value)
 
-	return False
+	return (False, 0)
 
 
 def find_affix_match(affix):
 	"""
 	Search for the proper id to return the correct results.
 
-	returns id of the affix requested
+	returns tuple (id of the affix requested. value)
 	"""
+	pseudos = stats['result'][0]['entries']
 	explicits = stats['result'][1]['entries']
 	implicits = stats['result'][2]['entries']
 	crafted = stats['result'][5]['entries']
-	proper_affix = ""
+	proper_affix = ("", 0)
 
-	if "(implicit)" in affix:
+	if "(pseudo)" in affix:
+		for pseudo in pseudos:
+			(match, value) = affix_equals(pseudo['text'], affix)
+			if match:
+				proper_affix = (pseudo['id'], value)
+
+	elif "(implicit)" in affix:
 		for implicit in implicits:
-			if affix_equals(implicit['text'], affix):
-				proper_affix = implicit['id']
+			(match, value) = affix_equals(implicit['text'], affix)
+			if match:
+				proper_affix = (implicit['id'], value)
 
 	elif "(crafted)" in affix:
 		for craft in crafted:
-			if affix_equals(craft['text'], affix):
-				proper_affix = craft['id']
+			(match, value) = affix_equals(craft['text'], affix)
+			if match:
+				proper_affix = (craft['id'], value)
 
 	else:
 		for explicit in explicits:
-			if affix_equals(explicit['text'], affix):
-				proper_affix = explicit['id']
+			(match, value) = affix_equals(explicit['text'], affix)
+			if match:
+				proper_affix = (explicit['id'], value)
 
 	return proper_affix
 
@@ -380,11 +557,14 @@ def stat_translate(jaffix):
 	"""
 	affix = jaffix['id']
 
+	pseudos = stats['result'][0]['entries']
 	explicits = stats['result'][1]['entries']
 	implicits = stats['result'][2]['entries']
 	crafted = stats['result'][5]['entries']
 
-	if "implicit" in affix:
+	if "pseudo" in affix:
+		return find_stat_by_id(affix, pseudos)
+	elif "implicit" in affix:
 		return find_stat_by_id(affix, implicits)
 	elif "crafted" in affix:
 		return find_stat_by_id(affix, crafted)
