@@ -442,8 +442,6 @@ def query_exchange(qcur, league='Metamorph'):
 	"""
 
 	print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
-	IG_CURRENCY = [CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
-				FOSSILS, VIALS, ESSENCES, DIV_CARDS]
 
 	selection = "Exalt"
 	if any(d.get(qcur, None) for d in IG_CURRENCY):
