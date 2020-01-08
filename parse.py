@@ -12,10 +12,6 @@ leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues")
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
-# This is here so we don't remake it everytime we need it.
-IG_CURRENCY = [CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
-				FOSSILS, VIALS, ESSENCES, DIV_CARDS]
-
 
 def parse_item_info(text):
 	"""
@@ -90,7 +86,7 @@ def parse_item_info(text):
 		m = re.findall(r'Sockets:(.*)', text)
 
 		if m:
-			info['links'] = len(m[0]) // 2
+			info['links'] = m[0].count("-") + 1
 
 		# Corruption status and influenced status
 		info['corrupted'] = bool(re.search('^Corrupted$', text, re.M))
