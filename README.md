@@ -18,7 +18,7 @@ If there is something that you want to see included in Path of Accounting, leave
 In order to use Path of Accounting right now follow these steps:
 
 For WINDOWS:
-* Head over to the releases page, download the newest release, unzip, and execute the `parse.exe` file found inside the parse folder..
+* Head over to the [releases](https://github.com/Ethck/Path-of-Accounting/releases) page, download the newest release, unzip, and execute the `parse.exe` file found inside the parse folder..
 
 For *NIX:
 * Clone the repo, use the requirements.txt to install dependencies, then run parse.py
