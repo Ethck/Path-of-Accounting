@@ -57,6 +57,14 @@ def parse_item_info(text):
 	else:
 		if info['rarity'] == 'Magic' or info['rarity'] == 'Normal':
 			info['itype'] = None
+
+		if info['rarity'] == 'Gem':
+			m = bool(re.search('Vaal', text, re.M))
+			if m:
+				info['itype'] = "Vaal " + info['name']
+			else:
+				info['itype'] = info['name']
+
 		# Get Qual
 		m = re.findall(r'^Quality: +(\d+)%', text)
 
@@ -115,6 +123,7 @@ def fetch(q_res, exchange = False):
 
 	returns JSON of all available similar items.
 	"""
+
 	results = []
 	# Limited to crawling by 10 results at a time due to API restrictions, so check first 50
 	DEFAULT_CAP = 50
@@ -155,9 +164,10 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	# Basic JSON structure
 	j = {'query':{'filters':{}}, 'sort': {'price': 'asc'}}
 
-	# If unique, search by name
-	if (rarity == "Unique") or itype == "Divination Card":
+	# If unique, Div Card, or Gem search by name
+	if rarity == "Unique" or itype == "Divination Card":
 		j['query']['name'] = name
+
 
 	# Set itemtype. TODO: change to allow similar items of other base types... Unless base matters...
 	if itype:
