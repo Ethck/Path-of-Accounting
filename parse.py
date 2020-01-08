@@ -20,7 +20,7 @@ def parse_item_info(text):
 	# Find out if this is a path of exile item
 	m = re.findall(r'^Rarity: (\w+)\r?\n(.+?)\r?\n(.+?)\r?\n', text)
 
-	if not m: # It's not...
+	if not m: # Different check
 		m = re.findall(r"^Rarity: (.*)\n(.*)", text)
 		if not m:
 			return {}
@@ -43,6 +43,22 @@ def parse_item_info(text):
 		info['itype'] = info.pop('rarity')
 	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
 		info['itype'] = 'Currency'
+	elif 'Map' in info['itype']:
+		map_mods = {}
+		map_mods['tier'] = re.findall(r"Map Tier: (\d+)", text)[0]
+		map_mods['iiq'] = re.findall(r"Item Quantity: \+(\d+)%", text)[0]
+		map_mods['pack'] = re.findall(r"Pack Size: \+(\d+)%", text)[0]
+		map_mods['iir'] = re.findall(r"Item Rarity: \+(\d+)%", text)[0]
+		map_mods['blight'] = bool(re.search("Blighted Map", text, re.M))
+		map_mods['shaper'] = bool(re.search('Area is influenced by The Shaper', text, re.M))
+		map_mods['elder'] = bool(re.search('Area is influenced by The Elder', text, re.M))
+		map_mods['enslaver'] = bool(re.search('Map is occupied by The Enslaver', text, re.M))
+		map_mods['eradicator'] = bool(re.search('Map is occupied by The Eradicator', text, re.M))
+		map_mods['constrictor'] = bool(re.search('Map is occupied by The Constrictor', text, re.M))
+		map_mods['purifier'] = bool(re.search('Map is occupied by The Purifier', text, re.M))
+
+		info['maps'] = map_mods
+
 	elif info['itype'] == "--------" and unident: #Unided
 		info['itype'] = info['name']
 		if info['rarity'] == 'Unique':
@@ -172,7 +188,7 @@ def fetch(q_res, exchange = False):
 	return results
 
 
-def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = [], gem_level = None, quality = None):
+def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = [], gem_level = None, quality = None, maps = None):
 	"""
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
@@ -181,6 +197,40 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	"""
 	# Basic JSON structure
 	j = {'query':{'filters':{}}, 'sort': {'price': 'asc'}}
+
+	if maps is not None:
+		j['query']['filters']['map_filters'] = {}
+		j['query']['filters']['map_filters']['filters'] = {}
+		if maps['blight']:
+			j['query']['filters']['map_filters']['filters']['map_blighted'] = 'True'
+		if maps['iiq']:
+			j['query']['filters']['map_filters']['filters']['map_iiq'] = {'min': maps['iiq'], 'max': 'null'}
+		if maps['iir']:
+			j['query']['filters']['map_filters']['filters']['map_iir'] = {'min': maps['iir'], 'max': 'null'}
+		if maps['pack']:
+			j['query']['filters']['map_filters']['filters']['map_packsize'] = {'min': maps['pack'], 'max': 'null'}
+		if maps['tier']:
+			j['query']['filters']['map_filters']['filters']['map_tier'] = {'min': maps['tier'], 'max': 'null'}
+
+		if maps['shaper'] or maps['elder']:
+			j['query']['stats'] = [{}]
+			j['query']['stats'][0]['type'] = 'and'
+			j['query']['stats'][0]['filters'] = []
+
+			if maps['shaper']:
+				j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_1792283443', 'value': {'option': '1'}})
+			elif maps['elder']:
+				j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_1792283443', 'value': {'option': '2'}})
+
+			if maps['enslaver'] or maps['eradicator'] or maps['constrictor'] or maps['purifier']:
+				if maps['enslaver']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '1'}})
+				elif maps['eradicator']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '2'}})
+				elif maps['constrictor']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '3'}})
+				elif maps['purifier']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '4'}})
 
 	# If unique, Div Card, or Gem search by name
 	if rarity == "Unique" or itype == "Divination Card":
@@ -230,6 +280,7 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
+	print(j)
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -653,7 +704,7 @@ def watch_clipboard():
 							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
-								'corrupted', 'influenced', 'stats', 'rarity', 'gem_level', 'quality')})
+								'corrupted', 'influenced', 'stats', 'rarity', 'gem_level', 'quality', 'maps')})
 					
 					# If results found
 					if trade_info:
