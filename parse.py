@@ -414,8 +414,9 @@ def watch_clipboard():
 						print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
 
-						if info['corrupted']:
-							base += f"Corrupted "
+						if 'corrupted' in info:
+							if info['corrupted']:
+								base += f"Corrupted "
 
 						if "links" in info:
 							if info['links'] > 1:
