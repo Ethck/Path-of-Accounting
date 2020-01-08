@@ -37,6 +37,7 @@ def parse_item_info(text):
 
 
 	m = bool(re.search('Unidentified', text, re.M))
+	metamorph = bool(re.search("Tane", text, re.M))
 
 
 	# Oh, it's currency!
@@ -49,6 +50,12 @@ def parse_item_info(text):
 	elif info['itype'] == "--------" and m: #Unided
 		info['itype'] = info['name']
 		# Item Level
+		m = re.findall(r'Item Level: (\d+)', text)
+
+		if m:
+			info['ilvl'] = int(m[0])
+	elif metamorph:
+		info['itype'] = "Metamorph"
 		m = re.findall(r'Item Level: (\d+)', text)
 
 		if m:
@@ -168,9 +175,16 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	if rarity == "Unique" or itype == "Divination Card":
 		j['query']['name'] = name
 
+	if itype == "Metamorph":
+		mm_parts = ["Brain", "Lung", "Eye", "Heart", "Liver"]
+
+		for part in mm_parts:
+			if part in name:
+				del j['query']['name']
+				j['query']['type'] = "Metamorph " + part
 
 	# Set itemtype. TODO: change to allow similar items of other base types... Unless base matters...
-	if itype:
+	elif itype:
 		j['query']['type'] = itype
 
 	# Only search for items online
@@ -195,12 +209,11 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 				if influenced[influence]:
 					j['query']['filters']['misc_filters']['filters'][influence + "_item"] = "true"
 
-	if (name == itype or rarity == 'Normal' or rarity == 'Magic') and ilvl != None: #Unidentified item
+
+	if (name == itype or rarity == 'Normal' or rarity == 'Magic' or itype == 'Metamorph') and ilvl != None: #Unidentified item
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
-
 	fetch_called = False
-
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -396,7 +409,7 @@ def watch_clipboard():
 
 				if info:
 					# Uniques, only search by corrupted status, links, and name.
-					if info.get('rarity') == 'Unique':
+					if (info.get('rarity') == 'Unique') and (info.get('itype') != "Metamorph"):
 						print(f'[*] Found unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
 
