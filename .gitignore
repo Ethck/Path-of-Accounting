@@ -1,3 +1,5 @@
-parse.spec
 __pycache__/
-
+build/
+dist/
+*.spec
+release*/
