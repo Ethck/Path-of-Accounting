@@ -67,7 +67,8 @@ def parse_item_info(text):
 
 		if info['rarity'] == 'Gem':
 			m = bool(re.search('Vaal', text, re.M))
-			if m:
+			a = bool(re.search('Awakened', text, re.M))
+			if m and not a:
 				info['itype'] = "Vaal " + info['name']
 			else:
 				info['itype'] = info['name']
