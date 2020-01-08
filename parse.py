@@ -32,7 +32,7 @@ def parse_item_info(text):
 		info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][2]}
 
 
-	m = bool(re.search('Unidentified', text, re.M))
+	unident = bool(re.search('Unidentified', text, re.M))
 	metamorph = bool(re.search("Tane", text, re.M))
 
 
@@ -43,8 +43,11 @@ def parse_item_info(text):
 		info['itype'] = info.pop('rarity')
 	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
 		info['itype'] = 'Currency'
-	elif info['itype'] == "--------" and m: #Unided
+	elif info['itype'] == "--------" and unident: #Unided
 		info['itype'] = info['name']
+		if info['rarity'] == 'Unique':
+			print("[!] " + Fore.RED + "Can't price " + Fore.WHITE + "this item because it is " + Fore.YELLOW + "unidentified" + Fore.WHITE + ". Please identify and try again.")
+			return 0
 		# Item Level
 		m = re.findall(r'Item Level: (\d+)', text)
 
@@ -148,20 +151,23 @@ def fetch(q_res, exchange = False):
 		cap = int((len(q_res) / 10) * 10)
 
 	# Find all the results
-	for i in range(0, cap, interval):
-		url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(q_res["result"][i:i+10])}?query={q_res["id"]}'
+	if 'result' in q_res:
+		for i in range(0, cap, interval):
+			url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(q_res["result"][i:i+10])}?query={q_res["id"]}'
 
-		if exchange:
-			url += "exchange=true"
+			if exchange:
+				url += "exchange=true"
 
-		res = requests.get(url)
-		if res.status_code != 200:
-			print(f'[!] Trade result retrieval failed: HTTP {res.status_code}! '
-					f'Message: {res.json().get("error", "unknown error")}')
-			break
+			res = requests.get(url)
+			if res.status_code != 200:
+				print(f'[!] Trade result retrieval failed: HTTP {res.status_code}! '
+						f'Message: {res.json().get("error", "unknown error")}')
+				break
 
-		# Return the results from our fetch (this has who to whisper, prices, and more!)
-		results += res.json()['result']
+			# Return the results from our fetch (this has who to whisper, prices, and more!)
+			results += res.json()['result']
+	else:
+				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
 
 	return results
 
