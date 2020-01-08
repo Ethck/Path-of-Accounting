@@ -386,8 +386,8 @@ def create_pseudo_mods(j):
 
 	# Remove stats that have been combined into pseudo-stat
 	# Round down to nearest 10 for combined stats (off by default)
-	round = False
-	if round:
+	do_round = False
+	if do_round:
 		total_ele_resists = total_ele_resists - (total_ele_resists % 10)
 		total_chaos_resist = total_chaos_resist - (total_chaos_resist % 10)
 		total_life = total_life - (total_life % 10)
