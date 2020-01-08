@@ -251,24 +251,9 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 			query = requests.post(f'https://www.pathofexile.com/api/trade/search/{league}', json=j)
 
 			# No results found. Trim the mod list until we find results.
-			if (len(query.json()['result'])) == 0:
-				
-				# Choose a non-priority mod
-				i = choose_bad_mod(j)
-
-				# Tell the user which mod we are deleting
-				print("[-] Removing the" + Fore.CYAN + f" {stat_translate(i)} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
-
-				# Remove bad mod.
-				j['query']['stats'][0]['filters'].remove(i)
-				num_stats_ignored += 1
-			else: # Found a result!
-				res = query.json()
-				fetch_called = True
-				results = fetch(res)
-
-
-				if result_prices_are_none(results):
+			if 'result' in query.json():
+				if (len(query.json()['result'])) == 0:
+					
 					# Choose a non-priority mod
 					i = choose_bad_mod(j)
 
@@ -278,8 +263,26 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 					# Remove bad mod.
 					j['query']['stats'][0]['filters'].remove(i)
 					num_stats_ignored += 1
-				else:
-					return results
+				else: # Found a result!
+					res = query.json()
+					fetch_called = True
+					results = fetch(res)
+
+
+					if result_prices_are_none(results):
+						# Choose a non-priority mod
+						i = choose_bad_mod(j)
+
+						# Tell the user which mod we are deleting
+						print("[-] Removing the" + Fore.CYAN + f" {stat_translate(i)} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
+
+						# Remove bad mod.
+						j['query']['stats'][0]['filters'].remove(i)
+						num_stats_ignored += 1
+					else:
+						return results
+			else:
+				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
 
 	if not fetch_called: # Any time we ignore stats.
 		query = requests.post(f'https://www.pathofexile.com/api/trade/search/{league}', json=j)
@@ -347,6 +350,7 @@ def create_pseudo_mods(j):
 	]
 
 	combined_filters = []
+
 	# Solo elemental resists
 	for i in j['query']['stats'][0]['filters']:
 		if i['id'] in solo_resist_ids:
@@ -384,7 +388,6 @@ def create_pseudo_mods(j):
 			total_life += int(i['value']['min'])
 			combined_filters.append(i)
 
-	# Remove stats that have been combined into pseudo-stat
 	# Round down to nearest 10 for combined stats (off by default)
 	do_round = False
 	if do_round:
@@ -392,6 +395,7 @@ def create_pseudo_mods(j):
 		total_chaos_resist = total_chaos_resist - (total_chaos_resist % 10)
 		total_life = total_life - (total_life % 10)
 
+	# Remove stats that have been combined into psudo-stats
 	j['query']['stats'][0]['filters'] = [e for e in j['query']['stats'][0]['filters'] if e not in combined_filters]
 	
 	if total_ele_resists > 0:
