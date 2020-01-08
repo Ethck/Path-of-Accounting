@@ -410,7 +410,7 @@ def watch_clipboard():
 				if info:
 					# Uniques, only search by corrupted status, links, and name.
 					if (info.get('rarity') == 'Unique') and (info.get('itype') != "Metamorph"):
-						print(f'[*] Found unique item in clipboard: {info["name"]} {info["itype"]}')
+						print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
 
 						if info['corrupted']:
@@ -422,18 +422,15 @@ def watch_clipboard():
 
 						print("[-]", base)
 
-						print('[-] Getting prices from pathofexile.com/trade...')
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'links',
 								'corrupted', 'rarity')})
 
 					elif info['itype'] == 'Currency':
-						print(f'[-] Found currency {info["name"]} in clipboard; '
-								'getting prices from pathofexile.com/trade/exchange...')
+						print(f'[-] Found currency {info["name"]} in clipboard')
 						trade_info = query_exchange(info['name'])
 
 					elif info['itype'] == 'Divination Card':
 						print(f'[-] Found Divination Card {info["name"]}')
-						print('[-] Getting prices from pathofexile.com/trade...')
 						trade_info = query_exchange(info['name'])
 
 					else:
@@ -460,17 +457,18 @@ def watch_clipboard():
 
 							# Make pretty strings.
 							for price_dict in prices:
-								pretty_price = " ".join(re.split(r"(\d+)", price_dict)[1:])
+								pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
 								print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
 								total_count += prices[price_dict]
 
-							print(f'[!] Lowest {total_count} prices: {print_string}\n\n')
+							# Print the pretty string, ignoring trailing comma 
+							print(f'[!] Lowest {total_count} prices: {print_string[:-2]}\n\n')
 
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
 								price = f"{price['amount']} x {price['currency']}"
-							print("[!] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.")
+							print("[!] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.\n\n")
 
 					elif trade_info is not None:
 						print(f'[!] No results!')
