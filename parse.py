@@ -68,13 +68,21 @@ def parse_item_info(text):
 		if info['rarity'] == 'Gem':
 			m = bool(re.search('Vaal', text, re.M))
 			a = bool(re.search('Awakened', text, re.M))
+			c = bool(re.search('^Corrupted', text, re.M))
+
+			lvl = re.findall('Level: (\d+)', text)[0]
+			if lvl is not None:
+				info['gem_level'] = lvl
+
+			if c:
+				info['corrupted'] = True
 			if m and not a:
 				info['itype'] = "Vaal " + info['name']
 			else:
 				info['itype'] = info['name']
 
 		# Get Qual
-		m = re.findall(r'^Quality: +(\d+)%', text)
+		m = re.findall(r'Quality: \+(\d+)%', text)
 
 		info['quality'] = int(m[0]) if m else 0
 
@@ -162,7 +170,7 @@ def fetch(q_res, exchange = False):
 	return results
 
 
-def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = []):
+def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = [], gem_level = None, quality = None):
 	"""
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
@@ -196,12 +204,17 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	if links:
 		j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
 
-	# Set corrupted status
-	if corrupted:
-		j['query']['filters']['misc_filters'] = {'filters': {'corrupted': {'option': 'true'}}}
-
 	j['query']['filters']['misc_filters'] = {}
 	j['query']['filters']['misc_filters']['filters'] = {}
+
+	# Set corrupted status
+	if corrupted:
+		j['query']['filters']['misc_filters']['filters']['corrupted'] = {'option': 'true'}
+
+	if gem_level:
+		# Only used for skill gems
+		j['query']['filters']['misc_filters']['filters']['gem_level'] = {'min': gem_level, 'max': 'null'}
+		j['query']['filters']['misc_filters']['filters']['quality'] = {'min': quality, 'max': 'null'}
 
 	# Set influenced status
 	if influenced:
@@ -440,10 +453,21 @@ def watch_clipboard():
 						if info['itype'] != info['name'] and info['itype'] != None:
 							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
 						else:
-							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']}")
+							extra_strings = ""
+							if info['rarity'] == "Gem":
+								extra_strings += f"Level: {info['gem_level']}+, "
+
+							if 'corrupted' in info:
+								if info['corrupted']:
+									extra_strings += "Corrupted: True, "
+
+							if info['quality'] != 0:
+								extra_strings += f"Quality: {info['quality']}+"
+
+							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
-								'corrupted', 'influenced', 'stats', 'rarity')})
+								'corrupted', 'influenced', 'stats', 'rarity', 'gem_level', 'quality')})
 					
 					# If results found
 					if trade_info:
