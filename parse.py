@@ -7,6 +7,8 @@ from colorama import init, deinit, Fore, Back, Style
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
 from hotkeys import watch_keyboard
+from contextlib import redirect_stdout
+import io
 
 # Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
@@ -305,7 +307,10 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
-	print(j)
+	f = io.StringIO()
+	with redirect_stdout(f):
+		print(j)
+	#print('Got stdout: "{0}"'.format(f.getvalue()))
 	
 	# Find every stat
 	if stats:
@@ -738,6 +743,7 @@ def watch_clipboard():
 					if trade_info:
 						# If more than 1 result, assemble price list.
 						if len(trade_info) > 1:
+							print(trade_info[0]['item']['extended'])
 							prev_account_name = ""
 							# Modify data to usable status.
 							prices = []
@@ -760,13 +766,13 @@ def watch_clipboard():
 								total_count += prices[price_dict]
 
 							# Print the pretty string, ignoring trailing comma 
-							print(f'[$] Lowest {total_count} prices: {print_string[:-2]}\n\n')
+							print(f'[$] Price: {print_string[:-2]}\n\n')
 
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
 								price = f"{price['amount']} x {price['currency']}"
-							print("[$] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.\n\n")
+							print("[$] Price:" + Fore.YELLOW + f" {price} "+ "\n\n")
 
 					elif trade_info is not None:
 						print(f'[!] No results!')
