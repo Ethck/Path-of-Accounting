@@ -729,8 +729,17 @@ def watch_clipboard():
 					if trade_info:
 						# If more than 1 result, assemble price list.
 						if len(trade_info) > 1:
+							prev_account_name = ""
 							# Modify data to usable status.
-							prices = [x['listing']['price'] for x in trade_info]
+							#prices = [
+							prices = []
+							for trade in trade_info:
+								if trade['listing']['account']['name'] != prev_account_name:
+									prices.append(trade['listing']['price'])
+
+								prev_account_name = trade['listing']['account']['name']
+
+							#print(trade_info[1]['listing']['account']['name'])
 							prices = ['%(amount)s%(currency)s' % x for x in prices if x != None]
 
 							prices = {x:prices.count(x) for x in prices}
