@@ -12,10 +12,6 @@ leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues")
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
-# This is here so we don't remake it everytime we need it.
-IG_CURRENCY = [CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
-				FOSSILS, VIALS, ESSENCES, DIV_CARDS]
-
 
 def parse_item_info(text):
 	"""
@@ -24,7 +20,7 @@ def parse_item_info(text):
 	# Find out if this is a path of exile item
 	m = re.findall(r'^Rarity: (\w+)\r?\n(.+?)\r?\n(.+?)\r?\n', text)
 
-	if not m: # It's not...
+	if not m: # Different check
 		m = re.findall(r"^Rarity: (.*)\n(.*)", text)
 		if not m:
 			return {}
@@ -36,8 +32,17 @@ def parse_item_info(text):
 		info = {'name': m[0][1], 'rarity': m[0][0], 'itype': m[0][2]}
 
 
-	m = bool(re.search('Unidentified', text, re.M))
+	unident = bool(re.search('Unidentified', text, re.M))
 	metamorph = bool(re.search("Tane", text, re.M))
+
+	# Get Qual
+	m = re.findall(r'Quality: \+(\d+)%', text)
+
+	info['quality'] = int(m[0]) if m else 0
+
+	if 'Map' in info['name'] and 'Map' not in info['itype']: #Seems to be all Superior maps...
+		if info['itype'] == "--------":
+			info['itype'] = info['name']
 
 
 	# Oh, it's currency!
@@ -47,8 +52,36 @@ def parse_item_info(text):
 		info['itype'] = info.pop('rarity')
 	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
 		info['itype'] = 'Currency'
-	elif info['itype'] == "--------" and m: #Unided
+	elif 'Map' in info['itype']:
+		if info['quality'] != 0:
+			info['itype'] = info['itype'].replace("Superior", "").strip()
+		map_mods = {}
+		map_mods['tier'] = re.findall(r"Map Tier: (\d+)", text)[0]
+		map_mods['iiq'] = re.findall(r"Item Quantity: \+(\d+)%", text)[0]
+
+		pack_re = re.findall(r"Pack Size: \+(\d+)%", text)
+		if len(pack_re) > 0:
+			map_mods['pack'] = pack_re[0]
+
+		iir_re = re.findall(r"Item Rarity: \+(\d+)%", text)
+		if len(iir_re) > 0:
+			map_mods['iir'] = iir_re[0]
+
+		map_mods['blight'] = bool(re.search("Blighted Map", text, re.M))
+		map_mods['shaper'] = bool(re.search('Area is influenced by The Shaper', text, re.M))
+		map_mods['elder'] = bool(re.search('Area is influenced by The Elder', text, re.M))
+		map_mods['enslaver'] = bool(re.search('Map is occupied by The Enslaver', text, re.M))
+		map_mods['eradicator'] = bool(re.search('Map is occupied by The Eradicator', text, re.M))
+		map_mods['constrictor'] = bool(re.search('Map is occupied by The Constrictor', text, re.M))
+		map_mods['purifier'] = bool(re.search('Map is occupied by The Purifier', text, re.M))
+
+		info['maps'] = map_mods
+
+	elif info['itype'] == "--------" and unident: #Unided
 		info['itype'] = info['name']
+		if info['rarity'] == 'Unique':
+			print("[!] " + Fore.RED + "Can't price " + Fore.WHITE + "this item because it is " + Fore.YELLOW + "unidentified" + Fore.WHITE + ". Please identify and try again.")
+			return 0
 		# Item Level
 		m = re.findall(r'Item Level: (\d+)', text)
 
@@ -68,21 +101,24 @@ def parse_item_info(text):
 		if info['rarity'] == 'Gem':
 			m = bool(re.search('Vaal', text, re.M))
 			a = bool(re.search('Awakened', text, re.M))
+			c = bool(re.search('^Corrupted', text, re.M))
+
+			lvl = re.findall(r'Level: (\d+)', text)[0]
+			if lvl is not None:
+				info['gem_level'] = lvl
+
+			if c:
+				info['corrupted'] = True
 			if m and not a:
 				info['itype'] = "Vaal " + info['name']
 			else:
 				info['itype'] = info['name']
 
-		# Get Qual
-		m = re.findall(r'^Quality: +(\d+)%', text)
-
-		info['quality'] = int(m[0]) if m else 0
-
 		# Sockets and Links
 		m = re.findall(r'Sockets:(.*)', text)
 
 		if m:
-			info['links'] = len(m[0]) // 2
+			info['links'] = m[0].count("-") + 1
 
 		# Corruption status and influenced status
 		info['corrupted'] = bool(re.search('^Corrupted$', text, re.M))
@@ -144,25 +180,28 @@ def fetch(q_res, exchange = False):
 		cap = int((len(q_res) / 10) * 10)
 
 	# Find all the results
-	for i in range(0, cap, interval):
-		url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(q_res["result"][i:i+10])}?query={q_res["id"]}'
+	if 'result' in q_res:
+		for i in range(0, cap, interval):
+			url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(q_res["result"][i:i+10])}?query={q_res["id"]}'
 
-		if exchange:
-			url += "exchange=true"
+			if exchange:
+				url += "exchange=true"
 
-		res = requests.get(url)
-		if res.status_code != 200:
-			print(f'[!] Trade result retrieval failed: HTTP {res.status_code}! '
-					f'Message: {res.json().get("error", "unknown error")}')
-			break
+			res = requests.get(url)
+			if res.status_code != 200:
+				print(f'[!] Trade result retrieval failed: HTTP {res.status_code}! '
+						f'Message: {res.json().get("error", "unknown error")}')
+				break
 
-		# Return the results from our fetch (this has who to whisper, prices, and more!)
-		results += res.json()['result']
+			# Return the results from our fetch (this has who to whisper, prices, and more!)
+			results += res.json()['result']
+	else:
+				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
 
 	return results
 
 
-def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = []):
+def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = [], gem_level = None, quality = None, maps = None):
 	"""
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
@@ -171,6 +210,44 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	"""
 	# Basic JSON structure
 	j = {'query':{'filters':{}}, 'sort': {'price': 'asc'}}
+
+	if maps is not None:
+		j['query']['filters']['map_filters'] = {}
+		j['query']['filters']['map_filters']['filters'] = {}
+		if maps['blight']:
+			j['query']['filters']['map_filters']['filters']['map_blighted'] = 'True'
+		if maps['iiq']:
+			j['query']['filters']['map_filters']['filters']['map_iiq'] = {'min': maps['iiq'], 'max': 'null'}
+
+		if 'iir' in maps: # False if Unidentified
+			if maps['iir']:
+				j['query']['filters']['map_filters']['filters']['map_iir'] = {'min': maps['iir'], 'max': 'null'}
+		if 'pack' in maps: # False if Unidentified
+			if maps['pack']:
+				j['query']['filters']['map_filters']['filters']['map_packsize'] = {'min': maps['pack'], 'max': 'null'}
+
+		if maps['tier']:
+			j['query']['filters']['map_filters']['filters']['map_tier'] = {'min': maps['tier'], 'max': 'null'}
+
+		if maps['shaper'] or maps['elder']:
+			j['query']['stats'] = [{}]
+			j['query']['stats'][0]['type'] = 'and'
+			j['query']['stats'][0]['filters'] = []
+
+			if maps['shaper']:
+				j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_1792283443', 'value': {'option': '1'}})
+			elif maps['elder']:
+				j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_1792283443', 'value': {'option': '2'}})
+
+			if maps['enslaver'] or maps['eradicator'] or maps['constrictor'] or maps['purifier']:
+				if maps['enslaver']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '1'}})
+				elif maps['eradicator']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '2'}})
+				elif maps['constrictor']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '3'}})
+				elif maps['purifier']:
+					j['query']['stats'][0]['filters'].append({'id': 'implicit.stat_3624393862', 'value': {'option': '4'}})
 
 	# If unique, Div Card, or Gem search by name
 	if rarity == "Unique" or itype == "Divination Card":
@@ -196,12 +273,17 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	if links:
 		j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
 
-	# Set corrupted status
-	if corrupted:
-		j['query']['filters']['misc_filters'] = {'filters': {'corrupted': {'option': 'true'}}}
-
 	j['query']['filters']['misc_filters'] = {}
 	j['query']['filters']['misc_filters']['filters'] = {}
+
+	# Set corrupted status
+	if corrupted:
+		j['query']['filters']['misc_filters']['filters']['corrupted'] = {'option': 'true'}
+
+	if gem_level:
+		# Only used for skill gems
+		j['query']['filters']['misc_filters']['filters']['gem_level'] = {'min': gem_level, 'max': 'null'}
+		j['query']['filters']['misc_filters']['filters']['quality'] = {'min': quality, 'max': 'null'}
 
 	# Set influenced status
 	if influenced:
@@ -215,6 +297,7 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
+	
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -242,24 +325,9 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 			query = requests.post(f'https://www.pathofexile.com/api/trade/search/{league}', json=j)
 
 			# No results found. Trim the mod list until we find results.
-			if (len(query.json()['result'])) == 0:
-				
-				# Choose a non-priority mod
-				i = choose_bad_mod(j)
-
-				# Tell the user which mod we are deleting
-				print("[-] Removing the" + Fore.CYAN + f" {stat_translate(i)} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
-
-				# Remove bad mod.
-				j['query']['stats'][0]['filters'].remove(i)
-				num_stats_ignored += 1
-			else: # Found a result!
-				res = query.json()
-				fetch_called = True
-				results = fetch(res)
-
-
-				if result_prices_are_none(results):
+			if 'result' in query.json():
+				if (len(query.json()['result'])) == 0:
+					
 					# Choose a non-priority mod
 					i = choose_bad_mod(j)
 
@@ -269,8 +337,26 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 					# Remove bad mod.
 					j['query']['stats'][0]['filters'].remove(i)
 					num_stats_ignored += 1
-				else:
-					return results
+				else: # Found a result!
+					res = query.json()
+					fetch_called = True
+					results = fetch(res)
+
+
+					if result_prices_are_none(results):
+						# Choose a non-priority mod
+						i = choose_bad_mod(j)
+
+						# Tell the user which mod we are deleting
+						print("[-] Removing the" + Fore.CYAN + f" {stat_translate(i)} " + Fore.WHITE + "mod from the list due to" + Fore.RED + " no results found.")
+
+						# Remove bad mod.
+						j['query']['stats'][0]['filters'].remove(i)
+						num_stats_ignored += 1
+					else:
+						return results
+			else:
+				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
 
 	if not fetch_called: # Any time we ignore stats.
 		query = requests.post(f'https://www.pathofexile.com/api/trade/search/{league}', json=j)
@@ -338,6 +424,7 @@ def create_pseudo_mods(j):
 	]
 
 	combined_filters = []
+
 	# Solo elemental resists
 	for i in j['query']['stats'][0]['filters']:
 		if i['id'] in solo_resist_ids:
@@ -375,14 +462,14 @@ def create_pseudo_mods(j):
 			total_life += int(i['value']['min'])
 			combined_filters.append(i)
 
-	# Remove stats that have been combined into pseudo-stat
 	# Round down to nearest 10 for combined stats (off by default)
-	round = False
-	if round:
+	do_round = False
+	if do_round:
 		total_ele_resists = total_ele_resists - (total_ele_resists % 10)
 		total_chaos_resist = total_chaos_resist - (total_chaos_resist % 10)
 		total_life = total_life - (total_life % 10)
 
+	# Remove stats that have been combined into psudo-stats
 	j['query']['stats'][0]['filters'] = [e for e in j['query']['stats'][0]['filters'] if e not in combined_filters]
 	
 	if total_ele_resists > 0:
@@ -593,15 +680,18 @@ def watch_clipboard():
 					if (info.get('rarity') == 'Unique') and (info.get('itype') != "Metamorph"):
 						print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
+						pprint = base
 
-						if info['corrupted']:
-							base += f"Corrupted "
+						if 'corrupted' in info:
+							if info['corrupted']:
+								pprint += f"Corrupted "
 
 						if "links" in info:
 							if info['links'] > 1:
-								base += f"{info['links']} linked "
+								pprint += f"{info['links']} linked "
 
-						print("[-]", base)
+						if pprint != base:
+							print("[-]", pprint)
 
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'links',
 								'corrupted', 'rarity')})
@@ -619,18 +709,38 @@ def watch_clipboard():
 						if info['itype'] != info['name'] and info['itype'] != None:
 							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
 						else:
-							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']}")
+							extra_strings = ""
+							if info['rarity'] == "Gem":
+								extra_strings += f"Level: {info['gem_level']}+, "
+
+							if 'corrupted' in info:
+								if info['corrupted']:
+									extra_strings += "Corrupted: True, "
+
+							if info['quality'] != 0:
+								extra_strings += f"Quality: {info['quality']}+"
+
+							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
-								'corrupted', 'influenced', 'stats', 'rarity')})
+								'corrupted', 'influenced', 'stats', 'rarity', 'gem_level', 'quality', 'maps')})
 					
 					# If results found
 					if trade_info:
 						# If more than 1 result, assemble price list.
 						if len(trade_info) > 1:
+							prev_account_name = ""
 							# Modify data to usable status.
-							prices = [x['listing']['price'] for x in trade_info]
-							prices = ['%(amount)s%(currency)s' % x for x in prices]
+							#prices = [
+							prices = []
+							for trade in trade_info:
+								if trade['listing']['account']['name'] != prev_account_name:
+									prices.append(trade['listing']['price'])
+
+								prev_account_name = trade['listing']['account']['name']
+
+							#print(trade_info[1]['listing']['account']['name'])
+							prices = ['%(amount)s%(currency)s' % x for x in prices if x != None]
 
 							prices = {x:prices.count(x) for x in prices}
 							print_string = ""
@@ -643,13 +753,13 @@ def watch_clipboard():
 								total_count += prices[price_dict]
 
 							# Print the pretty string, ignoring trailing comma 
-							print(f'[!] Lowest {total_count} prices: {print_string[:-2]}\n\n')
+							print(f'[$] Lowest {total_count} prices: {print_string[:-2]}\n\n')
 
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
 								price = f"{price['amount']} x {price['currency']}"
-							print("[!] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.\n\n")
+							print("[$] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.\n\n")
 
 					elif trade_info is not None:
 						print(f'[!] No results!')
