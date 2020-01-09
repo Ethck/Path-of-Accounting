@@ -35,6 +35,15 @@ def parse_item_info(text):
 	unident = bool(re.search('Unidentified', text, re.M))
 	metamorph = bool(re.search("Tane", text, re.M))
 
+	# Get Qual
+	m = re.findall(r'Quality: \+(\d+)%', text)
+
+	info['quality'] = int(m[0]) if m else 0
+
+	if 'Map' in info['name'] and 'Map' not in info['itype']: #Seems to be all Superior maps...
+		if info['itype'] == "--------":
+			info['itype'] = info['name']
+
 
 	# Oh, it's currency!
 	if info['rarity'] == 'Currency':
@@ -44,11 +53,20 @@ def parse_item_info(text):
 	elif info['rarity'] == 'Normal' and 'Scarab' in info['name']:
 		info['itype'] = 'Currency'
 	elif 'Map' in info['itype']:
+		if info['quality'] != 0:
+			info['itype'] = info['itype'].replace("Superior", "").strip()
 		map_mods = {}
 		map_mods['tier'] = re.findall(r"Map Tier: (\d+)", text)[0]
 		map_mods['iiq'] = re.findall(r"Item Quantity: \+(\d+)%", text)[0]
-		map_mods['pack'] = re.findall(r"Pack Size: \+(\d+)%", text)[0]
-		map_mods['iir'] = re.findall(r"Item Rarity: \+(\d+)%", text)[0]
+
+		pack_re = re.findall(r"Pack Size: \+(\d+)%", text)
+		if len(pack_re) > 0:
+			map_mods['pack'] = pack_re[0]
+
+		iir_re = re.findall(r"Item Rarity: \+(\d+)%", text)
+		if len(iir_re) > 0:
+			map_mods['iir'] = iir_re[0]
+
 		map_mods['blight'] = bool(re.search("Blighted Map", text, re.M))
 		map_mods['shaper'] = bool(re.search('Area is influenced by The Shaper', text, re.M))
 		map_mods['elder'] = bool(re.search('Area is influenced by The Elder', text, re.M))
@@ -85,7 +103,7 @@ def parse_item_info(text):
 			a = bool(re.search('Awakened', text, re.M))
 			c = bool(re.search('^Corrupted', text, re.M))
 
-			lvl = re.findall('Level: (\d+)', text)[0]
+			lvl = re.findall(r'Level: (\d+)', text)[0]
 			if lvl is not None:
 				info['gem_level'] = lvl
 
@@ -95,11 +113,6 @@ def parse_item_info(text):
 				info['itype'] = "Vaal " + info['name']
 			else:
 				info['itype'] = info['name']
-
-		# Get Qual
-		m = re.findall(r'Quality: \+(\d+)%', text)
-
-		info['quality'] = int(m[0]) if m else 0
 
 		# Sockets and Links
 		m = re.findall(r'Sockets:(.*)', text)
@@ -205,10 +218,14 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 			j['query']['filters']['map_filters']['filters']['map_blighted'] = 'True'
 		if maps['iiq']:
 			j['query']['filters']['map_filters']['filters']['map_iiq'] = {'min': maps['iiq'], 'max': 'null'}
-		if maps['iir']:
-			j['query']['filters']['map_filters']['filters']['map_iir'] = {'min': maps['iir'], 'max': 'null'}
-		if maps['pack']:
-			j['query']['filters']['map_filters']['filters']['map_packsize'] = {'min': maps['pack'], 'max': 'null'}
+
+		if 'iir' in maps: # False if Unidentified
+			if maps['iir']:
+				j['query']['filters']['map_filters']['filters']['map_iir'] = {'min': maps['iir'], 'max': 'null'}
+		if 'pack' in maps: # False if Unidentified
+			if maps['pack']:
+				j['query']['filters']['map_filters']['filters']['map_packsize'] = {'min': maps['pack'], 'max': 'null'}
+
 		if maps['tier']:
 			j['query']['filters']['map_filters']['filters']['map_tier'] = {'min': maps['tier'], 'max': 'null'}
 
@@ -280,7 +297,7 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
-	print(j)
+	
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -663,16 +680,18 @@ def watch_clipboard():
 					if (info.get('rarity') == 'Unique') and (info.get('itype') != "Metamorph"):
 						print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
+						pprint = base
 
 						if 'corrupted' in info:
 							if info['corrupted']:
-								base += f"Corrupted "
+								pprint += f"Corrupted "
 
 						if "links" in info:
 							if info['links'] > 1:
-								base += f"{info['links']} linked "
+								pprint += f"{info['links']} linked "
 
-						print("[-]", base)
+						if pprint != base:
+							print("[-]", pprint)
 
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'links',
 								'corrupted', 'rarity')})
@@ -712,7 +731,7 @@ def watch_clipboard():
 						if len(trade_info) > 1:
 							# Modify data to usable status.
 							prices = [x['listing']['price'] for x in trade_info]
-							prices = ['%(amount)s%(currency)s' % x for x in prices]
+							prices = ['%(amount)s%(currency)s' % x for x in prices if x != None]
 
 							prices = {x:prices.count(x) for x in prices}
 							print_string = ""
