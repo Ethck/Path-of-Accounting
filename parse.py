@@ -6,6 +6,7 @@ import time
 from colorama import init, deinit, Fore, Back, Style
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
+from hotkeys import watch_keyboard
 
 # Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
@@ -731,7 +732,6 @@ def watch_clipboard():
 						if len(trade_info) > 1:
 							prev_account_name = ""
 							# Modify data to usable status.
-							#prices = [
 							prices = []
 							for trade in trade_info:
 								if trade['listing']['account']['name'] != prev_account_name:
@@ -739,7 +739,6 @@ def watch_clipboard():
 
 								prev_account_name = trade['listing']['account']['name']
 
-							#print(trade_info[1]['listing']['account']['name'])
 							prices = ['%(amount)s%(currency)s' % x for x in prices if x != None]
 
 							prices = {x:prices.count(x) for x in prices}
@@ -775,5 +774,6 @@ if __name__ == "__main__":
 	init(autoreset=True) #Colorama
 	root = Tk()
 	root.withdraw()
+	watch_keyboard()
 	watch_clipboard()
 	deinit() #Colorama
