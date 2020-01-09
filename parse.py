@@ -744,13 +744,13 @@ def watch_clipboard():
 								total_count += prices[price_dict]
 
 							# Print the pretty string, ignoring trailing comma 
-							print(f'[!] Lowest {total_count} prices: {print_string[:-2]}\n\n')
+							print(f'[$] Lowest {total_count} prices: {print_string[:-2]}\n\n')
 
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
 								price = f"{price['amount']} x {price['currency']}"
-							print("[!] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.\n\n")
+							print("[$] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.\n\n")
 
 					elif trade_info is not None:
 						print(f'[!] No results!')
