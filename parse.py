@@ -58,7 +58,10 @@ def parse_item_info(text):
 			info['itype'] = info['itype'].replace("Superior", "").strip()
 		map_mods = {}
 		map_mods['tier'] = re.findall(r"Map Tier: (\d+)", text)[0]
-		map_mods['iiq'] = re.findall(r"Item Quantity: \+(\d+)%", text)[0]
+
+		iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
+		if len(iiq_re) > 0:
+			map_mods['iiq'] = iiq_re[0]
 
 		pack_re = re.findall(r"Pack Size: \+(\d+)%", text)
 		if len(pack_re) > 0:
@@ -68,7 +71,7 @@ def parse_item_info(text):
 		if len(iir_re) > 0:
 			map_mods['iir'] = iir_re[0]
 
-		map_mods['blight'] = bool(re.search("Blighted Map", text, re.M))
+		map_mods['blight'] = bool(re.search(r"Blighted", text, re.M))
 		map_mods['shaper'] = bool(re.search('Area is influenced by The Shaper', text, re.M))
 		map_mods['elder'] = bool(re.search('Area is influenced by The Elder', text, re.M))
 		map_mods['enslaver'] = bool(re.search('Map is occupied by The Enslaver', text, re.M))
@@ -215,10 +218,14 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	if maps is not None:
 		j['query']['filters']['map_filters'] = {}
 		j['query']['filters']['map_filters']['filters'] = {}
+
 		if maps['blight']:
 			j['query']['filters']['map_filters']['filters']['map_blighted'] = 'True'
-		if maps['iiq']:
-			j['query']['filters']['map_filters']['filters']['map_iiq'] = {'min': maps['iiq'], 'max': 'null'}
+			itype = itype.replace("Blighted", "").strip()
+
+		if 'iiq' in maps:
+			if maps['iiq']:
+				j['query']['filters']['map_filters']['filters']['map_iiq'] = {'min': maps['iiq'], 'max': 'null'}
 
 		if 'iir' in maps: # False if Unidentified
 			if maps['iir']:
@@ -298,6 +305,7 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
+	print(j)
 	
 	# Find every stat
 	if stats:
