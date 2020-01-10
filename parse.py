@@ -45,6 +45,10 @@ def parse_item_info(text):
 		if info['itype'] == "--------":
 			info['itype'] = info['name']
 
+	if '<<set:MS>><<set:M>><<set:S>>' in info['name']: # For checking in chat items... For some reason this is added.
+		info['name'] = info['name'].replace('<<set:MS>><<set:M>><<set:S>>', "").strip()
+
+
 
 	# Oh, it's currency!
 	if info['rarity'] == 'Currency':
@@ -305,7 +309,6 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
-	print(j)
 	
 	# Find every stat
 	if stats:
