@@ -6,7 +6,7 @@ import time
 from colorama import init, deinit, Fore, Back, Style
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
-from hotkeys import watch_keyboard
+import hotkeys
 
 DEBUG = False
 
@@ -457,33 +457,28 @@ def create_pseudo_mods(j):
 			combined_filters.append(i)
 
 	# Dual elemental resists
-	for i in j['query']['stats'][0]['filters']:
-		if i['id'] in dual_resist_ids:
+		elif i['id'] in dual_resist_ids:
 			total_ele_resists += 2*int(i['value']['min'])
 			combined_filters.append(i)
 
 	# Triple elemental resists
-	for i in j['query']['stats'][0]['filters']:
-		if i['id'] in triple_resist_ids:
+		elif i['id'] in triple_resist_ids:
 			total_ele_resists += 3*int(i['value']['min'])
 			combined_filters.append(i)
 
 	# Solo chaos resists
-	for i in j['query']['stats'][0]['filters']:
-		if i['id'] in solo_chaos_resist_ids:
+		elif i['id'] in solo_chaos_resist_ids:
 			total_chaos_resist += int(i['value']['min'])
 			combined_filters.append(i)
 
 	# Dual chaos resists
-	for i in j['query']['stats'][0]['filters']:
-		if i['id'] in dual_chaos_resist_ids:
+		elif i['id'] in dual_chaos_resist_ids:
 			total_chaos_resist += int(i['value']['min'])
 			total_ele_resists += int(i['value']['min'])
 			combined_filters.append(i)
 
 	# Maximum life
-	for i in j['query']['stats'][0]['filters']:
-		if i['id'] in life_ids:
+		elif i['id'] in life_ids:
 			total_life += int(i['value']['min'])
 			combined_filters.append(i)
 
@@ -609,7 +604,7 @@ def affix_equals(text, affix):
 		query = query + r" (Local)"
 
 	if text == query:
-		print("[+] Found mod " + Fore.GREEN + f"+{value}{text[1:]}") #TODO: support "# to # damage to attacks" type mods and other similar
+		print("[+] Found mod " + Fore.GREEN + f"{text[0:]}: {value}") #TODO: support "# to # damage to attacks" type mods and other similar
 		return (True, value)
 
 	return (False, 0)
@@ -801,6 +796,6 @@ if __name__ == "__main__":
 	init(autoreset=True) #Colorama
 	root = Tk()
 	root.withdraw()
-	watch_keyboard()
+	hotkeys.watch_keyboard()
 	watch_clipboard()
 	deinit() #Colorama
