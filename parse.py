@@ -8,6 +8,8 @@ from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
 from hotkeys import watch_keyboard
 
+DEBUG = False
+
 # Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
 # All available stats on items.
@@ -47,8 +49,6 @@ def parse_item_info(text):
 
 	if '<<set:MS>><<set:M>><<set:S>>' in info['name']: # For checking in chat items... For some reason this is added.
 		info['name'] = info['name'].replace('<<set:MS>><<set:M>><<set:S>>', "").strip()
-
-
 
 	# Oh, it's currency!
 	if info['rarity'] == 'Currency':
@@ -176,6 +176,9 @@ def fetch(q_res, exchange = False):
 	returns JSON of all available similar items.
 	"""
 
+	if DEBUG:
+		print(q_res)
+
 	results = []
 	# Limited to crawling by 10 results at a time due to API restrictions, so check first 50
 	DEFAULT_CAP = 50
@@ -223,6 +226,12 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['map_filters'] = {}
 		j['query']['filters']['map_filters']['filters'] = {}
 
+		if rarity == "Unique": # Unique maps, may be unidentified
+			j['query']['filters']['type_filters'] = {}
+			j['query']['filters']['type_filters']['filters'] = {'rarity': {'option': 'unique'}}
+			j['query']['type'] = {'option': name}
+			name = None
+
 		if maps['blight']:
 			j['query']['filters']['map_filters']['filters']['map_blighted'] = 'True'
 			itype = itype.replace("Blighted", "").strip()
@@ -263,7 +272,8 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 
 	# If unique, Div Card, or Gem search by name
 	if rarity == "Unique" or itype == "Divination Card":
-		j['query']['name'] = name
+		if name != None:
+			j['query']['name'] = name
 
 	if itype == "Metamorph":
 		mm_parts = ["Brain", "Lung", "Eye", "Heart", "Liver"]
@@ -309,7 +319,10 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
-	
+
+	if DEBUG == True:
+		print(j)
+
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -690,7 +703,10 @@ def watch_clipboard():
 				if info:
 					# Uniques, only search by corrupted status, links, and name.
 					if (info.get('rarity') == 'Unique') and (info.get('itype') != "Metamorph"):
-						print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
+						if info['name'] == info['itype']:
+							print(f'[*] Found Unique item in clipboard: {info["name"]}')
+						else:
+							print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
 						base = f'Only showing results that are: '
 						pprint = base
 
@@ -706,7 +722,7 @@ def watch_clipboard():
 							print("[-]", pprint)
 
 						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'links',
-								'corrupted', 'rarity')})
+								'corrupted', 'rarity', 'maps')})
 
 					elif info['itype'] == 'Currency':
 						print(f'[-] Found currency {info["name"]} in clipboard')
