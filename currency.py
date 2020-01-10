@@ -384,7 +384,7 @@ ESSENCES = {
 	"Essence of Insanity": "essence-of-insanity",
 	"Essence of Horror": "essence-of-horror",
 	"Essence of Delirium": "essence-of-delirium",
-	"Remnant of Corruption ": "remnant-of-corruption"
+	"Remnant of Corruption": "remnant-of-corruption"
 }
 
 DIV_CARDS = {

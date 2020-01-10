@@ -320,7 +320,7 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 
 	fetch_called = False
 
-	if DEBUG == True:
+	if DEBUG:
 		print(j)
 
 	# Find every stat
@@ -565,6 +565,8 @@ def query_exchange(qcur, league='Metamorph'):
 
 		query = requests.post(f'https://www.pathofexile.com/api/trade/exchange/{league}', json=def_json)
 		res = query.json()
+		if DEBUG:
+			print(def_json)
 
 		if len(res['result']) == 0:
 			continue
