@@ -39,5 +39,12 @@ The program reads what is entered into your clipboard in real time and determine
 ![Sample display](/images/display.png)
 ![Sample GUI](/images/sampleGui.png)
 
+
+Hotkeys!
+|Global   | Hotkeys  |
+|---|---|
+| alt+d  | Search for item.  |
+|  F5 | Go to hideout  |
+
 For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
 For those of you who want to help but don't know how to program, feel free to offer suggestions on the issues page! I can't make this tool better without knowing what everyone want.
