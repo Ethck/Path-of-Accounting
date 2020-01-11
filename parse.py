@@ -4,15 +4,22 @@ from tkinter import Tk, TclError
 import re
 import time
 from colorama import init, deinit, Fore, Back, Style
+import yaml
 
 #Local imports
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
-import hotkeys
-import testGui
-
 
 DEBUG = False
+
+# If using hotkeys, we also import the hotkeys local module in the main loop.
+# If using GUI, import GUI
+with open("settings.yaml", "r") as settings_file:
+	settings = yaml.safe_load(settings_file)
+
+if settings['use_gui'] == True:
+	import testGui
+
 
 # Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
@@ -807,12 +814,18 @@ def watch_clipboard():
 							average = str(round(sum(L)/float(len(L)) if L else '-', 2))
 
 							price = [price[0], average, price[-1]]
-							testGui.assemble_price_gui(price, currency)
+
+							if settings['use_gui'] == True:
+								testGui.assemble_price_gui(price, currency)
 
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
-								price = f"{price['amount']} x {price['currency']}"
+								price_val = price['amount']
+								price_curr = price['currency']
+								price = f"{price_val} x {price_curr}"
+								if settings['use_gui'] == True:
+									testGui.assemble_price_gui(price, currency)
 							print("[$] Price:" + Fore.YELLOW + f" {price} "+ "\n\n")
 
 					elif trade_info is not None:
@@ -829,6 +842,10 @@ if __name__ == "__main__":
 	init(autoreset=True) #Colorama
 	root = Tk()
 	root.withdraw()
-	hotkeys.watch_keyboard()
+
+	if settings['use_hotkeys'] == True:
+		import hotkeys
+		hotkeys.watch_keyboard()
+
 	watch_clipboard()
 	deinit() #Colorama
