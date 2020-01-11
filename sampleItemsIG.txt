@@ -234,3 +234,40 @@ This is a Support Gem. It does not grant a bonus to your character, but to skill
 --------
 Corrupted
 
+
+Rarity: Normal
+The Jeweller's Touch
+--------
+The Jeweller leaves five fingerprints and connects them with a single thread.
+--------
+You will create a fully-linked five-socket item with a single Jeweller's Orb
+--------
+Right-click to add this prophecy to your character.
+--------
+Note: ~price 9 chaos
+
+
+Rarity: Rare
+Cataclysm Brow
+Necromancer Circlet
+--------
+Quality: +20% (augmented)
+Energy Shield: 62 (augmented)
+--------
+Requirements:
+Level: 68
+Str: 108
+Int: 148
+--------
+Sockets: B-R-B-B 
+--------
+Item Level: 74
+--------
+20% increased Freezing Pulse Projectile Speed
+--------
++69 to maximum Life
++27% to Cold Resistance
+Regenerate 1% of Life per second
+Reflects 10 Physical Damage to Melee Attackers
+Nearby Enemies have -9% to Cold Resistance
++47 to maximum Mana (crafted)

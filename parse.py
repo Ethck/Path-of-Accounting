@@ -161,6 +161,8 @@ def parse_item_info(text):
 
 		# Find all the affixes
 		m = re.findall(r'Item Level: \d+\n--------\n(.+)((?:\n.+)+)', text)
+		if DEBUG:
+			print("STATS:", m)
 
 		if m:
 			info['stats'] = []
@@ -168,10 +170,11 @@ def parse_item_info(text):
 			info['stats'].extend(m[0][1].split('\n'))
 
 			# Clean up the leftover stuff / Make it useable data
-			if "(implicit)" in info['stats'][0]:
-				del info['stats'][1:2]
+			if info['stats'][1] == "" and info['stats'][2] == "--------": #Implicits and enchantments.
+				del info['stats'][1:3]
 			elif "--------" in info['stats']:
 				index = info['stats'].index('--------')
+				print(info)
 				info['stats'] = info['stats'][:index]
 			else:
 				info['stats'] = info['stats'][:-1]
@@ -180,7 +183,7 @@ def parse_item_info(text):
 				info['stats'].remove("")
 
 	if DEBUG:#DEBUG
-		print(info)
+		print("COMPLETE INFO: ", info)
 
 	return info
 
@@ -352,7 +355,7 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['stats'][0]['filters'] = []
 		for stat in stats:
 			(proper_affix, value) = find_affix_match(stat)
-			affix_types = ["implicit", "crafted", "explicit"]
+			affix_types = ["implicit", "crafted", "explicit", "enchantments"]
 			if any(atype in proper_affix for atype in affix_types): #If proper_affix is an actual mod...
 				j['query']['stats'][0]['filters'].append({'id': proper_affix, 'value': {'min': value, 'max': 999}})
 
@@ -639,13 +642,17 @@ def find_affix_match(affix):
 	"""
 	Search for the proper id to return the correct results.
 
-	returns tuple (id of the affix requested. value)
+	returns tuple (id of the affix requested, value)
 	"""
 	pseudos = stats['result'][0]['entries']
 	explicits = stats['result'][1]['entries']
 	implicits = stats['result'][2]['entries']
 	crafted = stats['result'][5]['entries']
+	enchantments = stats['result'][4]['entries']
 	proper_affix = ("", 0)
+
+	if DEBUG:
+		print("AFFIX:", affix)
 
 	if "(pseudo)" in affix:
 		for pseudo in pseudos:
@@ -666,10 +673,19 @@ def find_affix_match(affix):
 				proper_affix = (craft['id'], value)
 
 	else:
+		Found = False
 		for explicit in explicits:
 			(match, value) = affix_equals(explicit['text'], affix)
 			if match:
 				proper_affix = (explicit['id'], value)
+				Found = True
+
+		if not Found:
+			# Maybe it's an enchantment
+			for enchant in enchantments:
+				(match, value) = affix_equals(enchant['text'], affix)
+				if match:
+					proper_affix = (enchant['id'], value)
 
 	return proper_affix
 
