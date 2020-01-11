@@ -748,19 +748,17 @@ def watch_clipboard():
 					if trade_info:
 						# If more than 1 result, assemble price list.
 						if len(trade_info) > 1:
-							print(trade_info[0]['item']['extended'])
+							#print(trade_info[0]['item']['extended']) #TODO search this for bad mods
 							prev_account_name = ""
 							# Modify data to usable status.
 							prices = []
-							for trade in trade_info:
+							for trade in trade_info: # Stop price fixers
 								if trade['listing']['account']['name'] != prev_account_name:
 									prices.append(trade['listing']['price'])
 
 								prev_account_name = trade['listing']['account']['name']
 
 							prices = ['%(amount)s%(currency)s' % x for x in prices if x != None]
-
-							price_vals = [x for x in prices]
 
 							prices = {x:prices.count(x) for x in prices}
 							print_string = ""
@@ -774,7 +772,18 @@ def watch_clipboard():
 
 							# Print the pretty string, ignoring trailing comma 
 							print(f'[$] Price: {print_string[:-2]}\n\n')
-							price = [ re.findall(r"([0-9.]+)", tprice)[0] for tprice in price_vals]
+							price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+
+							currency = None
+							if 'mir' in print_string:
+								currency = "mirror"
+							elif 'exa' in print_string:
+								currency = "exalt"
+							elif 'chaos' in print_string:
+								currency = "chaos"
+							elif 'alch' in print_string:
+								currency = "alch"
+
 
 							price.sort()
 
@@ -784,7 +793,7 @@ def watch_clipboard():
 							average = str(round(sum(L)/float(len(L)) if L else '-', 2))
 
 							price = [price[0], average, price[-1]]
-							testGui.assemble_price_gui(price, "chaos")
+							testGui.assemble_price_gui(price, currency)
 
 						else:
 							price = trade_info[0]['listing']['price']
