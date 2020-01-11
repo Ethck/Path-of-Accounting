@@ -15,6 +15,7 @@ Support is currently being developed for:
 * More global hotkeys!
 * Settings module
 * Better GUI
+* More mod support
 * and More!
 
 
