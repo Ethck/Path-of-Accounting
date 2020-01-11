@@ -41,6 +41,7 @@ The program reads what is entered into your clipboard in real time and determine
 
 
 Hotkeys!
+
 |Global   | Hotkeys  |
 |---|---|
 | alt+d  | Search for item.  |
