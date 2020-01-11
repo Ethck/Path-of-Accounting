@@ -4,25 +4,20 @@ from tkinter import Tk, TclError
 import re
 import time
 from colorama import init, deinit, Fore, Back, Style
+
+#Local imports
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
-<<<<<<< HEAD
 import hotkeys
+import testGui
+
 
 DEBUG = False
-=======
-from hotkeys import watch_keyboard
-from contextlib import redirect_stdout
-import io
-import testGui
->>>>>>> gui
 
 # Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-
-secret_talk = io.StringIO()
 
 def parse_item_info(text):
 	"""
@@ -173,7 +168,7 @@ def parse_item_info(text):
 			if "" in info['stats']:
 				info['stats'].remove("")
 
-	with redirect_stdout(secret_talk): #DEBUG
+	if DEBUG:#DEBUG
 		print(info)
 
 	return info
@@ -220,7 +215,7 @@ def fetch(q_res, exchange = False):
 	else:
 				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
 
-	with redirect_stdout(secret_talk):
+	if DEBUG:
 		print(results)
 
 	return results
@@ -333,15 +328,9 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
-<<<<<<< HEAD
 
 	if DEBUG:
 		print(j)
-
-=======
-	#print('Got stdout: "{0}"'.format(f.getvalue()))
-	
->>>>>>> gui
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
