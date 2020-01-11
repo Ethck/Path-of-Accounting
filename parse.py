@@ -564,7 +564,7 @@ def result_prices_are_none(j: Dict) -> bool:
 	return all(x['listing']['price'] == None for x in j)
 
 
-def query_exchange(qcur):
+def query_exchange(qcur, league):
 	"""
 	Build JSON for fetch request of wanted currency exchange.
 	"""
@@ -896,6 +896,9 @@ def watch_clipboard():
 if __name__ == "__main__":
 	init(autoreset=True) #Colorama
 	root = Tk()
+	#root.call('wm', 'attributes', '.', '-topmost', '1')
+	root.attributes('-topmost', True)
+	root.update()
 	root.withdraw()
 
 	valid_leagues = get_leagues()
