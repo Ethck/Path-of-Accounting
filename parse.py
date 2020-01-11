@@ -13,12 +13,6 @@ leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues")
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
-# with open('leauges.json', 'w') as file1:
-# 	json.dump(leagues, file1)
-#
-# with open('stats.json', 'w') as file1:
-# 	json.dump(stats, file1)
-
 
 def parse_item_info(text):
 	"""
