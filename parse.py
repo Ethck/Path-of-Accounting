@@ -836,6 +836,7 @@ def watch_clipboard():
 
 								# Fastest method for calculating average as seen here:
 								# https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+								# TODO average between multiple currencies...
 								L = [float(n) for n in price if n]
 								average = str(round(sum(L)/float(len(L)) if L else '-', 2))
 
