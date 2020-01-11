@@ -26,7 +26,7 @@ For WINDOWS:
 * Head over to the [releases](https://github.com/Ethck/Path-of-Accounting/releases) page, download the newest release, unzip, and execute the `parse.exe` file found inside the parse folder..
 
 For *NIX:
-* Clone the repo, use the requirements.txt to install dependencies, then run parse.py
+* Clone the repo, use the poetry.lock file (`poetry install`) to install dependencies, then run parse.py
 
 For Everyone!
 * Copy an item you want to price into your clipboard (control+c or alt+d) and watch the output from the script and the GUI popup!

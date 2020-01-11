@@ -2,8 +2,8 @@
 name = "path-of-accounting"
 version = "0.1.0"
 description = "A python based price checker for Path of Exile"
-authors = ["Your Name <you@example.com>"]
-license = "GNU"
+authors = ["Ethck"]
+license = "GPL 3"
 
 [tool.poetry.dependencies]
 python = "^3.7"
