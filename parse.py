@@ -13,6 +13,12 @@ leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues")
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
+# with open('leauges.json', 'w') as file1:
+# 	json.dump(leagues, file1)
+#
+# with open('stats.json', 'w') as file1:
+# 	json.dump(stats, file1)
+
 
 def parse_item_info(text):
 	"""
@@ -43,7 +49,10 @@ def parse_item_info(text):
 
 	if 'Map' in info['name'] and 'Map' not in info['itype']: #Seems to be all Superior maps...
 		if info['itype'] == "--------":
-			info['itype'] = info['name']
+			# was an issue here that caused magic maps to get their full name as base, which ment the request failed.
+			# setting it to a empty string seems to have solved the issue for now
+			info['itype'] = ''
+			# info['itype'] = info['name']
 
 
 	# Oh, it's currency!
@@ -58,7 +67,13 @@ def parse_item_info(text):
 			info['itype'] = info['itype'].replace("Superior", "").strip()
 		map_mods = {}
 		map_mods['tier'] = re.findall(r"Map Tier: (\d+)", text)[0]
-		map_mods['iiq'] = re.findall(r"Item Quantity: \+(\d+)%", text)[0]
+
+		# Changed because it made normal maps crash with the way it was done before
+		iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
+		if len(iiq_re) > 0:
+			map_mods['iiq'] = iiq_re[0]
+		else:
+			map_mods['iiq'] = ''
 
 		pack_re = re.findall(r"Pack Size: \+(\d+)%", text)
 		if len(pack_re) > 0:
