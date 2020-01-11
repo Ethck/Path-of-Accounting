@@ -32,6 +32,8 @@ For *NIX:
 For Everyone!
 * Copy an item you want to price into your clipboard (control+c or alt+d) and watch the output from the script and the GUI popup!
 
+In order to change settings (like `league` and whether or not to use the `hotkeys` and/or `gui`) go to where PoA is downloaded and open up the `settings.yaml` file.
+
 The program reads what is entered into your clipboard in real time and determines whether or not it is Path of Exile related, if it is not the info is immediately discarded. If it is a PoE item, it then queries the official API to determine pricing based on what everyone else has listed that item for.
 
 ![Sample display](/images/display.png)
