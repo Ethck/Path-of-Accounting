@@ -8,9 +8,9 @@ Path of Accounting supports the following features right now:
 * non-Unique item support (including mod evaluations)
 * In game GUI (still developing, taking suggestions)
 * Global Hotkeys! (hideout, other copy, still working on more!)
+* League Selection!
 
 Support is currently being developed for:
-* Other leagues (Not just Metamorph SC)
 * Better logic on pricing items with many mods.
 * More global hotkeys!
 * Settings module

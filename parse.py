@@ -21,10 +21,12 @@ if settings['use_gui'] == True:
 	import testGui
 
 
-# Current Leagues. Not used.
+# Current Leagues.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
+
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
+
 
 def parse_item_info(text):
 	"""
@@ -174,7 +176,6 @@ def parse_item_info(text):
 				del info['stats'][1:3]
 			elif "--------" in info['stats']:
 				index = info['stats'].index('--------')
-				print(info)
 				info['stats'] = info['stats'][:index]
 			else:
 				info['stats'] = info['stats'][:-1]
@@ -235,7 +236,7 @@ def fetch(q_res, exchange = False):
 	return results
 
 
-def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, league = 'Metamorph', stats = [], gem_level = None, quality = None, maps = None):
+def query_trade(league, name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, stats = [], gem_level = None, quality = None, maps = None):
 	"""
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
@@ -569,7 +570,7 @@ def result_prices_are_none(j):
 	return all(x['listing']['price'] == None for x in j)
 
 
-def query_exchange(qcur, league='Metamorph'):
+def query_exchange(qcur):
 	"""
 	Build JSON for fetch request of wanted currency exchange.
 	"""
@@ -700,6 +701,9 @@ def stat_translate(jaffix):
 	explicits = stats['result'][1]['entries']
 	implicits = stats['result'][2]['entries']
 	crafted = stats['result'][5]['entries']
+	enchantments = stats['result'][4]['entries']
+
+	#TODO add enchantments ability to be lookedup.
 
 	if "pseudo" in affix:
 		return find_stat_by_id(affix, pseudos)
@@ -720,7 +724,7 @@ def find_stat_by_id(affix, stat_list):
 			return stat['text']
 
 
-def watch_clipboard():
+def watch_clipboard(league):
 	"""
 	Watch clipboard for items being copied to check lowest prices on trade.
 	"""
@@ -757,16 +761,16 @@ def watch_clipboard():
 						if pprint != base:
 							print("[-]", pprint)
 
-						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'links',
-								'corrupted', 'rarity', 'maps')})
+						trade_info = query_trade(league, **{k:v for k, v in info.items() if k in ('name', 'links',
+								'corrupted', 'rarity', 'maps', league)})
 
 					elif info['itype'] == 'Currency':
 						print(f'[-] Found currency {info["name"]} in clipboard')
-						trade_info = query_exchange(info['name'])
+						trade_info = query_exchange(info['name'], league)
 
 					elif info['itype'] == 'Divination Card':
 						print(f'[-] Found Divination Card {info["name"]}')
-						trade_info = query_exchange(info['name'])
+						trade_info = query_exchange(info['name'], league)
 
 					else:
 						# Do intensive search.
@@ -786,7 +790,7 @@ def watch_clipboard():
 
 							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
-						trade_info = query_trade(**{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
+						trade_info = query_trade(league, **{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
 								'corrupted', 'influenced', 'stats', 'rarity', 'gem_level', 'quality', 'maps')})
 					
 					# If results found
@@ -852,7 +856,7 @@ def watch_clipboard():
 								price = f"{price_val} x {price_curr}"
 
 								if settings['use_gui'] == True:
-									testGui.assemble_price_gui(price, currency)
+									testGui.assemble_price_gui(price, price_curr)
 
 							print("[$] Price:" + Fore.YELLOW + f" {price} "+ "\n\n")
 
@@ -871,9 +875,14 @@ if __name__ == "__main__":
 	root = Tk()
 	root.withdraw()
 
+	for tleague in leagues['result']:
+		if settings['league'] == tleague['id']:
+			league = settings['league']
+			print(f"All values will be from the " + Fore.MAGENTA + f"{league}" + Fore.WHITE + " league")
+
 	if settings['use_hotkeys'] == True:
 		import hotkeys
 		hotkeys.watch_keyboard()
 
-	watch_clipboard()
+	watch_clipboard(league)
 	deinit() #Colorama
