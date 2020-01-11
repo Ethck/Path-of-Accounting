@@ -9,12 +9,14 @@ from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS,
 from hotkeys import watch_keyboard
 from contextlib import redirect_stdout
 import io
+import testGui
 
 # Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
+secret_talk = io.StringIO()
 
 def parse_item_info(text):
 	"""
@@ -163,6 +165,9 @@ def parse_item_info(text):
 			if "" in info['stats']:
 				info['stats'].remove("")
 
+	with redirect_stdout(secret_talk): #DEBUG
+		print(info)
+
 	return info
 
 
@@ -203,6 +208,9 @@ def fetch(q_res, exchange = False):
 			results += res.json()['result']
 	else:
 				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
+
+	with redirect_stdout(secret_talk):
+		print(results)
 
 	return results
 
@@ -307,9 +315,6 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
-	f = io.StringIO()
-	with redirect_stdout(f):
-		print(j)
 	#print('Got stdout: "{0}"'.format(f.getvalue()))
 	
 	# Find every stat
@@ -755,6 +760,8 @@ def watch_clipboard():
 
 							prices = ['%(amount)s%(currency)s' % x for x in prices if x != None]
 
+							price_vals = [x for x in prices]
+
 							prices = {x:prices.count(x) for x in prices}
 							print_string = ""
 							total_count = 0
@@ -767,6 +774,17 @@ def watch_clipboard():
 
 							# Print the pretty string, ignoring trailing comma 
 							print(f'[$] Price: {print_string[:-2]}\n\n')
+							price = [ re.findall(r"([0-9.]+)", tprice)[0] for tprice in price_vals]
+
+							price.sort()
+
+							# Fastest method for calculating average as seen here:
+							# https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+							L = [float(n) for n in price if n]
+							average = str(round(sum(L)/float(len(L)) if L else '-', 2))
+
+							price = [price[0], average, price[-1]]
+							testGui.assemble_price_gui(price, "chaos")
 
 						else:
 							price = trade_info[0]['listing']['price']
