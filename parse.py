@@ -382,8 +382,13 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 					fetch_called = True
 					results = fetch(res)
 
+					if DEBUG:
+						print("Found results!")
+
 
 					if result_prices_are_none(results):
+						if DEBUG:
+							print("All resulting prices are none.")
 						# Choose a non-priority mod
 						i = choose_bad_mod(j)
 
@@ -547,15 +552,11 @@ def choose_bad_mod(j):
 
 def result_prices_are_none(j):
 	"""
-	Determine if item is unpriced or not.
+	Determine if all items in result are unpriced or not.
 
 	Returns BOOLEAN
 	"""
-	for listing in j:
-		if listing['listing']['price'] == None:
-			return True
-
-	return False
+	return all(x['listing']['price'] == None for x in j)
 
 
 def query_exchange(qcur, league='Metamorph'):
