@@ -1,6 +1,7 @@
 from tkinter import *
 from PIL import Image, ImageTk
 import time
+from overlay import Window
 
 def assemble_price_gui(price, currency):
     root = Toplevel()
