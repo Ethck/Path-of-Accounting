@@ -6,15 +6,23 @@ import time
 from colorama import init, deinit, Fore, Back, Style
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
+<<<<<<< HEAD
 import hotkeys
 
 DEBUG = False
+=======
+from hotkeys import watch_keyboard
+from contextlib import redirect_stdout
+import io
+import testGui
+>>>>>>> gui
 
 # Current Leagues. Not used.
 leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
+secret_talk = io.StringIO()
 
 def parse_item_info(text):
 	"""
@@ -165,6 +173,9 @@ def parse_item_info(text):
 			if "" in info['stats']:
 				info['stats'].remove("")
 
+	with redirect_stdout(secret_talk): #DEBUG
+		print(info)
+
 	return info
 
 
@@ -208,6 +219,9 @@ def fetch(q_res, exchange = False):
 			results += res.json()['result']
 	else:
 				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
+
+	with redirect_stdout(secret_talk):
+		print(results)
 
 	return results
 
@@ -319,10 +333,15 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 		j['query']['filters']['misc_filters']['filters']['ilvl'] = {'min': ilvl - 3, 'max': ilvl + 3}
 
 	fetch_called = False
+<<<<<<< HEAD
 
 	if DEBUG:
 		print(j)
 
+=======
+	#print('Got stdout: "{0}"'.format(f.getvalue()))
+	
+>>>>>>> gui
 	# Find every stat
 	if stats:
 		j['query']['stats'] = [{}]
@@ -754,10 +773,11 @@ def watch_clipboard():
 					if trade_info:
 						# If more than 1 result, assemble price list.
 						if len(trade_info) > 1:
+							#print(trade_info[0]['item']['extended']) #TODO search this for bad mods
 							prev_account_name = ""
 							# Modify data to usable status.
 							prices = []
-							for trade in trade_info:
+							for trade in trade_info: # Stop price fixers
 								if trade['listing']['account']['name'] != prev_account_name:
 									prices.append(trade['listing']['price'])
 
@@ -776,13 +796,35 @@ def watch_clipboard():
 								total_count += prices[price_dict]
 
 							# Print the pretty string, ignoring trailing comma 
-							print(f'[$] Lowest {total_count} prices: {print_string[:-2]}\n\n')
+							print(f'[$] Price: {print_string[:-2]}\n\n')
+							price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+
+							currency = None
+							if 'mir' in print_string:
+								currency = "mirror"
+							elif 'exa' in print_string:
+								currency = "exalt"
+							elif 'chaos' in print_string:
+								currency = "chaos"
+							elif 'alch' in print_string:
+								currency = "alch"
+
+
+							price.sort()
+
+							# Fastest method for calculating average as seen here:
+							# https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+							L = [float(n) for n in price if n]
+							average = str(round(sum(L)/float(len(L)) if L else '-', 2))
+
+							price = [price[0], average, price[-1]]
+							testGui.assemble_price_gui(price, currency)
 
 						else:
 							price = trade_info[0]['listing']['price']
 							if price != None:
 								price = f"{price['amount']} x {price['currency']}"
-							print("[$] Found one result with" + Fore.YELLOW + f" {price} " + Fore.WHITE + "as the price.\n\n")
+							print("[$] Price:" + Fore.YELLOW + f" {price} "+ "\n\n")
 
 					elif trade_info is not None:
 						print(f'[!] No results!')
