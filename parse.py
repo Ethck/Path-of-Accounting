@@ -796,7 +796,7 @@ def watch_clipboard():
 							elif 'chaos' in print_string:
 								currency = "chaos"
 							elif 'alch' in print_string:
-								currency = "alch"
+								currency = "alchemy"
 
 
 							price.sort()
