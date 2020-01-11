@@ -10,4 +10,4 @@ def watch_keyboard():
 
 
 if __name__ == "__main__":
-    print("Please use parse.py to interact with this script.")
+    print("Please execute parse.py to interact with this script.")

@@ -47,6 +47,7 @@ def parse_item_info(text):
 
 	unident = bool(re.search('Unidentified', text, re.M))
 	metamorph = bool(re.search("Tane", text, re.M))
+	prophecy = bool(re.search("Right-click to add this prophecy to your character.", text, re.M))
 
 	# Get Qual
 	m = re.findall(r'Quality: \+(\d+)%', text)
@@ -111,6 +112,9 @@ def parse_item_info(text):
 
 		if m:
 			info['ilvl'] = int(m[0])
+
+	elif info['rarity'] == 'Normal' and prophecy: #Prophecies
+		info['itype'] = 'Prophecy'
 
 	else:
 		if info['rarity'] == 'Magic' or info['rarity'] == 'Normal':
@@ -302,6 +306,9 @@ def query_trade(name = None, ilvl = None, itype = None, links = None, corrupted 
 	# Set itemtype. TODO: change to allow similar items of other base types... Unless base matters...
 	elif itype:
 		j['query']['type'] = itype
+
+	if itype == "Prophecy":
+		j['query']['name'] = name
 
 	# Only search for items online
 	j['query']['status'] = {}
@@ -794,29 +801,30 @@ def watch_clipboard():
 
 							# Print the pretty string, ignoring trailing comma 
 							print(f'[$] Price: {print_string[:-2]}\n\n')
-							price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
-
-							currency = None
-							if 'mir' in print_string:
-								currency = "mirror"
-							elif 'exa' in print_string:
-								currency = "exalt"
-							elif 'chaos' in print_string:
-								currency = "chaos"
-							elif 'alch' in print_string:
-								currency = "alchemy"
-
-
-							price.sort()
-
-							# Fastest method for calculating average as seen here:
-							# https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
-							L = [float(n) for n in price if n]
-							average = str(round(sum(L)/float(len(L)) if L else '-', 2))
-
-							price = [price[0], average, price[-1]]
-
 							if settings['use_gui'] == True:
+
+								price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+
+								currency = None #TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
+								if 'mir' in print_string:
+									currency = "mirror"
+								elif 'exa' in print_string:
+									currency = "exalt"
+								elif 'chaos' in print_string:
+									currency = "chaos"
+								elif 'alch' in print_string:
+									currency = "alchemy"
+
+
+								price.sort()
+
+								# Fastest method for calculating average as seen here:
+								# https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+								L = [float(n) for n in price if n]
+								average = str(round(sum(L)/float(len(L)) if L else '-', 2))
+
+								price = [price[0], average, price[-1]]
+
 								testGui.assemble_price_gui(price, currency)
 
 						else:
@@ -825,8 +833,10 @@ def watch_clipboard():
 								price_val = price['amount']
 								price_curr = price['currency']
 								price = f"{price_val} x {price_curr}"
+
 								if settings['use_gui'] == True:
 									testGui.assemble_price_gui(price, currency)
+
 							print("[$] Price:" + Fore.YELLOW + f" {price} "+ "\n\n")
 
 					elif trade_info is not None:
