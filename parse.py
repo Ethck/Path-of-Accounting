@@ -592,7 +592,7 @@ def query_exchange(qcur):
 	for haveCurrency in ['chaos', 'exa', 'mir']:
 		def_json = {'exchange': {'have': [haveCurrency], 'want': [selection], 'status': {'option': 'online'}}}
 
-		query = requests.post(f'https://www.pathofexile.com/api/trade/exchange/{league}', json=def_json)
+		query = requests.post(f'https://www.pathofexile.com/api/trade/exchange/{LEAGUE}', json=def_json)
 		res = query.json()
 		if DEBUG:
 			print(def_json)
@@ -769,11 +769,11 @@ def watch_clipboard(league):
 
 					elif info['itype'] == 'Currency':
 						print(f'[-] Found currency {info["name"]} in clipboard')
-						trade_info = query_exchange(info['name'], league)
+						trade_info = query_exchange(info['name'])
 
 					elif info['itype'] == 'Divination Card':
 						print(f'[-] Found Divination Card {info["name"]}')
-						trade_info = query_exchange(info['name'], league)
+						trade_info = query_exchange(info['name'])
 
 					else:
 						# Do intensive search.
