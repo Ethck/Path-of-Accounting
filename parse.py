@@ -1,13 +1,17 @@
+from typing import Dict, List
+
 import requests
 from tkinter import Tk, TclError
 import re
 import time
 from colorama import init, deinit, Fore, Back, Style
-from config import USE_GUI, USE_HOTKEYS, LEAGUE
+from config import USE_GUI, USE_HOTKEYS, LEAGUE, PROJECT_URL
+import traceback
 
 #Local imports
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
+from exceptions import InvalidAPIResponseException
 
 DEBUG = False
 
@@ -25,7 +29,7 @@ leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues")
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
 
-def parse_item_info(text):
+def parse_item_info(text: str) -> Dict:
 	"""
 	Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
 	"""
@@ -186,7 +190,7 @@ def parse_item_info(text):
 	return info
 
 
-def fetch(q_res, exchange = False):
+def fetch(q_res: Dict, exchange: bool=False) -> List[Dict]:
 	"""
 	Fetch is the last step of the API. The item's attributes are decided, and this function checks to see if
 	there are any similar items like it listed.
@@ -225,21 +229,22 @@ def fetch(q_res, exchange = False):
 			# Return the results from our fetch (this has who to whisper, prices, and more!)
 			results += res.json()['result']
 	else:
-				print("[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues")
-
+		raise InvalidAPIResponseException()
 	if DEBUG:
 		print(results)
 
 	return results
 
 
-def query_trade(league, name = None, ilvl = None, itype = None, links = None, corrupted = None, influenced = None, rarity = None, stats = [], gem_level = None, quality = None, maps = None):
+def query_trade(league: str, name: str=None, ilvl: int=None, itype: str=None, links: int=None, corrupted: bool=None, influenced: bool=None, rarity: str=None, stats: List[str]=None, gem_level: int=None, quality: int=None, maps = None) -> List[Dict]:
 	"""
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
 
 	returns results of the fetch function.
 	"""
+	if stats is None:
+		stats = []
 	# Basic JSON structure
 	j = {'query':{'filters':{}}, 'sort': {'price': 'asc'}}
 
@@ -417,7 +422,7 @@ def query_trade(league, name = None, ilvl = None, itype = None, links = None, co
 		results = fetch(res)
 		return results
 
-def create_pseudo_mods(j):
+def create_pseudo_mods(j: Dict) -> Dict:
 	"""
 	Combines life and resists into pseudo-mods
 
@@ -558,7 +563,7 @@ def choose_bad_mod(j):
 	return i
 
 
-def result_prices_are_none(j):
+def result_prices_are_none(j: Dict) -> bool:
 	"""
 	Determine if all items in result are unpriced or not.
 
@@ -734,6 +739,7 @@ def watch_clipboard(league):
 			continue
 		try:
 			if text != prev:
+				prev = text
 				info = parse_item_info(text)
 				trade_info = None
 
@@ -855,16 +861,44 @@ def watch_clipboard(league):
 								if USE_GUI:
 									testGui.assemble_price_gui(price, price_curr)
 
-							print("[$] Price:" + Fore.YELLOW + f" {price} "+ "\n\n")
+							print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
 
 					elif trade_info is not None:
 						print(f'[!] No results!')
 
-				prev = text
 			time.sleep(.3)
 
 		except KeyboardInterrupt:
+			print(f"[!] Exiting, user requested termination.")
 			break
+		except InvalidAPIResponseException as e:
+			print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
+			print(f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below")
+			print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
+			print(f"{Fore.GREEN}Tile:")
+			print("Failed to query item from trade API.")
+			print(f"{Fore.GREEN}Body:")
+			print("Macro failed to lookup item from POE trade API. Here is the item in question.")
+			print("====== ITEM DATA=====")
+			print(f"{text}")
+			print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
+			print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+		except Exception as e:
+			exception = traceback.format_exc()
+			print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
+			print(f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below")
+			print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
+			print(f"{Fore.GREEN}Tile:")
+			print("Failed to query item from trade API.")
+			print(f"{Fore.GREEN}Body:")
+			print("Here is the item in question.")
+			print("====== ITEM DATA=====")
+			print(f"{text}")
+			print("====== TRACEBACK =====")
+			print(exception)
+			print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
+			print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+			print(exception)
 
 
 if __name__ == "__main__":
@@ -872,10 +906,14 @@ if __name__ == "__main__":
 	root = Tk()
 	root.withdraw()
 
+	league = None
 	for tleague in leagues['result']:
-		if LEAGUE == tleague['id']:
+		if tleague['id'] == LEAGUE:
 			league = LEAGUE
-			print(f"All values will be from the " + Fore.MAGENTA + f"{league}" + Fore.WHITE + " league")
+			print(f"All values will be from the {Fore.MAGENTA}{league}{Fore.WHITE} league")
+
+	if not league:
+		print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
 
 	if USE_HOTKEYS:
 		import hotkeys
