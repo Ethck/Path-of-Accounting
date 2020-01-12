@@ -5,7 +5,6 @@ import re
 import time
 from colorama import init, deinit, Fore, Back, Style
 import yaml
-
 #Local imports
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)

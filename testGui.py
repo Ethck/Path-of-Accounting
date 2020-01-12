@@ -2,10 +2,12 @@ from tkinter import *
 from PIL import Image, ImageTk
 import time
 from overlay import Window
+import win32gui
 
 def assemble_price_gui(price, currency):
     root = Toplevel()
     root.overrideredirect(True)
+    win32gui.SetForegroundWindow(root.winfo_id())
 
     x = root.winfo_pointerx()
     y = root.winfo_pointery()
