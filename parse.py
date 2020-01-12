@@ -6,6 +6,7 @@ import re
 import time
 from colorama import init, deinit, Fore, Back, Style
 from config import USE_GUI, USE_HOTKEYS, LEAGUE, PROJECT_URL
+from utils.trade import get_leagues
 import traceback
 
 #Local imports
@@ -23,7 +24,7 @@ if USE_GUI:
 
 
 # Current Leagues.
-leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
+#leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
 
 # All available stats on items.
 stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
@@ -726,7 +727,7 @@ def find_stat_by_id(affix, stat_list):
 			return stat['text']
 
 
-def watch_clipboard(league):
+def watch_clipboard():
 	"""
 	Watch clipboard for items being copied to check lowest prices on trade.
 	"""
@@ -764,8 +765,8 @@ def watch_clipboard(league):
 						if pprint != base:
 							print("[-]", pprint)
 
-						trade_info = query_trade(league, **{k:v for k, v in info.items() if k in ('name', 'links',
-								'corrupted', 'rarity', 'maps', league)})
+						trade_info = query_trade(LEAGUE, **{k:v for k, v in info.items() if k in ('name', 'links',
+								'corrupted', 'rarity', 'maps', LEAGUE)})
 
 					elif info['itype'] == 'Currency':
 						print(f'[-] Found currency {info["name"]} in clipboard')
@@ -793,7 +794,7 @@ def watch_clipboard(league):
 
 							print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
-						trade_info = query_trade(league, **{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
+						trade_info = query_trade(LEAGUE, **{k:v for k, v in info.items() if k in ('name', 'itype', 'ilvl', 'links',
 								'corrupted', 'influenced', 'stats', 'rarity', 'gem_level', 'quality', 'maps')})
 					
 					# If results found
@@ -906,18 +907,16 @@ if __name__ == "__main__":
 	root = Tk()
 	root.withdraw()
 
-	league = None
-	for tleague in leagues['result']:
-		if tleague['id'] == LEAGUE:
-			league = LEAGUE
-			print(f"All values will be from the {Fore.MAGENTA}{league}{Fore.WHITE} league")
-
-	if not league:
+	valid_leagues = get_leagues()
+	if LEAGUE not in valid_leagues:
 		print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
+	else:
+		print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
+		print(f"If you wish to change the selected league you may do so in settings.cfg.")
+		print(f"Value league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
+		if USE_HOTKEYS:
+			import hotkeys
+			hotkeys.watch_keyboard()
 
-	if USE_HOTKEYS:
-		import hotkeys
-		hotkeys.watch_keyboard()
-
-	watch_clipboard(league)
-	deinit() #Colorama
+		watch_clipboard()
+		deinit() #Colorama
