@@ -843,7 +843,7 @@ def watch_clipboard(league):
 								L = [float(n) for n in price if n]
 								average = str(round(sum(L)/float(len(L)) if L else '-', 2))
 
-								price = [price[0], average, price[-1]]
+								price = [round(price[0], 2), average, round(price[-1], 2)]
 
 								testGui.assemble_price_gui(price, currency)
 
@@ -872,7 +872,6 @@ def watch_clipboard(league):
 if __name__ == "__main__":
 	init(autoreset=True) #Colorama
 	root = Tk()
-	#root.call('wm', 'attributes', '.', '-topmost', '1')
 	root.wm_attributes('-topmost', 1)
 	root.update()
 	root.withdraw()
