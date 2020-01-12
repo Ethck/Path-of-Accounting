@@ -13,6 +13,8 @@ def windowEnumerationHandler(hwnd, top_windows):
 def assemble_price_gui(price, currency):
     root = Toplevel()
     root.overrideredirect(True)
+    # This is necessary for displaying the GUI window above active window(s)
+    # TODO: Figure out how to give focus back to the OG window.
     win32gui.SetForegroundWindow(root.winfo_id())
 
     x = root.winfo_pointerx()
