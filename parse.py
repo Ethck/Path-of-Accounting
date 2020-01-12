@@ -897,7 +897,7 @@ if __name__ == "__main__":
 	init(autoreset=True) #Colorama
 	root = Tk()
 	#root.call('wm', 'attributes', '.', '-topmost', '1')
-	root.attributes('-topmost', True)
+	root.wm_attributes('-topmost', 1)
 	root.update()
 	root.withdraw()
 
