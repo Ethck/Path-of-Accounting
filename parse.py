@@ -1,10 +1,9 @@
 import requests
-import json
 from tkinter import Tk, TclError
 import re
 import time
 from colorama import init, deinit, Fore, Back, Style
-import yaml
+from config import USE_GUI, USE_HOTKEYS, LEAGUE
 
 #Local imports
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
@@ -14,10 +13,8 @@ DEBUG = False
 
 # If using hotkeys, we also import the hotkeys local module in the main loop.
 # If using GUI, import GUI
-with open("settings.yaml", "r") as settings_file:
-	settings = yaml.safe_load(settings_file)
 
-if settings['use_gui'] == True:
+if USE_GUI:
 	import testGui
 
 
@@ -821,7 +818,7 @@ def watch_clipboard(league):
 
 							# Print the pretty string, ignoring trailing comma 
 							print(f'[$] Price: {print_string[:-2]}\n\n')
-							if settings['use_gui'] == True:
+							if USE_GUI:
 
 								price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
 
@@ -855,7 +852,7 @@ def watch_clipboard(league):
 								price_curr = price['currency']
 								price = f"{price_val} x {price_curr}"
 
-								if settings['use_gui'] == True:
+								if USE_GUI:
 									testGui.assemble_price_gui(price, price_curr)
 
 							print("[$] Price:" + Fore.YELLOW + f" {price} "+ "\n\n")
@@ -876,11 +873,11 @@ if __name__ == "__main__":
 	root.withdraw()
 
 	for tleague in leagues['result']:
-		if settings['league'] == tleague['id']:
-			league = settings['league']
+		if LEAGUE == tleague['id']:
+			league = LEAGUE
 			print(f"All values will be from the " + Fore.MAGENTA + f"{league}" + Fore.WHITE + " league")
 
-	if settings['use_hotkeys'] == True:
+	if USE_HOTKEYS:
 		import hotkeys
 		hotkeys.watch_keyboard()
 
