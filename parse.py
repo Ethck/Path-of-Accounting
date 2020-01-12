@@ -843,7 +843,7 @@ def watch_clipboard(league):
 								L = [float(n) for n in price if n]
 								average = str(round(sum(L)/float(len(L)) if L else '-', 2))
 
-								price = [round(price[0], 2), average, round(price[-1], 2)]
+								price = [round(float(price[0]), 2), average, round(float(price[-1]), 2)]
 
 								testGui.assemble_price_gui(price, currency)
 
