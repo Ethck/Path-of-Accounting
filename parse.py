@@ -8,6 +8,7 @@ import requests
 from colorama import init, deinit, Fore
 
 from config import USE_GUI, USE_HOTKEYS, LEAGUE, PROJECT_URL
+#Local imports
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 					  FOSSILS, VIALS, ESSENCES, DIV_CARDS)
 from exceptions import InvalidAPIResponseException

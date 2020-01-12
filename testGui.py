@@ -13,6 +13,7 @@ def windowEnumerationHandler(hwnd, top_windows):
 def assemble_price_gui(price, currency):
     root = Toplevel()
     root.overrideredirect(True)
+    win32gui.SetForegroundWindow(root.winfo_id())
 
     x = root.winfo_pointerx()
     y = root.winfo_pointery()
