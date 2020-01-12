@@ -1,34 +1,25 @@
+import re
+import time
+import traceback
+from tkinter import Tk, TclError
 from typing import Dict, List
 
 import requests
-from tkinter import Tk, TclError
-import re
-import time
-from colorama import init, deinit, Fore, Back, Style
-from config import USE_GUI, USE_HOTKEYS, LEAGUE, PROJECT_URL
-from utils.trade import get_leagues
-import traceback
+from colorama import init, deinit, Fore
 
-#Local imports
+from config import USE_GUI, USE_HOTKEYS, LEAGUE, PROJECT_URL
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
-						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
+					  FOSSILS, VIALS, ESSENCES, DIV_CARDS)
 from exceptions import InvalidAPIResponseException
+from utils.trade import get_leagues
 
 DEBUG = False
-
-# If using hotkeys, we also import the hotkeys local module in the main loop.
-# If using GUI, import GUI
 
 if USE_GUI:
 	import testGui
 
-
-# Current Leagues.
-#leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
-
 # All available stats on items.
-stats = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-
+ITEM_MODIFIERS = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
 def parse_item_info(text: str) -> Dict:
 	"""
@@ -648,11 +639,11 @@ def find_affix_match(affix):
 
 	returns tuple (id of the affix requested, value)
 	"""
-	pseudos = stats['result'][0]['entries']
-	explicits = stats['result'][1]['entries']
-	implicits = stats['result'][2]['entries']
-	crafted = stats['result'][5]['entries']
-	enchantments = stats['result'][4]['entries']
+	pseudos = ITEM_MODIFIERS['result'][0]['entries']
+	explicits = ITEM_MODIFIERS['result'][1]['entries']
+	implicits = ITEM_MODIFIERS['result'][2]['entries']
+	crafted = ITEM_MODIFIERS['result'][5]['entries']
+	enchantments = ITEM_MODIFIERS['result'][4]['entries']
 	proper_affix = ("", 0)
 
 	if DEBUG:
@@ -700,11 +691,11 @@ def stat_translate(jaffix):
 	"""
 	affix = jaffix['id']
 
-	pseudos = stats['result'][0]['entries']
-	explicits = stats['result'][1]['entries']
-	implicits = stats['result'][2]['entries']
-	crafted = stats['result'][5]['entries']
-	enchantments = stats['result'][4]['entries']
+	pseudos = ITEM_MODIFIERS['result'][0]['entries']
+	explicits = ITEM_MODIFIERS['result'][1]['entries']
+	implicits = ITEM_MODIFIERS['result'][2]['entries']
+	crafted = ITEM_MODIFIERS['result'][5]['entries']
+	enchantments = ITEM_MODIFIERS['result'][4]['entries']
 
 	#TODO add enchantments ability to be lookedup.
 
