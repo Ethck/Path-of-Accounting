@@ -5,3 +5,4 @@ dist/
 release*/
 __pycache__/
 output/
+.git/

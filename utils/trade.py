@@ -8,9 +8,7 @@ from factories.item_modifier import build_from_json
 
 
 def get_leagues() -> Tuple[str, ...]:
-    leagues = requests.get(
-        url="https://www.pathofexile.com/api/trade/data/leagues"
-    ).json()
+    leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
     return tuple(x["id"] for x in leagues["result"])
 
 
