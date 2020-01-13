@@ -320,7 +320,8 @@ def query_trade(league, name = None, ilvl = None, itype = None, links = None, co
 
 	# Set required links
 	if links:
-		j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
+		if links >= 5:
+			j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
 
 	j['query']['filters']['misc_filters'] = {}
 	j['query']['filters']['misc_filters']['filters'] = {}
