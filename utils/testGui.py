@@ -2,10 +2,13 @@ import os
 import time
 from tkinter import *
 
-import win32com.client
-import win32gui
 from PIL import Image, ImageTk
 
+# We do not need this on Linux.
+# If you are attempting to develop, you will need to install your own version as pypi does not have one.
+if os.name == "nt":
+    import win32com.client
+    import win32gui
 
 def windowEnumerationHandler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
@@ -19,8 +22,8 @@ def assemble_price_gui(price, currency):
 
     # This is necessary for displaying the GUI window above active window(s) on the Windows OS
     if os.name == "nt":
-        # In order to prvent SetForegroundWindow from erroring, we must satisfy the requirements
-        # Listed here:
+        # In order to prevent SetForegroundWindow from erroring, we must satisfy the requirements
+        # listed here:
         # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
         # We satisfy this by internally sending the alt character so that Windows believes we are
         # an active window.

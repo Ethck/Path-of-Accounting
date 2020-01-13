@@ -28,9 +28,8 @@ For WINDOWS:
 
 For *NIX:
 * Ensure that your python version is 3.7 or above.
-* Install poetry with `pip install poetry`
-* Clone the repo, then run (`poetry install`) to install dependencies.
-* Enter the env with `poetry shell`
+* Install the following libraries:
+* `requests`, `pillow`, `keyboard`, `colorama`, and `typing`
 * Run parse.py
 
 For Everyone!
