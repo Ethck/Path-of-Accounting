@@ -1,8 +1,6 @@
 from tkinter import *
 from PIL import Image, ImageTk
 import time
-<<<<<<< Updated upstream
-=======
 from overlay import Window
 import win32gui
 import win32com.client

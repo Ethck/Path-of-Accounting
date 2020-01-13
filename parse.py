@@ -734,7 +734,7 @@ def watch_clipboard(league):
 	while True:
 		try:
 			text = root.clipboard_get()
-		except TclError:	 # ignore non-text clipboard contents
+		except (TclError, UnicodeDecodeError):	 # ignore non-text clipboard contents
 			continue
 		try:
 			if text != prev:
