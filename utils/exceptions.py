@@ -1,0 +1,4 @@
+
+class InvalidAPIResponseException(Exception):
+    pass
+

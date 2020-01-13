@@ -7,20 +7,17 @@ from typing import Dict, List
 import requests
 from colorama import init, deinit, Fore
 
-from config import USE_GUI, USE_HOTKEYS, LEAGUE, PROJECT_URL
 #Local imports
-from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
+from utils.config import USE_GUI, USE_HOTKEYS, LEAGUE, PROJECT_URL
+from utils.currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 					  FOSSILS, VIALS, ESSENCES, DIV_CARDS)
-from exceptions import InvalidAPIResponseException
+from utils.exceptions import InvalidAPIResponseException
 from utils.trade import get_leagues
 
-DEBUG = False
-
-if USE_GUI:
-	import testGui
 
 # All available stats on items.
 ITEM_MODIFIERS = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
+
 
 def parse_item_info(text: str) -> Dict:
 	"""
@@ -865,11 +862,12 @@ def watch_clipboard():
 		except KeyboardInterrupt:
 			print(f"[!] Exiting, user requested termination.")
 			break
+
 		except InvalidAPIResponseException as e:
 			print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
 			print(f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below")
 			print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-			print(f"{Fore.GREEN}Tile:")
+			print(f"{Fore.GREEN}Title:")
 			print("Failed to query item from trade API.")
 			print(f"{Fore.GREEN}Body:")
 			print("Macro failed to lookup item from POE trade API. Here is the item in question.")
@@ -877,12 +875,13 @@ def watch_clipboard():
 			print(f"{text}")
 			print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
 			print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+
 		except Exception as e:
 			exception = traceback.format_exc()
 			print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
 			print(f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below")
 			print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-			print(f"{Fore.GREEN}Tile:")
+			print(f"{Fore.GREEN}Title:")
 			print("Failed to query item from trade API.")
 			print(f"{Fore.GREEN}Body:")
 			print("Here is the item in question.")
@@ -901,17 +900,23 @@ if __name__ == "__main__":
 	root.wm_attributes('-topmost', 1)
 	root.update()
 	root.withdraw()
+	DEBUG = False
 
 	valid_leagues = get_leagues()
 	if LEAGUE not in valid_leagues:
 		print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
+
 	else:
 		print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
 		print(f"If you wish to change the selected league you may do so in settings.cfg.")
-		print(f"Value league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
+		print(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
+
 		if USE_HOTKEYS:
-			import hotkeys
+			import utils.hotkeys as hotkeys
 			hotkeys.watch_keyboard()
+
+		if USE_GUI:
+			import utils.testGui as testGui
 
 		watch_clipboard()
 		deinit() #Colorama
