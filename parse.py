@@ -315,7 +315,8 @@ def query_trade(league: str, name: str=None, ilvl: int=None, itype: str=None, li
 
 	# Set required links
 	if links:
-		j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
+		if links >= 5:
+			j['query']['filters']['socket_filters'] = {'filters': {'links': {'min': links}}}
 
 	j['query']['filters']['misc_filters'] = {}
 	j['query']['filters']['misc_filters']['filters'] = {}
