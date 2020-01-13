@@ -271,3 +271,16 @@ Regenerate 1% of Life per second
 Reflects 10 Physical Damage to Melee Attackers
 Nearby Enemies have -9% to Cold Resistance
 +47 to maximum Mana (crafted)
+
+
+Rarity: Rare
+Entropy Blow
+Crimson Jewel
+--------
+Item Level: 84
+--------
+8% increased Attack Speed with Maces and Sceptres
+7% increased maximum Life
+10% increased Projectile Damage
+--------
+Place into an allocated Jewel Socket on the Passive Skill Tree. Right click to remove from the Socket.
