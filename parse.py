@@ -5,7 +5,6 @@ import re
 import time
 from colorama import init, deinit, Fore, Back, Style
 import yaml
-
 #Local imports
 from currency import (CURRENCY, OILS, CATALYSTS, FRAGMENTS_AND_SETS, INCUBATORS, SCARABS, RESONATORS,
 						FOSSILS, VIALS, ESSENCES, DIV_CARDS)
@@ -571,7 +570,7 @@ def result_prices_are_none(j):
 	return all(x['listing']['price'] == None for x in j)
 
 
-def query_exchange(qcur):
+def query_exchange(qcur, league):
 	"""
 	Build JSON for fetch request of wanted currency exchange.
 	"""
@@ -845,7 +844,7 @@ def watch_clipboard(league):
 								L = [float(n) for n in price if n]
 								average = str(round(sum(L)/float(len(L)) if L else '-', 2))
 
-								price = [price[0], average, price[-1]]
+								price = [round(float(price[0]), 2), average, round(float(price[-1]), 2)]
 
 								testGui.assemble_price_gui(price, currency)
 
@@ -874,6 +873,8 @@ def watch_clipboard(league):
 if __name__ == "__main__":
 	init(autoreset=True) #Colorama
 	root = Tk()
+	root.wm_attributes('-topmost', 1)
+	root.update()
 	root.withdraw()
 
 	for tleague in leagues['result']:

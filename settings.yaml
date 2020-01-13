@@ -2,6 +2,11 @@
 use_hotkeys: True
 
 # User's league
+# Current leagues:
+# Standard
+# Hardcore
+# Metamorph
+# Hardcore Metamorph
 league: Metamorph
 
 # Whether or not to use the GUI
