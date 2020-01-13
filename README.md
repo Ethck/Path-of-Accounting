@@ -28,9 +28,8 @@ For WINDOWS:
 
 For *NIX:
 * Ensure that your python version is 3.7 or above.
-* Install poetry with `pip install poetry`
-* Clone the repo, then run (`poetry install`) to install dependencies.
-* Enter the env with `poetry shell`
+* Install the following libraries:
+* `requests`, `pillow`, `keyboard`, `colorama`, and `typing`
 * Run parse.py
 
 For Everyone!
@@ -42,6 +41,14 @@ The program reads what is entered into your clipboard in real time and determine
 
 ![Sample display](/images/display.png)
 ![Sample GUI](/images/sampleGui.png)
+
+
+Hotkeys!
+
+|Global   | Hotkeys  |
+|---|---|
+| alt+d  | Search for item.  |
+|  F5 | Go to hideout  |
 
 For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
 For those of you who want to help but don't know how to program, feel free to offer suggestions on the issues page! I can't make this tool better without knowing what everyone want.

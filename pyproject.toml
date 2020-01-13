@@ -1,16 +1,15 @@
 [tool.poetry]
-name = "path-of-accounting"
+name = "Path-of-Accounting"
 version = "0.1.0"
-description = "A python based price checker for Path of Exile"
+description = ""
 authors = ["Ethck"]
-license = "GPL 3"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-colorama = "^0.4.3"
+typing = "^3.7.4"
 requests = "^2.22.0"
+colorama = "^0.4.3"
 keyboard = "^0.13.4"
-Pillow = "^7.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.3.2"
