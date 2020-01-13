@@ -124,6 +124,7 @@ def parse_item_info(text):
 
 		if info['rarity'] == 'Gem':
 			m = bool(re.search('Vaal', text, re.M))
+			no_vaal = bool(re.search('Cannot support Vaal skills', text, re.M))
 			a = bool(re.search('Awakened', text, re.M))
 			c = bool(re.search('^Corrupted', text, re.M))
 
@@ -133,7 +134,7 @@ def parse_item_info(text):
 
 			if c:
 				info['corrupted'] = True
-			if m and not a:
+			if m and not a and not no_vaal:
 				info['itype'] = "Vaal " + info['name']
 			else:
 				info['itype'] = info['name']

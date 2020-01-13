@@ -1,0 +1,8 @@
+# Uses hotkeys, turn to False to not use hotkeys
+use_hotkeys: True
+
+# User's league
+league: Metamorph
+
+# Whether or not to use the GUI
+use_gui: True
