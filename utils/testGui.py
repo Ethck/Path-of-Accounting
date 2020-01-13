@@ -2,8 +2,7 @@ import os
 import time
 from tkinter import *
 
-from PIL import Image
-from PIL import ImageTk
+from PIL import Image, ImageTk
 
 # We do not need this on Linux.
 # If you are attempting to develop, you will need to install your own version as pypi does not have one.

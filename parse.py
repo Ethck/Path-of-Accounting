@@ -1,40 +1,36 @@
 import re
 import time
 import traceback
-from tkinter import TclError
-from tkinter import Tk
-from typing import Dict
-from typing import List
+from itertools import chain
+from tkinter import TclError, Tk
+from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
 
 import requests
-from colorama import Fore
-from colorama import deinit
-from colorama import init
+from colorama import Fore, deinit, init
 
 # Local imports
-from utils.config import LEAGUE
-from utils.config import PROJECT_URL
-from utils.config import USE_GUI
-from utils.config import USE_HOTKEYS
-from utils.currency import CATALYSTS
-from utils.currency import CURRENCY
-from utils.currency import DIV_CARDS
-from utils.currency import ESSENCES
-from utils.currency import FOSSILS
-from utils.currency import FRAGMENTS_AND_SETS
-from utils.currency import INCUBATORS
-from utils.currency import OILS
-from utils.currency import RESONATORS
-from utils.currency import SCARABS
-from utils.currency import VIALS
+from enums.item_modifier_type import ItemModifierType
+from models.item_modifier import ItemModifier
+from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils.currency import (
+    CATALYSTS,
+    CURRENCY,
+    DIV_CARDS,
+    ESSENCES,
+    FOSSILS,
+    FRAGMENTS_AND_SETS,
+    INCUBATORS,
+    OILS,
+    RESONATORS,
+    SCARABS,
+    VIALS,
+)
 from utils.exceptions import InvalidAPIResponseException
-from utils.trade import get_leagues
+from utils.trade import get_item_modifiers, get_leagues
 
 DEBUG = False
 
-
-# All available stats on items.
-ITEM_MODIFIERS = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
+ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 
 
 def parse_item_info(text: str) -> Dict:
@@ -422,7 +418,11 @@ def query_trade(
         j["query"]["stats"][0]["type"] = "and"
         j["query"]["stats"][0]["filters"] = []
         for stat in stats:
-            (proper_affix, value) = find_affix_match(stat)
+            try:
+                (proper_affix, value) = find_affix_match(stat)
+            except NotImplementedError:
+                # Can't find mod, move on
+                continue
             affix_types = ["implicit", "crafted", "explicit", "enchantments"]
             if any(atype in proper_affix for atype in affix_types):  # If proper_affix is an actual mod...
                 j["query"]["stats"][0]["filters"].append({"id": proper_affix, "value": {"min": value, "max": 999}})
@@ -457,7 +457,7 @@ def query_trade(
                     print(
                         "[-] Removing the"
                         + Fore.CYAN
-                        + f" {stat_translate(i)} "
+                        + f" {stat_translate(i['id']).text} "
                         + Fore.WHITE
                         + "mod from the list due to"
                         + Fore.RED
@@ -485,7 +485,7 @@ def query_trade(
                         print(
                             "[-] Removing the"
                             + Fore.CYAN
-                            + f" {stat_translate(i)} "
+                            + f" {stat_translate(i['id']).text} "
                             + Fore.WHITE
                             + "mod from the list due to"
                             + Fore.RED
@@ -684,7 +684,7 @@ def result_prices_are_none(j: Dict) -> bool:
     return all(x["listing"]["price"] == None for x in j)
 
 
-def query_exchange(qcur, league):
+def query_exchange(qcur):
     """
 	Build JSON for fetch request of wanted currency exchange.
 	"""
@@ -728,7 +728,7 @@ def query_exchange(qcur, league):
     return results
 
 
-def affix_equals(text, affix):
+def affix_equals(text, affix) -> Optional[int]:
     """
 	Clean up the affix to match the given text so we can find the correct id to search with.
 
@@ -758,94 +758,52 @@ def affix_equals(text, affix):
         print(
             "[+] Found mod " + Fore.GREEN + f"{text[0:]}: {value}"
         )  # TODO: support "# to # damage to attacks" type mods and other similar
-        return (True, value)
+        return value
 
-    return (False, 0)
+    return None
 
 
-def find_affix_match(affix):
+def find_affix_match(affix: str) -> Tuple[str, int]:
     """
 	Search for the proper id to return the correct results.
 
 	returns tuple (id of the affix requested, value)
 	"""
-    pseudos = ITEM_MODIFIERS["result"][0]["entries"]
-    explicits = ITEM_MODIFIERS["result"][1]["entries"]
-    implicits = ITEM_MODIFIERS["result"][2]["entries"]
-    crafted = ITEM_MODIFIERS["result"][5]["entries"]
-    enchantments = ITEM_MODIFIERS["result"][4]["entries"]
-    proper_affix = ("", 0)
+
+    def get_mods_by_type(type: ItemModifierType) -> Iterable[ItemModifier]:
+        return (x for x in ITEM_MODIFIERS if x.type == type)
 
     if DEBUG:
         print("AFFIX:", affix)
 
-    if "(pseudo)" in affix:
-        for pseudo in pseudos:
-            (match, value) = affix_equals(pseudo["text"], affix)
-            if match:
-                proper_affix = (pseudo["id"], value)
-
-    elif "(implicit)" in affix:
-        for implicit in implicits:
-            (match, value) = affix_equals(implicit["text"], affix)
-            if match:
-                proper_affix = (implicit["id"], value)
-
-    elif "(crafted)" in affix:
-        for craft in crafted:
-            (match, value) = affix_equals(craft["text"], affix)
-            if match:
-                proper_affix = (craft["id"], value)
-
+    if re.search(r"\((pseudo|implicit|crafted)\)", affix):
+        # Do these need to be searched in a specific order?
+        search_order = [ItemModifierType.PSEUDO, ItemModifierType.IMPLICIT, ItemModifierType.CRAFTED]
+        search_mods = chain(*(get_mods_by_type(x) for x in search_order))
+        for mod in search_mods:
+            value = affix_equals(mod.text, affix)
+            if value is not None:
+                return (mod.id, value)
     else:
-        Found = False
-        for explicit in explicits:
-            (match, value) = affix_equals(explicit["text"], affix)
-            if match:
-                proper_affix = (explicit["id"], value)
-                Found = True
+        for explicit in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.EXPLICIT):
+            value = affix_equals(explicit.text, affix)
+            if value is not None:
+                return (explicit.id, value)
 
-        if not Found:
-            # Maybe it's an enchantment
-            for enchant in enchantments:
-                (match, value) = affix_equals(enchant["text"], affix)
-                if match:
-                    proper_affix = (enchant["id"], value)
+        # Maybe it's an enchantment
+        for enchant in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.ENCHANT):
+            value = affix_equals(enchant.text, affix)
+            if value is not None:
+                return (enchant.id, value)
 
-    return proper_affix
+    raise NotImplementedError("Unable to find matching affix.")
 
 
-def stat_translate(jaffix):
+def stat_translate(jaffix: str) -> ItemModifier:
     """
 	Translate id to the equivalent stat.
 	"""
-    affix = jaffix["id"]
-
-    pseudos = ITEM_MODIFIERS["result"][0]["entries"]
-    explicits = ITEM_MODIFIERS["result"][1]["entries"]
-    implicits = ITEM_MODIFIERS["result"][2]["entries"]
-    crafted = ITEM_MODIFIERS["result"][5]["entries"]
-    enchantments = ITEM_MODIFIERS["result"][4]["entries"]
-
-    # TODO add enchantments ability to be lookedup.
-
-    if "pseudo" in affix:
-        return find_stat_by_id(affix, pseudos)
-    elif "implicit" in affix:
-        return find_stat_by_id(affix, implicits)
-    elif "crafted" in affix:
-        return find_stat_by_id(affix, crafted)
-    else:
-        return find_stat_by_id(affix, explicits)
-
-
-def find_stat_by_id(affix, stat_list):
-    """
-	Helper function to find stats by their id.
-	"""
-    for stat in stat_list:
-        if stat["id"] == affix:
-            return stat["text"]
+    return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
 
 
 def watch_clipboard():
@@ -1067,14 +1025,17 @@ if __name__ == "__main__":
     root.withdraw()
     DEBUG = False
 
+    ITEM_MODIFIERS = get_item_modifiers()
+    print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
+
+    print(f"If you wish to change the selected league you may do so in settings.cfg.")
+    print(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
+
     if LEAGUE not in valid_leagues:
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
-
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
-        print(f"If you wish to change the selected league you may do so in settings.cfg.")
-        print(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
 
         if USE_HOTKEYS:
             import utils.hotkeys as hotkeys
