@@ -4,3 +4,4 @@ dist/
 *.spec
 release*/
 __pycache__/
+output/

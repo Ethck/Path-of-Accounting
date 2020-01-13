@@ -1,6 +1,19 @@
 from tkinter import *
 from PIL import Image, ImageTk
 import time
+<<<<<<< HEAD
+=======
+from overlay import Window
+import win32gui
+import win32com.client
+import os
+
+
+def windowEnumerationHandler(hwnd, top_windows):
+    top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
+
+
+>>>>>>> Fixed some leftover merge problems and added UnicodeDecodeException catching. Closes #68.
 
 def assemble_price_gui(price, currency):
     root = Toplevel()

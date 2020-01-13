@@ -727,7 +727,7 @@ def watch_clipboard():
 	while True:
 		try:
 			text = root.clipboard_get()
-		except TclError:	 # ignore non-text clipboard contents
+		except (TclError, UnicodeDecodeError):	 # ignore non-text clipboard contents
 			continue
 		try:
 			if text != prev:
