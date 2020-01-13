@@ -3,41 +3,30 @@ import time
 import traceback
 from itertools import chain
 from tkinter import TclError, Tk
-from typing import Dict, List, Tuple, Any, Optional, Iterable, Collection
-from tkinter import TclError
-from tkinter import Tk
-from typing import Dict
-from typing import List
+from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
 
 import requests
-from colorama import Fore
-from colorama import deinit
-from colorama import init
+from colorama import Fore, deinit, init
 
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
 from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
-from utils.currency import (CATALYSTS, CURRENCY, DIV_CARDS, ESSENCES, FOSSILS,
-                            FRAGMENTS_AND_SETS, INCUBATORS, OILS, RESONATORS,
-                            SCARABS, VIALS)
-from utils.config import LEAGUE
-from utils.config import PROJECT_URL
-from utils.config import USE_GUI
-from utils.config import USE_HOTKEYS
-from utils.currency import CATALYSTS
-from utils.currency import CURRENCY
-from utils.currency import DIV_CARDS
-from utils.currency import ESSENCES
-from utils.currency import FOSSILS
-from utils.currency import FRAGMENTS_AND_SETS
-from utils.currency import INCUBATORS
-from utils.currency import OILS
-from utils.currency import RESONATORS
-from utils.currency import SCARABS
-from utils.currency import VIALS
+from utils.currency import (
+    CATALYSTS,
+    CURRENCY,
+    DIV_CARDS,
+    ESSENCES,
+    FOSSILS,
+    FRAGMENTS_AND_SETS,
+    INCUBATORS,
+    OILS,
+    RESONATORS,
+    SCARABS,
+    VIALS,
+)
 from utils.exceptions import InvalidAPIResponseException
-from utils.trade import get_leagues, get_item_modifiers
+from utils.trade import get_item_modifiers, get_leagues
 
 DEBUG = False
 
@@ -787,7 +776,6 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
     if DEBUG:
         print("AFFIX:", affix)
 
-
     if re.search(r"\((pseudo|implicit|crafted)\)", affix):
         # Do these need to be searched in a specific order?
         search_order = [ItemModifierType.PSEUDO, ItemModifierType.IMPLICIT, ItemModifierType.CRAFTED]
@@ -808,7 +796,7 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
             if value is not None:
                 return (enchant.id, value)
 
-    raise NotImplementedError('Unable to find matching affix.')
+    raise NotImplementedError("Unable to find matching affix.")
 
 
 def stat_translate(jaffix: str) -> ItemModifier:

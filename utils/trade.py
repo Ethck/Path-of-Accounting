@@ -3,8 +3,8 @@ from typing import List, Tuple
 
 import requests
 
-from models.item_modifier import ItemModifier
 from factories.item_modifier import build_from_json
+from models.item_modifier import ItemModifier
 
 
 def get_leagues() -> Tuple[str, ...]:
@@ -14,6 +14,5 @@ def get_leagues() -> Tuple[str, ...]:
 
 def get_item_modifiers() -> Tuple[ItemModifier, ...]:
     json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-    items = tuple(chain(*[[build_from_json(y) for y in x['entries']] for x in json_blob['result']]))
+    items = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
     return items
-
