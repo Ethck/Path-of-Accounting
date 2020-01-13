@@ -1,10 +1,9 @@
-from typing import List, Tuple
+from typing import List
+from typing import Tuple
 
 import requests
 
 
 def get_leagues() -> Tuple[str, ...]:
-    leagues = requests.get(
-        url="https://www.pathofexile.com/api/trade/data/leagues"
-    ).json()
+    leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
     return tuple(x["id"] for x in leagues["result"])

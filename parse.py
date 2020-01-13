@@ -1,29 +1,40 @@
 import re
 import time
 import traceback
-from tkinter import TclError, Tk
-from typing import Dict, List
+from tkinter import TclError
+from tkinter import Tk
+from typing import Dict
+from typing import List
 
 import requests
-from colorama import Fore, deinit, init
+from colorama import Fore
+from colorama import deinit
+from colorama import init
 
 # Local imports
-from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
-from utils.currency import (CATALYSTS, CURRENCY, DIV_CARDS, ESSENCES, FOSSILS,
-                            FRAGMENTS_AND_SETS, INCUBATORS, OILS, RESONATORS,
-                            SCARABS, VIALS)
+from utils.config import LEAGUE
+from utils.config import PROJECT_URL
+from utils.config import USE_GUI
+from utils.config import USE_HOTKEYS
+from utils.currency import CATALYSTS
+from utils.currency import CURRENCY
+from utils.currency import DIV_CARDS
+from utils.currency import ESSENCES
+from utils.currency import FOSSILS
+from utils.currency import FRAGMENTS_AND_SETS
+from utils.currency import INCUBATORS
+from utils.currency import OILS
+from utils.currency import RESONATORS
+from utils.currency import SCARABS
+from utils.currency import VIALS
 from utils.exceptions import InvalidAPIResponseException
 from utils.trade import get_leagues
 
 DEBUG = False
 
 
-
-
 # All available stats on items.
-ITEM_MODIFIERS = requests.get(
-    url="https://www.pathofexile.com/api/trade/data/stats"
-).json()
+ITEM_MODIFIERS = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
 
 
 def parse_item_info(text: str) -> Dict:
@@ -46,24 +57,18 @@ def parse_item_info(text: str) -> Dict:
 
     unident = bool(re.search("Unidentified", text, re.M))
     metamorph = bool(re.search("Tane", text, re.M))
-    prophecy = bool(
-        re.search("Right-click to add this prophecy to your character.", text, re.M)
-    )
+    prophecy = bool(re.search("Right-click to add this prophecy to your character.", text, re.M))
 
     # Get Qual
     m = re.findall(r"Quality: \+(\d+)%", text)
 
     info["quality"] = int(m[0]) if m else 0
 
-    if (
-        "Map" in info["name"] and "Map" not in info["itype"]
-    ):  # Seems to be all Superior maps...
+    if "Map" in info["name"] and "Map" not in info["itype"]:  # Seems to be all Superior maps...
         if info["itype"] == "--------":
             info["itype"] = info["name"]
 
-    if (
-        "<<set:MS>><<set:M>><<set:S>>" in info["name"]
-    ):  # For checking in chat items... For some reason this is added.
+    if "<<set:MS>><<set:M>><<set:S>>" in info["name"]:  # For checking in chat items... For some reason this is added.
         info["name"] = info["name"].replace("<<set:MS>><<set:M>><<set:S>>", "").strip()
 
     # Oh, it's currency!
@@ -92,24 +97,12 @@ def parse_item_info(text: str) -> Dict:
             map_mods["iir"] = iir_re[0]
 
         map_mods["blight"] = bool(re.search(r"Blighted", text, re.M))
-        map_mods["shaper"] = bool(
-            re.search("Area is influenced by The Shaper", text, re.M)
-        )
-        map_mods["elder"] = bool(
-            re.search("Area is influenced by The Elder", text, re.M)
-        )
-        map_mods["enslaver"] = bool(
-            re.search("Map is occupied by The Enslaver", text, re.M)
-        )
-        map_mods["eradicator"] = bool(
-            re.search("Map is occupied by The Eradicator", text, re.M)
-        )
-        map_mods["constrictor"] = bool(
-            re.search("Map is occupied by The Constrictor", text, re.M)
-        )
-        map_mods["purifier"] = bool(
-            re.search("Map is occupied by The Purifier", text, re.M)
-        )
+        map_mods["shaper"] = bool(re.search("Area is influenced by The Shaper", text, re.M))
+        map_mods["elder"] = bool(re.search("Area is influenced by The Elder", text, re.M))
+        map_mods["enslaver"] = bool(re.search("Map is occupied by The Enslaver", text, re.M))
+        map_mods["eradicator"] = bool(re.search("Map is occupied by The Eradicator", text, re.M))
+        map_mods["constrictor"] = bool(re.search("Map is occupied by The Constrictor", text, re.M))
+        map_mods["purifier"] = bool(re.search("Map is occupied by The Purifier", text, re.M))
 
         info["maps"] = map_mods
 
@@ -198,9 +191,7 @@ def parse_item_info(text: str) -> Dict:
             info["stats"].extend(m[0][1].split("\n"))
 
             # Clean up the leftover stuff / Make it useable data
-            if (
-                info["stats"][1] == "" and info["stats"][2] == "--------"
-            ):  # Implicits and enchantments.
+            if info["stats"][1] == "" and info["stats"][2] == "--------":  # Implicits and enchantments.
                 del info["stats"][1:3]
             elif "--------" in info["stats"]:
                 index = info["stats"].index("--------")
@@ -297,9 +288,7 @@ def query_trade(
 
         if rarity == "Unique":  # Unique maps, may be unidentified
             j["query"]["filters"]["type_filters"] = {}
-            j["query"]["filters"]["type_filters"]["filters"] = {
-                "rarity": {"option": "unique"}
-            }
+            j["query"]["filters"]["type_filters"]["filters"] = {"rarity": {"option": "unique"}}
             j["query"]["type"] = {"option": name}
             name = None
 
@@ -339,20 +328,11 @@ def query_trade(
             j["query"]["stats"][0]["filters"] = []
 
             if maps["shaper"]:
-                j["query"]["stats"][0]["filters"].append(
-                    {"id": "implicit.stat_1792283443", "value": {"option": "1"}}
-                )
+                j["query"]["stats"][0]["filters"].append({"id": "implicit.stat_1792283443", "value": {"option": "1"}})
             elif maps["elder"]:
-                j["query"]["stats"][0]["filters"].append(
-                    {"id": "implicit.stat_1792283443", "value": {"option": "2"}}
-                )
+                j["query"]["stats"][0]["filters"].append({"id": "implicit.stat_1792283443", "value": {"option": "2"}})
 
-            if (
-                maps["enslaver"]
-                or maps["eradicator"]
-                or maps["constrictor"]
-                or maps["purifier"]
-            ):
+            if maps["enslaver"] or maps["eradicator"] or maps["constrictor"] or maps["purifier"]:
                 if maps["enslaver"]:
                     j["query"]["stats"][0]["filters"].append(
                         {"id": "implicit.stat_3624393862", "value": {"option": "1"}}
@@ -397,18 +377,14 @@ def query_trade(
     # Set required links
     if links:
         if links >= 5:
-            j["query"]["filters"]["socket_filters"] = {
-                "filters": {"links": {"min": links}}
-            }
+            j["query"]["filters"]["socket_filters"] = {"filters": {"links": {"min": links}}}
 
     j["query"]["filters"]["misc_filters"] = {}
     j["query"]["filters"]["misc_filters"]["filters"] = {}
 
     # Set corrupted status
     if corrupted:
-        j["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {
-            "option": "true"
-        }
+        j["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {"option": "true"}
 
     if gem_level:
         # Only used for skill gems
@@ -426,9 +402,7 @@ def query_trade(
         if True in influenced.values():
             for influence in influenced:
                 if influenced[influence]:
-                    j["query"]["filters"]["misc_filters"]["filters"][
-                        influence + "_item"
-                    ] = "true"
+                    j["query"]["filters"]["misc_filters"]["filters"][influence + "_item"] = "true"
 
     if (
         name == itype or rarity == "Normal" or rarity == "Magic" or itype == "Metamorph"
@@ -450,12 +424,8 @@ def query_trade(
         for stat in stats:
             (proper_affix, value) = find_affix_match(stat)
             affix_types = ["implicit", "crafted", "explicit", "enchantments"]
-            if any(
-                atype in proper_affix for atype in affix_types
-            ):  # If proper_affix is an actual mod...
-                j["query"]["stats"][0]["filters"].append(
-                    {"id": proper_affix, "value": {"min": value, "max": 999}}
-                )
+            if any(atype in proper_affix for atype in affix_types):  # If proper_affix is an actual mod...
+                j["query"]["stats"][0]["filters"].append({"id": proper_affix, "value": {"min": value, "max": 999}})
 
         # Turn life + resists into pseudo-mods
         j = create_pseudo_mods(j)
@@ -474,9 +444,7 @@ def query_trade(
                 )
 
             # Make the actual request.
-            query = requests.post(
-                f"https://www.pathofexile.com/api/trade/search/{league}", json=j
-            )
+            query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
 
             # No results found. Trim the mod list until we find results.
             if "result" in query.json():
@@ -535,9 +503,7 @@ def query_trade(
                 )
 
     if not fetch_called:  # Any time we ignore stats.
-        query = requests.post(
-            f"https://www.pathofexile.com/api/trade/search/{league}", json=j
-        )
+        query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
         res = query.json()
         results = fetch(res)
         return results
@@ -644,16 +610,11 @@ def create_pseudo_mods(j: Dict) -> Dict:
         total_life = total_life - (total_life % 10)
 
     # Remove stats that have been combined into psudo-stats
-    j["query"]["stats"][0]["filters"] = [
-        e for e in j["query"]["stats"][0]["filters"] if e not in combined_filters
-    ]
+    j["query"]["stats"][0]["filters"] = [e for e in j["query"]["stats"][0]["filters"] if e not in combined_filters]
 
     if total_ele_resists > 0:
         j["query"]["stats"][0]["filters"].append(
-            {
-                "id": "pseudo.pseudo_total_elemental_resistance",
-                "value": {"min": total_ele_resists, "max": 999},
-            }
+            {"id": "pseudo.pseudo_total_elemental_resistance", "value": {"min": total_ele_resists, "max": 999},}
         )
         print(
             "[o] Combining the"
@@ -662,18 +623,11 @@ def create_pseudo_mods(j: Dict) -> Dict:
             + Fore.WHITE
             + "mods from the list into a pseudo-parameter"
         )
-        print(
-            "[+] Pseudo-mod "
-            + Fore.GREEN
-            + f"+{total_ele_resists}% total Elemental Resistance (pseudo)"
-        )
+        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_ele_resists}% total Elemental Resistance (pseudo)")
 
     if total_chaos_resist > 0:
         j["query"]["stats"][0]["filters"].append(
-            {
-                "id": "pseudo.pseudo_total_chaos_resistance",
-                "value": {"min": total_chaos_resist, "max": 999},
-            }
+            {"id": "pseudo.pseudo_total_chaos_resistance", "value": {"min": total_chaos_resist, "max": 999},}
         )
         print(
             "[o] Combining the"
@@ -682,11 +636,7 @@ def create_pseudo_mods(j: Dict) -> Dict:
             + Fore.WHITE
             + "mods from the list into a pseudo-parameter"
         )
-        print(
-            "[+] Pseudo-mod "
-            + Fore.GREEN
-            + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)"
-        )
+        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)")
 
     if total_life > 0:
         j["query"]["stats"][0]["filters"].append(
@@ -699,9 +649,7 @@ def create_pseudo_mods(j: Dict) -> Dict:
             + Fore.WHITE
             + "mods from the list into a pseudo-parameter"
         )
-        print(
-            "[+] Pseudo-mod " + Fore.GREEN + f"+{total_life} to maximum Life (pseudo)"
-        )
+        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_life} to maximum Life (pseudo)")
 
     return j
 
@@ -741,9 +689,7 @@ def query_exchange(qcur, league):
 	Build JSON for fetch request of wanted currency exchange.
 	"""
 
-    print(
-        f"[*] All values will be reported as their chaos, exalt, or mirror equivalent."
-    )
+    print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
     IG_CURRENCY = [
         CURRENCY,
         OILS,
@@ -766,17 +712,9 @@ def query_exchange(qcur, league):
 
     # Default JSON
     for haveCurrency in ["chaos", "exa", "mir"]:
-        def_json = {
-            "exchange": {
-                "have": [haveCurrency],
-                "want": [selection],
-                "status": {"option": "online"},
-            }
-        }
+        def_json = {"exchange": {"have": [haveCurrency], "want": [selection], "status": {"option": "online"},}}
 
-        query = requests.post(
-            f"https://www.pathofexile.com/api/trade/exchange/{LEAGUE}", json=def_json
-        )
+        query = requests.post(f"https://www.pathofexile.com/api/trade/exchange/{LEAGUE}", json=def_json)
         res = query.json()
         if DEBUG:
             print(def_json)
@@ -929,15 +867,11 @@ def watch_clipboard():
 
                 if info:
                     # Uniques, only search by corrupted status, links, and name.
-                    if (info.get("rarity") == "Unique") and (
-                        info.get("itype") != "Metamorph"
-                    ):
+                    if (info.get("rarity") == "Unique") and (info.get("itype") != "Metamorph"):
                         if info["name"] == info["itype"]:
                             print(f'[*] Found Unique item in clipboard: {info["name"]}')
                         else:
-                            print(
-                                f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}'
-                            )
+                            print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
                         base = f"Only showing results that are: "
                         pprint = base
 
@@ -957,15 +891,7 @@ def watch_clipboard():
                             **{
                                 k: v
                                 for k, v in info.items()
-                                if k
-                                in (
-                                    "name",
-                                    "links",
-                                    "corrupted",
-                                    "rarity",
-                                    "maps",
-                                    LEAGUE,
-                                )
+                                if k in ("name", "links", "corrupted", "rarity", "maps", LEAGUE,)
                             },
                         )
 
@@ -980,9 +906,7 @@ def watch_clipboard():
                     else:
                         # Do intensive search.
                         if info["itype"] != info["name"] and info["itype"] != None:
-                            print(
-                                f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}"
-                            )
+                            print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
                         else:
                             extra_strings = ""
                             if info["rarity"] == "Gem":
@@ -995,9 +919,7 @@ def watch_clipboard():
                             if info["quality"] != 0:
                                 extra_strings += f"Quality: {info['quality']}+"
 
-                            print(
-                                f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}"
-                            )
+                            print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
                         trade_info = query_trade(
                             LEAGUE,
@@ -1030,19 +952,12 @@ def watch_clipboard():
                             # Modify data to usable status.
                             prices = []
                             for trade in trade_info:  # Stop price fixers
-                                if (
-                                    trade["listing"]["account"]["name"]
-                                    != prev_account_name
-                                ):
+                                if trade["listing"]["account"]["name"] != prev_account_name:
                                     prices.append(trade["listing"]["price"])
 
                                 prev_account_name = trade["listing"]["account"]["name"]
 
-                            prices = [
-                                "%(amount)s%(currency)s" % x
-                                for x in prices
-                                if x != None
-                            ]
+                            prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
 
                             prices = {x: prices.count(x) for x in prices}
                             print_string = ""
@@ -1050,15 +965,9 @@ def watch_clipboard():
 
                             # Make pretty strings.
                             for price_dict in prices:
-                                pretty_price = " ".join(
-                                    re.split(r"([0-9.]+)", price_dict)[1:]
-                                )
+                                pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
                                 print_string += (
-                                    f"{prices[price_dict]} x "
-                                    + Fore.YELLOW
-                                    + f"{pretty_price}"
-                                    + Fore.WHITE
-                                    + ", "
+                                    f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
                                 )
                                 total_count += prices[price_dict]
 
@@ -1066,10 +975,7 @@ def watch_clipboard():
                             print(f"[$] Price: {print_string[:-2]}\n\n")
                             if USE_GUI:
 
-                                price = [
-                                    re.findall(r"([0-9.]+)", tprice)[0]
-                                    for tprice in prices.keys()
-                                ]
+                                price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
 
                                 currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
                                 if "mir" in print_string:
@@ -1087,9 +993,7 @@ def watch_clipboard():
                                 # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
                                 # TODO average between multiple currencies...
                                 L = [float(n) for n in price if n]
-                                average = str(
-                                    round(sum(L) / float(len(L)) if L else "-", 2)
-                                )
+                                average = str(round(sum(L) / float(len(L)) if L else "-", 2))
 
                                 price = [
                                     round(float(price[0]), 2),
@@ -1121,9 +1025,7 @@ def watch_clipboard():
             break
 
         except InvalidAPIResponseException as e:
-            print(
-                f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================="
-            )
+            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
             print(
                 f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
             )
@@ -1131,21 +1033,15 @@ def watch_clipboard():
             print(f"{Fore.GREEN}Title:")
             print("Failed to query item from trade API.")
             print(f"{Fore.GREEN}Body:")
-            print(
-                "Macro failed to lookup item from POE trade API. Here is the item in question."
-            )
+            print("Macro failed to lookup item from POE trade API. Here is the item in question.")
             print("====== ITEM DATA=====")
             print(f"{text}")
             print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-            print(
-                f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================="
-            )
+            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
 
         except Exception as e:
             exception = traceback.format_exc()
-            print(
-                f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================="
-            )
+            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
             print(
                 f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
             )
@@ -1159,9 +1055,7 @@ def watch_clipboard():
             print("====== TRACEBACK =====")
             print(exception)
             print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-            print(
-                f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================="
-            )
+            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
             print(exception)
 
 
@@ -1179,9 +1073,7 @@ if __name__ == "__main__":
 
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
-        print(
-            f"If you wish to change the selected league you may do so in settings.cfg."
-        )
+        print(f"If you wish to change the selected league you may do so in settings.cfg.")
         print(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
 
         if USE_HOTKEYS:

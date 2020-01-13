@@ -2,13 +2,15 @@ import os
 import time
 from tkinter import *
 
-from PIL import Image, ImageTk
+from PIL import Image
+from PIL import ImageTk
 
 # We do not need this on Linux.
 # If you are attempting to develop, you will need to install your own version as pypi does not have one.
 if os.name == "nt":
     import win32com.client
     import win32gui
+
 
 def windowEnumerationHandler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
