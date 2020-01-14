@@ -5,6 +5,7 @@ from itertools import chain
 from tkinter import TclError, Tk
 from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
 
+import pyperclip
 import requests
 from colorama import Fore, deinit, init
 
@@ -806,6 +807,197 @@ def stat_translate(jaffix: str) -> ItemModifier:
     return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
 
 
+def price_item(text):
+    try:
+        info = parse_item_info(text)
+        trade_info = None
+
+        if info:
+            # Uniques, only search by corrupted status, links, and name.
+            if (info.get("rarity") == "Unique") and (info.get("itype") != "Metamorph"):
+                if info["name"] == info["itype"]:
+                    print(f'[*] Found Unique item in clipboard: {info["name"]}')
+                else:
+                    print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
+                base = f"Only showing results that are: "
+                pprint = base
+
+                if "corrupted" in info:
+                    if info["corrupted"]:
+                        pprint += f"Corrupted "
+
+                if "links" in info:
+                    if info["links"] > 1:
+                        pprint += f"{info['links']} linked "
+
+                if pprint != base:
+                    print("[-]", pprint)
+
+                trade_info = query_trade(
+                    LEAGUE,
+                    **{k: v for k, v in info.items() if k in ("name", "links", "corrupted", "rarity", "maps", LEAGUE,)},
+                )
+
+            elif info["itype"] == "Currency":
+                print(f'[-] Found currency {info["name"]} in clipboard')
+                trade_info = query_exchange(info["name"])
+
+            elif info["itype"] == "Divination Card":
+                print(f'[-] Found Divination Card {info["name"]}')
+                trade_info = query_exchange(info["name"])
+
+            else:
+                # Do intensive search.
+                if info["itype"] != info["name"] and info["itype"] != None:
+                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
+                else:
+                    extra_strings = ""
+                    if info["rarity"] == "Gem":
+                        extra_strings += f"Level: {info['gem_level']}+, "
+
+                    if "corrupted" in info:
+                        if info["corrupted"]:
+                            extra_strings += "Corrupted: True, "
+
+                    if info["quality"] != 0:
+                        extra_strings += f"Quality: {info['quality']}+"
+
+                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
+
+                trade_info = query_trade(
+                    LEAGUE,
+                    **{
+                        k: v
+                        for k, v in info.items()
+                        if k
+                        in (
+                            "name",
+                            "itype",
+                            "ilvl",
+                            "links",
+                            "corrupted",
+                            "influenced",
+                            "stats",
+                            "rarity",
+                            "gem_level",
+                            "quality",
+                            "maps",
+                        )
+                    },
+                )
+
+            # If results found
+            if trade_info:
+                # If more than 1 result, assemble price list.
+                if len(trade_info) > 1:
+                    # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
+                    prev_account_name = ""
+                    # Modify data to usable status.
+                    prices = []
+                    for trade in trade_info:  # Stop price fixers
+                        if trade["listing"]["account"]["name"] != prev_account_name:
+                            prices.append(trade["listing"]["price"])
+
+                        prev_account_name = trade["listing"]["account"]["name"]
+
+                    prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
+
+                    prices = {x: prices.count(x) for x in prices}
+                    print_string = ""
+                    total_count = 0
+
+                    # Make pretty strings.
+                    for price_dict in prices:
+                        pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
+                        print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
+                        total_count += prices[price_dict]
+
+                    # Print the pretty string, ignoring trailing comma
+                    print(f"[$] Price: {print_string[:-2]}\n\n")
+                    if USE_GUI:
+
+                        price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+
+                        currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
+                        if "mir" in print_string:
+                            currency = "mirror"
+                        elif "exa" in print_string:
+                            currency = "exalt"
+                        elif "chaos" in print_string:
+                            currency = "chaos"
+                        elif "alch" in print_string:
+                            currency = "alchemy"
+
+                        price.sort()
+
+                        # Fastest method for calculating average as seen here:
+                        # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+                        # TODO average between multiple currencies...
+                        L = [float(n) for n in price if n]
+                        average = str(round(sum(L) / float(len(L)) if L else "-", 2))
+
+                        price = [
+                            round(float(price[0]), 2),
+                            average,
+                            round(float(price[-1]), 2),
+                        ]
+
+                        testGui.assemble_price_gui(price, currency)
+
+                else:
+                    price = trade_info[0]["listing"]["price"]
+                    if price != None:
+                        price_val = price["amount"]
+                        price_curr = price["currency"]
+                        price = f"{price_val} x {price_curr}"
+
+                        if USE_GUI:
+                            testGui.assemble_price_gui(price, price_curr)
+
+                    print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
+
+            elif trade_info is not None:
+                print(f"[!] No results!")
+
+    except InvalidAPIResponseException as e:
+        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
+        print(
+            f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
+        )
+        print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
+        print(f"{Fore.GREEN}Title:")
+        print("Failed to query item from trade API.")
+        print(f"{Fore.GREEN}Body:")
+        print("Macro failed to lookup item from POE trade API. Here is the item in question.")
+        print("====== ITEM DATA=====")
+        print(f"{text}")
+        print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
+        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+
+    except Exception as e:
+        exception = traceback.format_exc()
+        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
+        print(
+            f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
+        )
+        print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
+        print(f"{Fore.GREEN}Title:")
+        print("Failed to query item from trade API.")
+        print(f"{Fore.GREEN}Body:")
+        print("Here is the item in question.")
+        print("====== ITEM DATA=====")
+        print(f"{text}")
+        print("====== TRACEBACK =====")
+        print(exception)
+        print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
+        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+        print(exception)
+
+
+def get_clipboard():
+    return pyperclip.paste()
+
+
 def watch_clipboard():
     """
 	Watch clipboard for items being copied to check lowest prices on trade.
@@ -814,207 +1006,20 @@ def watch_clipboard():
     prev = None
     while True:
         try:
-            text = root.clipboard_get()
-        except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
-            continue
-        try:
+            text = get_clipboard()
+
             if text != prev:
-                prev = text
-                info = parse_item_info(text)
-                trade_info = None
+                price_item(text)
 
-                if info:
-                    # Uniques, only search by corrupted status, links, and name.
-                    if (info.get("rarity") == "Unique") and (info.get("itype") != "Metamorph"):
-                        if info["name"] == info["itype"]:
-                            print(f'[*] Found Unique item in clipboard: {info["name"]}')
-                        else:
-                            print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
-                        base = f"Only showing results that are: "
-                        pprint = base
-
-                        if "corrupted" in info:
-                            if info["corrupted"]:
-                                pprint += f"Corrupted "
-
-                        if "links" in info:
-                            if info["links"] > 1:
-                                pprint += f"{info['links']} linked "
-
-                        if pprint != base:
-                            print("[-]", pprint)
-
-                        trade_info = query_trade(
-                            LEAGUE,
-                            **{
-                                k: v
-                                for k, v in info.items()
-                                if k in ("name", "links", "corrupted", "rarity", "maps", LEAGUE,)
-                            },
-                        )
-
-                    elif info["itype"] == "Currency":
-                        print(f'[-] Found currency {info["name"]} in clipboard')
-                        trade_info = query_exchange(info["name"])
-
-                    elif info["itype"] == "Divination Card":
-                        print(f'[-] Found Divination Card {info["name"]}')
-                        trade_info = query_exchange(info["name"])
-
-                    else:
-                        # Do intensive search.
-                        if info["itype"] != info["name"] and info["itype"] != None:
-                            print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
-                        else:
-                            extra_strings = ""
-                            if info["rarity"] == "Gem":
-                                extra_strings += f"Level: {info['gem_level']}+, "
-
-                            if "corrupted" in info:
-                                if info["corrupted"]:
-                                    extra_strings += "Corrupted: True, "
-
-                            if info["quality"] != 0:
-                                extra_strings += f"Quality: {info['quality']}+"
-
-                            print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
-
-                        trade_info = query_trade(
-                            LEAGUE,
-                            **{
-                                k: v
-                                for k, v in info.items()
-                                if k
-                                in (
-                                    "name",
-                                    "itype",
-                                    "ilvl",
-                                    "links",
-                                    "corrupted",
-                                    "influenced",
-                                    "stats",
-                                    "rarity",
-                                    "gem_level",
-                                    "quality",
-                                    "maps",
-                                )
-                            },
-                        )
-
-                    # If results found
-                    if trade_info:
-                        # If more than 1 result, assemble price list.
-                        if len(trade_info) > 1:
-                            # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
-                            prev_account_name = ""
-                            # Modify data to usable status.
-                            prices = []
-                            for trade in trade_info:  # Stop price fixers
-                                if trade["listing"]["account"]["name"] != prev_account_name:
-                                    prices.append(trade["listing"]["price"])
-
-                                prev_account_name = trade["listing"]["account"]["name"]
-
-                            prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
-
-                            prices = {x: prices.count(x) for x in prices}
-                            print_string = ""
-                            total_count = 0
-
-                            # Make pretty strings.
-                            for price_dict in prices:
-                                pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
-                                print_string += (
-                                    f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
-                                )
-                                total_count += prices[price_dict]
-
-                            # Print the pretty string, ignoring trailing comma
-                            print(f"[$] Price: {print_string[:-2]}\n\n")
-                            if USE_GUI:
-
-                                price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
-
-                                currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
-                                if "mir" in print_string:
-                                    currency = "mirror"
-                                elif "exa" in print_string:
-                                    currency = "exalt"
-                                elif "chaos" in print_string:
-                                    currency = "chaos"
-                                elif "alch" in print_string:
-                                    currency = "alchemy"
-
-                                price.sort()
-
-                                # Fastest method for calculating average as seen here:
-                                # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
-                                # TODO average between multiple currencies...
-                                L = [float(n) for n in price if n]
-                                average = str(round(sum(L) / float(len(L)) if L else "-", 2))
-
-                                price = [
-                                    round(float(price[0]), 2),
-                                    average,
-                                    round(float(price[-1]), 2),
-                                ]
-
-                                testGui.assemble_price_gui(price, currency)
-
-                        else:
-                            price = trade_info[0]["listing"]["price"]
-                            if price != None:
-                                price_val = price["amount"]
-                                price_curr = price["currency"]
-                                price = f"{price_val} x {price_curr}"
-
-                                if USE_GUI:
-                                    testGui.assemble_price_gui(price, price_curr)
-
-                            print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
-
-                    elif trade_info is not None:
-                        print(f"[!] No results!")
+            prev = text
 
             time.sleep(0.3)
+        except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
+            continue
 
         except KeyboardInterrupt:
             print(f"[!] Exiting, user requested termination.")
             break
-
-        except InvalidAPIResponseException as e:
-            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
-            print(
-                f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
-            )
-            print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-            print(f"{Fore.GREEN}Title:")
-            print("Failed to query item from trade API.")
-            print(f"{Fore.GREEN}Body:")
-            print("Macro failed to lookup item from POE trade API. Here is the item in question.")
-            print("====== ITEM DATA=====")
-            print(f"{text}")
-            print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
-
-        except Exception as e:
-            exception = traceback.format_exc()
-            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
-            print(
-                f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
-            )
-            print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-            print(f"{Fore.GREEN}Title:")
-            print("Failed to query item from trade API.")
-            print(f"{Fore.GREEN}Body:")
-            print("Here is the item in question.")
-            print("====== ITEM DATA=====")
-            print(f"{text}")
-            print("====== TRACEBACK =====")
-            print(exception)
-            print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-            print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
-            print(exception)
 
 
 if __name__ == "__main__":
