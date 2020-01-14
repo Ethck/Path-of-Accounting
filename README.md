@@ -28,8 +28,7 @@ For WINDOWS:
 
 For *NIX:
 * Ensure that your python version is 3.7 or above.
-* Install the following libraries:
-* `requests`, `pillow`, `keyboard`, `colorama`, and `typing`
+* Run `pip install -r requirements.txt` to install dependencies
 * Run parse.py
 
 For Everyone!
