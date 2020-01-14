@@ -1,0 +1,14 @@
+attr==0.3.1
+attrs==19.3.0
+certifi==2019.11.28
+chardet==3.0.4
+colorama==0.4.3
+idna==2.8
+keyboard==0.13.4
+Pillow==7.0.0
+pyperclip==1.7.0
+pypiwin32==223
+pywin32==227
+requests==2.22.0
+typing==3.7.4.1
+urllib3==1.25.7

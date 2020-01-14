@@ -54,18 +54,35 @@ def parse_item_info(text: str) -> Dict:
 
     unident = bool(re.search("Unidentified", text, re.M))
     metamorph = bool(re.search("Tane", text, re.M))
-    prophecy = bool(re.search("Right-click to add this prophecy to your character.", text, re.M))
+    prophecy = bool(
+        re.search("Right-click to add this prophecy to your character.", text, re.M)
+    )
+
+    # Corruption status and influenced status
+
+    info["influenced"] = {}
+    info["influenced"]["shaper"] = bool(re.search("Shaper Item", text, re.M))
+    info["influenced"]["elder"] = bool(re.search("Elder Item", text, re.M))
+    info["influenced"]["crusader"] = bool(re.search("Crusader Item", text, re.M))
+    info["influenced"]["hunter"] = bool(re.search("Hunter Item", text, re.M))
+    info["influenced"]["redeemer"] = bool(re.search("Redeemer Item", text, re.M))
+    info["influenced"]["warlord"] = bool(re.search("Warlord Item", text, re.M))
+    info["corrupted"] = bool(re.search("^Corrupted$", text, re.M))
 
     # Get Qual
     m = re.findall(r"Quality: \+(\d+)%", text)
 
     info["quality"] = int(m[0]) if m else 0
 
-    if "Map" in info["name"] and "Map" not in info["itype"]:  # Seems to be all Superior maps...
+    if (
+        "Map" in info["name"] and "Map" not in info["itype"]
+    ):  # Seems to be all Superior maps...
         if info["itype"] == "--------":
             info["itype"] = info["name"]
 
-    if "<<set:MS>><<set:M>><<set:S>>" in info["name"]:  # For checking in chat items... For some reason this is added.
+    if (
+        "<<set:MS>><<set:M>><<set:S>>" in info["name"]
+    ):  # For checking in chat items... For some reason this is added.
         info["name"] = info["name"].replace("<<set:MS>><<set:M>><<set:S>>", "").strip()
 
     # Oh, it's currency!
@@ -94,12 +111,24 @@ def parse_item_info(text: str) -> Dict:
             map_mods["iir"] = iir_re[0]
 
         map_mods["blight"] = bool(re.search(r"Blighted", text, re.M))
-        map_mods["shaper"] = bool(re.search("Area is influenced by The Shaper", text, re.M))
-        map_mods["elder"] = bool(re.search("Area is influenced by The Elder", text, re.M))
-        map_mods["enslaver"] = bool(re.search("Map is occupied by The Enslaver", text, re.M))
-        map_mods["eradicator"] = bool(re.search("Map is occupied by The Eradicator", text, re.M))
-        map_mods["constrictor"] = bool(re.search("Map is occupied by The Constrictor", text, re.M))
-        map_mods["purifier"] = bool(re.search("Map is occupied by The Purifier", text, re.M))
+        map_mods["shaper"] = bool(
+            re.search("Area is influenced by The Shaper", text, re.M)
+        )
+        map_mods["elder"] = bool(
+            re.search("Area is influenced by The Elder", text, re.M)
+        )
+        map_mods["enslaver"] = bool(
+            re.search("Map is occupied by The Enslaver", text, re.M)
+        )
+        map_mods["eradicator"] = bool(
+            re.search("Map is occupied by The Eradicator", text, re.M)
+        )
+        map_mods["constrictor"] = bool(
+            re.search("Map is occupied by The Constrictor", text, re.M)
+        )
+        map_mods["purifier"] = bool(
+            re.search("Map is occupied by The Purifier", text, re.M)
+        )
 
         info["maps"] = map_mods
 
@@ -160,17 +189,6 @@ def parse_item_info(text: str) -> Dict:
         if m:
             info["links"] = m[0].count("-") + 1
 
-        # Corruption status and influenced status
-        info["corrupted"] = bool(re.search("^Corrupted$", text, re.M))
-
-        info["influenced"] = {}
-        info["influenced"]["shaper"] = bool(re.search("Shaper Item", text, re.M))
-        info["influenced"]["elder"] = bool(re.search("Elder Item", text, re.M))
-        info["influenced"]["crusader"] = bool(re.search("Crusader Item", text, re.M))
-        info["influenced"]["hunter"] = bool(re.search("Hunter Item", text, re.M))
-        info["influenced"]["redeemer"] = bool(re.search("Redeemer Item", text, re.M))
-        info["influenced"]["warlord"] = bool(re.search("Warlord Item", text, re.M))
-
         # Item Level
         m = re.findall(r"Item Level: (\d+)", text)
 
@@ -188,7 +206,9 @@ def parse_item_info(text: str) -> Dict:
             info["stats"].extend(m[0][1].split("\n"))
 
             # Clean up the leftover stuff / Make it useable data
-            if info["stats"][1] == "" and info["stats"][2] == "--------":  # Implicits and enchantments.
+            if (
+                info["stats"][1] == "" and info["stats"][2] == "--------"
+            ):  # Implicits and enchantments.
                 del info["stats"][1:3]
             elif "--------" in info["stats"]:
                 index = info["stats"].index("--------")
@@ -285,7 +305,9 @@ def query_trade(
 
         if rarity == "Unique":  # Unique maps, may be unidentified
             j["query"]["filters"]["type_filters"] = {}
-            j["query"]["filters"]["type_filters"]["filters"] = {"rarity": {"option": "unique"}}
+            j["query"]["filters"]["type_filters"]["filters"] = {
+                "rarity": {"option": "unique"}
+            }
             j["query"]["type"] = {"option": name}
             name = None
 
@@ -325,11 +347,20 @@ def query_trade(
             j["query"]["stats"][0]["filters"] = []
 
             if maps["shaper"]:
-                j["query"]["stats"][0]["filters"].append({"id": "implicit.stat_1792283443", "value": {"option": "1"}})
+                j["query"]["stats"][0]["filters"].append(
+                    {"id": "implicit.stat_1792283443", "value": {"option": "1"}}
+                )
             elif maps["elder"]:
-                j["query"]["stats"][0]["filters"].append({"id": "implicit.stat_1792283443", "value": {"option": "2"}})
+                j["query"]["stats"][0]["filters"].append(
+                    {"id": "implicit.stat_1792283443", "value": {"option": "2"}}
+                )
 
-            if maps["enslaver"] or maps["eradicator"] or maps["constrictor"] or maps["purifier"]:
+            if (
+                maps["enslaver"]
+                or maps["eradicator"]
+                or maps["constrictor"]
+                or maps["purifier"]
+            ):
                 if maps["enslaver"]:
                     j["query"]["stats"][0]["filters"].append(
                         {"id": "implicit.stat_3624393862", "value": {"option": "1"}}
@@ -374,14 +405,18 @@ def query_trade(
     # Set required links
     if links:
         if links >= 5:
-            j["query"]["filters"]["socket_filters"] = {"filters": {"links": {"min": links}}}
+            j["query"]["filters"]["socket_filters"] = {
+                "filters": {"links": {"min": links}}
+            }
 
     j["query"]["filters"]["misc_filters"] = {}
     j["query"]["filters"]["misc_filters"]["filters"] = {}
 
     # Set corrupted status
     if corrupted:
-        j["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {"option": "true"}
+        j["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {
+            "option": "true"
+        }
 
     if gem_level:
         # Only used for skill gems
@@ -399,7 +434,9 @@ def query_trade(
         if True in influenced.values():
             for influence in influenced:
                 if influenced[influence]:
-                    j["query"]["filters"]["misc_filters"]["filters"][influence + "_item"] = "true"
+                    j["query"]["filters"]["misc_filters"]["filters"][
+                        influence + "_item"
+                    ] = "true"
 
     if (
         name == itype or rarity == "Normal" or rarity == "Magic" or itype == "Metamorph"
@@ -425,8 +462,12 @@ def query_trade(
                 # Can't find mod, move on
                 continue
             affix_types = ["implicit", "crafted", "explicit", "enchantments"]
-            if any(atype in proper_affix for atype in affix_types):  # If proper_affix is an actual mod...
-                j["query"]["stats"][0]["filters"].append({"id": proper_affix, "value": {"min": value, "max": 999}})
+            if any(
+                atype in proper_affix for atype in affix_types
+            ):  # If proper_affix is an actual mod...
+                j["query"]["stats"][0]["filters"].append(
+                    {"id": proper_affix, "value": {"min": value, "max": 999}}
+                )
 
         # Turn life + resists into pseudo-mods
         j = create_pseudo_mods(j)
@@ -445,7 +486,9 @@ def query_trade(
                 )
 
             # Make the actual request.
-            query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
+            query = requests.post(
+                f"https://www.pathofexile.com/api/trade/search/{league}", json=j
+            )
 
             # No results found. Trim the mod list until we find results.
             if "result" in query.json():
@@ -504,7 +547,9 @@ def query_trade(
                 )
 
     if not fetch_called:  # Any time we ignore stats.
-        query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
+        query = requests.post(
+            f"https://www.pathofexile.com/api/trade/search/{league}", json=j
+        )
         res = query.json()
         results = fetch(res)
         return results
@@ -611,11 +656,16 @@ def create_pseudo_mods(j: Dict) -> Dict:
         total_life = total_life - (total_life % 10)
 
     # Remove stats that have been combined into psudo-stats
-    j["query"]["stats"][0]["filters"] = [e for e in j["query"]["stats"][0]["filters"] if e not in combined_filters]
+    j["query"]["stats"][0]["filters"] = [
+        e for e in j["query"]["stats"][0]["filters"] if e not in combined_filters
+    ]
 
     if total_ele_resists > 0:
         j["query"]["stats"][0]["filters"].append(
-            {"id": "pseudo.pseudo_total_elemental_resistance", "value": {"min": total_ele_resists, "max": 999},}
+            {
+                "id": "pseudo.pseudo_total_elemental_resistance",
+                "value": {"min": total_ele_resists, "max": 999},
+            }
         )
         print(
             "[o] Combining the"
@@ -624,11 +674,18 @@ def create_pseudo_mods(j: Dict) -> Dict:
             + Fore.WHITE
             + "mods from the list into a pseudo-parameter"
         )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_ele_resists}% total Elemental Resistance (pseudo)")
+        print(
+            "[+] Pseudo-mod "
+            + Fore.GREEN
+            + f"+{total_ele_resists}% total Elemental Resistance (pseudo)"
+        )
 
     if total_chaos_resist > 0:
         j["query"]["stats"][0]["filters"].append(
-            {"id": "pseudo.pseudo_total_chaos_resistance", "value": {"min": total_chaos_resist, "max": 999},}
+            {
+                "id": "pseudo.pseudo_total_chaos_resistance",
+                "value": {"min": total_chaos_resist, "max": 999},
+            }
         )
         print(
             "[o] Combining the"
@@ -637,7 +694,11 @@ def create_pseudo_mods(j: Dict) -> Dict:
             + Fore.WHITE
             + "mods from the list into a pseudo-parameter"
         )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)")
+        print(
+            "[+] Pseudo-mod "
+            + Fore.GREEN
+            + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)"
+        )
 
     if total_life > 0:
         j["query"]["stats"][0]["filters"].append(
@@ -650,7 +711,9 @@ def create_pseudo_mods(j: Dict) -> Dict:
             + Fore.WHITE
             + "mods from the list into a pseudo-parameter"
         )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_life} to maximum Life (pseudo)")
+        print(
+            "[+] Pseudo-mod " + Fore.GREEN + f"+{total_life} to maximum Life (pseudo)"
+        )
 
     return j
 
@@ -690,7 +753,9 @@ def query_exchange(qcur):
 	Build JSON for fetch request of wanted currency exchange.
 	"""
 
-    print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
+    print(
+        f"[*] All values will be reported as their chaos, exalt, or mirror equivalent."
+    )
     IG_CURRENCY = [
         CURRENCY,
         OILS,
@@ -713,9 +778,17 @@ def query_exchange(qcur):
 
     # Default JSON
     for haveCurrency in ["chaos", "exa", "mir"]:
-        def_json = {"exchange": {"have": [haveCurrency], "want": [selection], "status": {"option": "online"},}}
+        def_json = {
+            "exchange": {
+                "have": [haveCurrency],
+                "want": [selection],
+                "status": {"option": "online"},
+            }
+        }
 
-        query = requests.post(f"https://www.pathofexile.com/api/trade/exchange/{LEAGUE}", json=def_json)
+        query = requests.post(
+            f"https://www.pathofexile.com/api/trade/exchange/{LEAGUE}", json=def_json
+        )
         res = query.json()
         if DEBUG:
             print(def_json)
@@ -779,20 +852,28 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
 
     if re.search(r"\((pseudo|implicit|crafted)\)", affix):
         # Do these need to be searched in a specific order?
-        search_order = [ItemModifierType.PSEUDO, ItemModifierType.IMPLICIT, ItemModifierType.CRAFTED]
+        search_order = [
+            ItemModifierType.PSEUDO,
+            ItemModifierType.IMPLICIT,
+            ItemModifierType.CRAFTED,
+        ]
         search_mods = chain(*(get_mods_by_type(x) for x in search_order))
         for mod in search_mods:
             value = affix_equals(mod.text, affix)
             if value is not None:
                 return (mod.id, value)
     else:
-        for explicit in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.EXPLICIT):
+        for explicit in (
+            x for x in ITEM_MODIFIERS if x.type is ItemModifierType.EXPLICIT
+        ):
             value = affix_equals(explicit.text, affix)
             if value is not None:
                 return (explicit.id, value)
 
         # Maybe it's an enchantment
-        for enchant in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.ENCHANT):
+        for enchant in (
+            x for x in ITEM_MODIFIERS if x.type is ItemModifierType.ENCHANT
+        ):
             value = affix_equals(enchant.text, affix)
             if value is not None:
                 return (enchant.id, value)
@@ -818,7 +899,9 @@ def price_item(text):
                 if info["name"] == info["itype"]:
                     print(f'[*] Found Unique item in clipboard: {info["name"]}')
                 else:
-                    print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
+                    print(
+                        f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}'
+                    )
                 base = f"Only showing results that are: "
                 pprint = base
 
@@ -835,7 +918,12 @@ def price_item(text):
 
                 trade_info = query_trade(
                     LEAGUE,
-                    **{k: v for k, v in info.items() if k in ("name", "links", "corrupted", "rarity", "maps", LEAGUE,)},
+                    **{
+                        k: v
+                        for k, v in info.items()
+                        if k
+                        in ("name", "links", "corrupted", "rarity", "maps", LEAGUE,)
+                    },
                 )
 
             elif info["itype"] == "Currency":
@@ -849,7 +937,9 @@ def price_item(text):
             else:
                 # Do intensive search.
                 if info["itype"] != info["name"] and info["itype"] != None:
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
+                    print(
+                        f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}"
+                    )
                 else:
                     extra_strings = ""
                     if info["rarity"] == "Gem":
@@ -862,7 +952,9 @@ def price_item(text):
                     if info["quality"] != 0:
                         extra_strings += f"Quality: {info['quality']}+"
 
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
+                    print(
+                        f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}"
+                    )
 
                 trade_info = query_trade(
                     LEAGUE,
@@ -909,14 +1001,23 @@ def price_item(text):
                     # Make pretty strings.
                     for price_dict in prices:
                         pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
-                        print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
+                        print_string += (
+                            f"{prices[price_dict]} x "
+                            + Fore.YELLOW
+                            + f"{pretty_price}"
+                            + Fore.WHITE
+                            + ", "
+                        )
                         total_count += prices[price_dict]
 
                     # Print the pretty string, ignoring trailing comma
                     print(f"[$] Price: {print_string[:-2]}\n\n")
                     if USE_GUI:
 
-                        price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+                        price = [
+                            re.findall(r"([0-9.]+)", tprice)[0]
+                            for tprice in prices.keys()
+                        ]
 
                         currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
                         if "mir" in print_string:
@@ -960,7 +1061,9 @@ def price_item(text):
                 print(f"[!] No results!")
 
     except InvalidAPIResponseException as e:
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
+        print(
+            f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================="
+        )
         print(
             f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
         )
@@ -968,15 +1071,21 @@ def price_item(text):
         print(f"{Fore.GREEN}Title:")
         print("Failed to query item from trade API.")
         print(f"{Fore.GREEN}Body:")
-        print("Macro failed to lookup item from POE trade API. Here is the item in question.")
+        print(
+            "Macro failed to lookup item from POE trade API. Here is the item in question."
+        )
         print("====== ITEM DATA=====")
         print(f"{text}")
         print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+        print(
+            f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================="
+        )
 
     except Exception as e:
         exception = traceback.format_exc()
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
+        print(
+            f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================="
+        )
         print(
             f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
         )
@@ -990,7 +1099,9 @@ def price_item(text):
         print("====== TRACEBACK =====")
         print(exception)
         print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+        print(
+            f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================="
+        )
         print(exception)
 
 
