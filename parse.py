@@ -29,8 +29,6 @@ from utils.currency import (
 from utils.exceptions import InvalidAPIResponseException
 from utils.trade import get_item_modifiers, get_leagues
 
-DEBUG = False
-
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 
 
@@ -207,7 +205,7 @@ def parse_item_info(text: str) -> Dict:
 
 def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:
     """
-	Fetch is the last step of the API. The item's attributes are decided, and this function checks to see if
+	Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
 	there are any similar items like it listed.
 
 	returns JSON of all available similar items.
@@ -272,7 +270,7 @@ def query_trade(
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
 
-	returns results of the fetch function.
+	returns JSON of similar items listed (from the fetch() function).
 	"""
     if stats is None:
         stats = []
@@ -431,6 +429,9 @@ def query_trade(
         # Turn life + resists into pseudo-mods
         j = create_pseudo_mods(j)
 
+        if DEBUG:
+            print("FULL Query:", j)
+
         # Now search for similar items, if none found remove a stat and try again. TODO: Refactor and include more vars.
         num_stats_ignored = 0
         total_num_stats = len(j["query"]["stats"][0]["filters"])
@@ -514,7 +515,7 @@ def create_pseudo_mods(j: Dict) -> Dict:
     """
 	Combines life and resists into pseudo-mods
 
-	Returns item
+	Returns modified JSON #TODO change this to only modify the stats section of the JSON
 	"""
     # Combine life and resists for pseudo-stats
     total_ele_resists = 0
@@ -659,7 +660,7 @@ def choose_bad_mod(j):
     """
 	Chooses a non-priority mod to delete.
 
-	Returns dictionary
+	Returns modified JSON that lacks the chosen bad mod
 	"""
     # Good mod list
     priority = [
@@ -688,6 +689,8 @@ def result_prices_are_none(j: Dict) -> bool:
 def query_exchange(qcur):
     """
 	Build JSON for fetch request of wanted currency exchange.
+    Fetch with the built JSON
+    Return results of similar items.
 	"""
 
     print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
@@ -803,11 +806,18 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
 def stat_translate(jaffix: str) -> ItemModifier:
     """
 	Translate id to the equivalent stat.
+    Returns the ItemModifier equivalent to requested id
 	"""
     return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
 
 
 def price_item(text):
+    """
+    Taking the text from the clipboard, parse the item, then price the item.
+    Reads the results from pricing (from fetch) and lists the prices given
+    for these similar items. Also calls the simple GUI if gui is enabled.
+    No return.
+    """
     try:
         info = parse_item_info(text)
         trade_info = None
@@ -995,12 +1005,17 @@ def price_item(text):
 
 
 def get_clipboard():
+    """
+    Returns the current value of the clipboard
+    """
     return pyperclip.paste()
 
 
 def watch_clipboard():
     """
-	Watch clipboard for items being copied to check lowest prices on trade.
+	Continously poll the clipboard looking for any changes to it's contents.
+    Then immediately price that item.
+    No return.
 	"""
     print("[*] Watching clipboard (Ctrl+C to stop)...")
     prev = None
@@ -1028,7 +1043,7 @@ if __name__ == "__main__":
     root.wm_attributes("-topmost", 1)
     root.update()
     root.withdraw()
-    DEBUG = False
+    DEBUG = True
 
     ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")

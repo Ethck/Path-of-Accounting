@@ -26,7 +26,7 @@ def assemble_price_gui(price, currency):
         # In order to prevent SetForegroundWindow from erroring, we must satisfy the requirements
         # listed here:
         # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
-        # We satisfy this by internally sending the alt character so that Windows believes we are
+        # We satisfy this by sending the alt character so that Windows believes we are
         # an active window.
         shell = win32com.client.Dispatch("WScript.Shell")
         shell.SendKeys("%")
