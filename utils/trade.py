@@ -8,11 +8,19 @@ from models.item_modifier import ItemModifier
 
 
 def get_leagues() -> Tuple[str, ...]:
-    leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
+    leagues = requests.get(
+        url="https://www.pathofexile.com/api/trade/data/leagues"
+    ).json()
     return tuple(x["id"] for x in leagues["result"])
 
 
 def get_item_modifiers() -> Tuple[ItemModifier, ...]:
-    json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-    items = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
+    json_blob = requests.get(
+        url="https://www.pathofexile.com/api/trade/data/stats"
+    ).json()
+    items = tuple(
+        chain(
+            *[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]
+        )
+    )
     return items

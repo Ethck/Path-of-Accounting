@@ -5,4 +5,6 @@ from models.item_modifier import ItemModifier
 
 
 def build_from_json(blob: Dict) -> ItemModifier:
-    return ItemModifier(id=blob["id"], text=blob["text"], type=ItemModifierType(blob["type"].lower()))
+    return ItemModifier(
+        id=blob["id"], text=blob["text"], type=ItemModifierType(blob["type"].lower())
+    )

@@ -6,3 +6,4 @@ release*/
 __pycache__/
 output/
 .git/
+venv/
