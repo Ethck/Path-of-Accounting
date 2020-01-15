@@ -10,7 +10,7 @@ def watch_keyboard():
     # Use the alt+d key as an alternative to ctrl+c
     keyboard.add_hotkey("alt+d", lambda: keyboard.press_and_release("ctrl+c"))
 
-    # keyboard.add_hotkey('alt+w', parse.open_wiki())
+    keyboard.add_hotkey("alt+t", lambda: parse.open_trade_site())
 
 
 if __name__ == "__main__":
