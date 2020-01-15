@@ -420,6 +420,7 @@ def query_trade(
         for stat in stats:
             try:
                 (proper_affix, value) = find_affix_match(stat)
+                value = int(float(value) * 0.95)
             except NotImplementedError:
                 # Can't find mod, move on
                 continue
@@ -805,20 +806,20 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
         for mod in search_mods:
             value = affix_equals(mod.text, affix)
             if value is not None:
-                return (mod.id, int(value * 0.95))
+                return (mod.id, value)
 
     else:
         # Check all explicit for a match
         for explicit in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.EXPLICIT):
             value = affix_equals(explicit.text, affix)
             if value is not None:
-                return (explicit.id, int(value * 0.95))
+                return (explicit.id, value)
 
         # Check all enchants for a match if nothing else matched.
         for enchant in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.ENCHANT):
             value = affix_equals(enchant.text, affix)
             if value is not None:
-                return (enchant.id, int(value * 0.95))
+                return (enchant.id, value)
 
     raise NotImplementedError("Unable to find matching affix.")
 
