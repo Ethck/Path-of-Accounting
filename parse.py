@@ -30,6 +30,7 @@ from utils.exceptions import InvalidAPIResponseException
 from utils.trade import get_item_modifiers, get_leagues
 
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
+DEBUG = False
 
 
 def parse_item_info(text: str) -> Dict:
@@ -804,19 +805,20 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
         for mod in search_mods:
             value = affix_equals(mod.text, affix)
             if value is not None:
-                return (mod.id, value)
+                return (mod.id, int(value * 0.95))
+
     else:
         # Check all explicit for a match
         for explicit in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.EXPLICIT):
             value = affix_equals(explicit.text, affix)
             if value is not None:
-                return (explicit.id, value)
+                return (explicit.id, int(value * 0.95))
 
         # Check all enchants for a match if nothing else matched.
         for enchant in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.ENCHANT):
             value = affix_equals(enchant.text, affix)
             if value is not None:
-                return (enchant.id, value)
+                return (enchant.id, int(value * 0.95))
 
     raise NotImplementedError("Unable to find matching affix.")
 
@@ -842,31 +844,8 @@ def price_item(text):
 
         if info:
             # Uniques, only search by corrupted status, links, and name.
-            # TODO: Refactor this into just currency, div card, everything else
-            if (info.get("rarity") == "Unique") and (info.get("itype") != "Metamorph"):
-                if info["name"] == info["itype"]:
-                    print(f'[*] Found Unique item in clipboard: {info["name"]}')
-                else:
-                    print(f'[*] Found Unique item in clipboard: {info["name"]} {info["itype"]}')
-                base = f"Only showing results that are: "
-                pprint = base
 
-                if "corrupted" in info:
-                    if info["corrupted"]:
-                        pprint += f"Corrupted "
-
-                if "links" in info:
-                    if info["links"] > 1:
-                        pprint += f"{info['links']} linked "
-
-                if pprint != base:
-                    print("[-]", pprint)
-
-                trade_info = query_trade(
-                    LEAGUE, **{k: v for k, v in info.items() if k in ("name", "links", "corrupted", "rarity", "maps")},
-                )
-
-            elif info["itype"] == "Currency":
+            if info["itype"] == "Currency":
                 print(f'[-] Found currency {info["name"]} in clipboard')
                 trade_info = query_exchange(info["name"])
 
@@ -970,7 +949,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        testGui.assemble_price_gui(price, currency)
+                        utils.gui.assemble_price_gui(price, currency)
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -980,7 +959,7 @@ def price_item(text):
                         price = f"{price_val} x {price_curr}"
 
                         if USE_GUI:
-                            testGui.assemble_price_gui(price, price_curr)
+                            utils.gui.assemble_price_gui(price, price_curr)
 
                     print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
 
@@ -1020,6 +999,12 @@ def price_item(text):
         print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
         print(exception)
+
+
+def open_trade_site():
+    text = get_clipboard()
+    info = parse_item_info(text)
+    print(info)
 
 
 def get_clipboard():
@@ -1062,7 +1047,6 @@ if __name__ == "__main__":
     root.wm_attributes("-topmost", 1)
     root.update()
     root.withdraw()
-    DEBUG = True
 
     # Get some basic setup stuff
     ITEM_MODIFIERS = get_item_modifiers()
@@ -1085,7 +1069,7 @@ if __name__ == "__main__":
             hotkeys.watch_keyboard()
 
         if USE_GUI:
-            import utils.testGui as testGui
+            import utils.gui
 
         # Begin our polling
         watch_clipboard()
