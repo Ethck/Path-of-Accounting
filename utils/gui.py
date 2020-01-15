@@ -17,60 +17,101 @@ def windowEnumerationHandler(hwnd, top_windows):
     """
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
 
-
-def assemble_price_gui(price, currency):
-    """
-    Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
-    """
-    root = Toplevel()
-    root.overrideredirect(True)
-
+def windowToFront(root):
     # This is necessary for displaying the GUI window above active window(s) on the Windows OS
     if os.name == "nt":
         # In order to prevent SetForegroundWindow from erroring, we must satisfy the requirements
         # listed here:
         # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
-        # We satisfy this by sending the alt character so that Windows believes we are
+        # We satisfy this by internally sending the alt character so that Windows believes we are
         # an active window.
         shell = win32com.client.Dispatch("WScript.Shell")
         shell.SendKeys("%")
         win32gui.SetForegroundWindow(root.winfo_id())
 
-    # Get mouse coordinates
-    x = root.winfo_pointerx()
-    y = root.winfo_pointery()
+def windowRefocus(name):
+    """
+    Restore focus to a window, if on Windows.
+    TODO: If originating window was NOT "name", return to previous window.
+    """
 
-    # Mouse coordinates are relative. Transform to absolute
-    abs_coord_x = root.winfo_pointerx() - root.winfo_rootx()
-    abs_coord_y = root.winfo_pointery() - root.winfo_rooty()
-    root.geometry(f"100x75+{abs_coord_x}+{abs_coord_y}")
-
-    # min   avg     max
-    Label(root, text=price[0]).grid(column=0, row=1)
-    Label(root, text=price[1]).grid(column=1, row=1)
-    Label(root, text=price[2]).grid(column=2, row=1)
-
-    # Currently only support for these items with pictures, will get the rest in a later update.
-    curr_types = ["alchemy", "chaos", "exalt", "mirror"]
-    if currency in curr_types:
-        # Use chaos pic
-        img = ImageTk.PhotoImage(Image.open(f"images/{currency}.png"))
-        a = Label(root, image=img)
-        a.grid(column=1, row=0)
-
-    # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
-    root.update()
-    time.sleep(5)
-    root.destroy()
-
-    # Restore focus to a window called "path of exile" which should be the game, if on Windows.
-    # TODO: If originating window was NOT path of exile, return to previous window.
     if os.name == "nt":
         results = []
         top_windows = []
         win32gui.EnumWindows(windowEnumerationHandler, top_windows)
         for i in top_windows:
-            if "path of exile" == i[1].lower():
+            if name == i[1].lower():
                 win32gui.ShowWindow(i[0], 5)
                 win32gui.SetForegroundWindow(i[0])
                 break
+
+class Gui():
+    def __init__(self):
+        self.root = self.prepare_window()
+
+    def prepare_window(self):
+        root = Toplevel()
+        root.overrideredirect(True)
+        root.option_add("*Font", "courier 12")
+        return root
+
+    def relayout_grid(self):
+        col_count, row_count = self.root.grid_size()
+
+        for col in range(col_count):
+            self.root.grid_columnconfigure(col, minsize=20)
+
+        for row in range(row_count):
+            self.root.grid_rowconfigure(row, minsize=20)
+
+    def mouse_pos(self):
+        x = self.root.winfo_pointerx()
+        y = self.root.winfo_pointery()
+        return x, y
+
+    def reset(self):
+        for child in self.root.winfo_children():
+            child.destroy()
+
+    def show(self):
+        windowToFront(self.root)
+        self.relayout_grid()
+
+        abs_coord_x, abs_coord_y = self.mouse_pos()
+        self.root.geometry(f"+{abs_coord_x}+{abs_coord_y}")
+        self.root.deiconify()
+        self.root.update()
+
+    def hide(self):
+        abs_coord_x, abs_coord_y = self.mouse_pos()
+        self.root.withdraw()
+        self.root.geometry(f"-{abs_coord_x}-{abs_coord_y}")
+        windowRefocus("path of exile")
+
+    def show_price(self, price, currency):
+        """
+        Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
+        """
+
+        self.reset()
+
+        # Currently only support for these items with pictures, will get the rest in a later update.
+        curr_types = ["alchemy", "chaos", "exalt", "mirror"]
+        if currency in curr_types:
+            img = ImageTk.PhotoImage(Image.open(f"images/{currency}.png"))
+            currencyLabel = Label(self.root, image=img)
+            currencyLabel.grid(column=1, row=0)
+
+        minPriceLabel = Label(self.root, text=price[0])
+        minPriceLabel.grid(column=0, row=1, padx=10)
+
+        avgPriceLabel = Label(self.root, text=price[1])
+        avgPriceLabel.grid(column=1, row=1, padx=10)
+
+        maxPriceLabel = Label(self.root, text=price[2])
+        maxPriceLabel.grid(column=2, row=1, padx=10)
+
+        # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
+        self.show()
+        time.sleep(5)
+        self.hide()
