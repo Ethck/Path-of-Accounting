@@ -203,7 +203,7 @@ def parse_item_info(text: str) -> Dict:
     return info
 
 
-def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:
+def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:  # JSON
     """
 	Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
 	there are any similar items like it listed.
@@ -265,7 +265,7 @@ def query_trade(
     gem_level: int = None,
     quality: int = None,
     maps=None,
-) -> List[Dict]:
+) -> List[Dict]:  # JSON
     """
 	Build JSON for fetch request of an item for trade.
 	Take all the parsed item info, and construct JSON based off of it.
@@ -740,24 +740,33 @@ def affix_equals(text, affix) -> Optional[int]:
 	"""
     value = 0
     match = re.findall(r"\d+", affix)
+
     if len(match) > 0:
         value = match[0]
+
+    # Replace numbers with # and remove + signs to have simple searches
     query = re.sub(r"\d+", "#", affix)
     query = re.sub(r"\+", "", query)
 
+    # Remove (implicit) from the search
     if query.endswith(r" (implicit)"):
         text = text + r" (implicit)"
 
+    # Remove (crafted) from the search
     if query.endswith(r" (crafted)"):
         text = text + r" (crafted)"
 
+    # Remove (pseudo) from the search
     if query.endswith(r" (pseudo)"):
         text = text + r" (pseudo)"
         query = r"+" + query
 
+    # Remove (Local) from the search
     if text.endswith("(Local)"):
         query = query + r" (Local)"
 
+    # At this point all numbers and other special characters have been minimized
+    # So if the mod is the same, this catches it.
     if text == query:
         print(
             "[+] Found mod " + Fore.GREEN + f"{text[0:]}: {value}"
@@ -773,7 +782,7 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
 
 	returns tuple (id of the affix requested, value)
 	"""
-
+    # Get all modifiers of a certian type
     def get_mods_by_type(type: ItemModifierType) -> Iterable[ItemModifier]:
         return (x for x in ITEM_MODIFIERS if x.type == type)
 
@@ -781,24 +790,29 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
         print("AFFIX:", affix)
 
     if re.search(r"\((pseudo|implicit|crafted)\)", affix):
-        # Do these need to be searched in a specific order?
+        # Search for these special modifiers first
+        # Order does not matter
         search_order = [
             ItemModifierType.PSEUDO,
             ItemModifierType.IMPLICIT,
             ItemModifierType.CRAFTED,
         ]
+
+        # Unpack all special mods into search_mods
         search_mods = chain(*(get_mods_by_type(x) for x in search_order))
+        # Search every special mod for a match
         for mod in search_mods:
             value = affix_equals(mod.text, affix)
             if value is not None:
                 return (mod.id, value)
     else:
+        # Check all explicit for a match
         for explicit in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.EXPLICIT):
             value = affix_equals(explicit.text, affix)
             if value is not None:
                 return (explicit.id, value)
 
-        # Maybe it's an enchantment
+        # Check all enchants for a match if nothing else matched.
         for enchant in (x for x in ITEM_MODIFIERS if x.type is ItemModifierType.ENCHANT):
             value = affix_equals(enchant.text, affix)
             if value is not None:
@@ -828,6 +842,7 @@ def price_item(text):
 
         if info:
             # Uniques, only search by corrupted status, links, and name.
+            # TODO: Refactor this into just currency, div card, everything else
             if (info.get("rarity") == "Unique") and (info.get("itype") != "Metamorph"):
                 if info["name"] == info["itype"]:
                     print(f'[*] Found Unique item in clipboard: {info["name"]}')
@@ -848,8 +863,7 @@ def price_item(text):
                     print("[-]", pprint)
 
                 trade_info = query_trade(
-                    LEAGUE,
-                    **{k: v for k, v in info.items() if k in ("name", "links", "corrupted", "rarity", "maps", LEAGUE,)},
+                    LEAGUE, **{k: v for k, v in info.items() if k in ("name", "links", "corrupted", "rarity", "maps")},
                 )
 
             elif info["itype"] == "Currency":
@@ -1043,16 +1057,19 @@ def watch_clipboard():
 
 if __name__ == "__main__":
     init(autoreset=True)  # Colorama
+    # Init Tk() window
     root = Tk()
     root.wm_attributes("-topmost", 1)
     root.update()
     root.withdraw()
     DEBUG = True
 
+    # Get some basic setup stuff
     ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
 
+    # Inform user of choices
     print(f"If you wish to change the selected league you may do so in settings.cfg.")
     print(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
 
@@ -1061,6 +1078,7 @@ if __name__ == "__main__":
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
 
+        # Optional features to use, by default it's on.
         if USE_HOTKEYS:
             import utils.hotkeys as hotkeys
 
@@ -1069,5 +1087,7 @@ if __name__ == "__main__":
         if USE_GUI:
             import utils.testGui as testGui
 
+        # Begin our polling
         watch_clipboard()
+        # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
