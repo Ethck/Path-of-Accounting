@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from factories.item_modifier import build_from_json
 from models.item_modifier import ItemModifier
-from utils.config import VERSION
+from utils.config import RELEASE_URL, VERSION
 
 
 def get_leagues() -> Tuple[str, ...]:
@@ -34,7 +34,7 @@ def find_latest_update():
     prompt for an upgrade.
     """
     # Get the list of releases from github, choose newest (even pre-release)
-    remote = requests.get(url="https://api.github.com/repos/Ethck/Path-of-Accounting/releases").json()[0]
+    remote = requests.get(url=RELEASE_URL).json()[0]
     # local version
     local = VERSION
     # Check if the same

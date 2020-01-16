@@ -12,3 +12,5 @@ USE_GUI = True if config["GENERAL"]["useGUI"] == "yes" else False
 PROJECT_URL = config["GENERAL"]["projectURL"]
 
 VERSION = config["GENERAL"]["version"]
+
+RELEASE_URL = config["GENERAL"]["releaseURL"]
