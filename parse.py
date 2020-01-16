@@ -954,7 +954,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        utils.gui.assemble_price_gui(price, currency)
+                        gui.show_price(price, currency)
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -964,7 +964,7 @@ def price_item(text):
                         price = f"{price_val} x {price_curr}"
 
                         if USE_GUI:
-                            utils.gui.assemble_price_gui(price, price_curr)
+                            gui.show_price(price, price_curr)
 
                     print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
 
@@ -1076,7 +1076,8 @@ if __name__ == "__main__":
             hotkeys.watch_keyboard()
 
         if USE_GUI:
-            import utils.gui
+            from utils.gui import Gui
+            gui = Gui()
 
         # Begin our polling
         watch_clipboard()
