@@ -35,8 +35,8 @@ DEBUG = False
 
 def parse_item_info(text: str) -> Dict:
     """
-	Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
-	"""
+    Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
+    """
     # Find out if this is a path of exile item
     m = re.findall(r"^Rarity: (\w+)\r?\n(.+?)\r?\n(.+?)\r?\n", text)
 
@@ -160,7 +160,11 @@ def parse_item_info(text: str) -> Dict:
             if c:
                 info["corrupted"] = True
             if m and not a and not no_vaal:
-                info["itype"] = "Vaal " + info["name"]
+                impurity = bool(re.search(r"Purity of \w+", text, re.M))
+                if impurity:
+                    info["itype"] = "Vaal Im" + info["name"][0].lower() + info["name"][1:]
+                else:
+                    info["itype"] = "Vaal " + info["name"]
             else:
                 info["itype"] = info["name"]
 
@@ -206,11 +210,11 @@ def parse_item_info(text: str) -> Dict:
 
 def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:  # JSON
     """
-	Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
-	there are any similar items like it listed.
+    Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
+    there are any similar items like it listed.
 
-	returns JSON of all available similar items.
-	"""
+    returns JSON of all available similar items.
+    """
 
     if DEBUG:
         print(q_res)
@@ -268,11 +272,11 @@ def query_trade(
     maps=None,
 ) -> List[Dict]:  # JSON
     """
-	Build JSON for fetch request of an item for trade.
-	Take all the parsed item info, and construct JSON based off of it.
+    Build JSON for fetch request of an item for trade.
+    Take all the parsed item info, and construct JSON based off of it.
 
-	returns JSON of similar items listed (from the fetch() function).
-	"""
+    returns JSON of similar items listed (from the fetch() function).
+    """
     if stats is None:
         stats = []
     # Basic JSON structure
@@ -515,10 +519,10 @@ def query_trade(
 
 def create_pseudo_mods(j: Dict) -> Dict:
     """
-	Combines life and resists into pseudo-mods
+    Combines life and resists into pseudo-mods
 
-	Returns modified JSON #TODO change this to only modify the stats section of the JSON
-	"""
+    Returns modified JSON #TODO change this to only modify the stats section of the JSON
+    """
     # Combine life and resists for pseudo-stats
     total_ele_resists = 0
     total_chaos_resist = 0
@@ -660,10 +664,10 @@ def create_pseudo_mods(j: Dict) -> Dict:
 
 def choose_bad_mod(j):
     """
-	Chooses a non-priority mod to delete.
+    Chooses a non-priority mod to delete.
 
-	Returns modified JSON that lacks the chosen bad mod
-	"""
+    Returns modified JSON that lacks the chosen bad mod
+    """
     # Good mod list
     priority = [
         "pseudo.pseudo_total_elemental_resistance",
@@ -681,19 +685,19 @@ def choose_bad_mod(j):
 
 def result_prices_are_none(j: Dict) -> bool:
     """
-	Determine if all items in result are unpriced or not.
+    Determine if all items in result are unpriced or not.
 
-	Returns BOOLEAN
-	"""
+    Returns BOOLEAN
+    """
     return all(x["listing"]["price"] == None for x in j)
 
 
 def query_exchange(qcur):
     """
-	Build JSON for fetch request of wanted currency exchange.
+    Build JSON for fetch request of wanted currency exchange.
     Fetch with the built JSON
     Return results of similar items.
-	"""
+    """
 
     print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
     IG_CURRENCY = [
@@ -736,10 +740,10 @@ def query_exchange(qcur):
 
 def affix_equals(text, affix) -> Optional[int]:
     """
-	Clean up the affix to match the given text so we can find the correct id to search with.
+    Clean up the affix to match the given text so we can find the correct id to search with.
 
-	returns tuple (BOOLEAN, value)
-	"""
+    returns tuple (BOOLEAN, value)
+    """
     value = 0
     match = re.findall(r"\d+", affix)
 
@@ -780,10 +784,10 @@ def affix_equals(text, affix) -> Optional[int]:
 
 def find_affix_match(affix: str) -> Tuple[str, int]:
     """
-	Search for the proper id to return the correct results.
+    Search for the proper id to return the correct results.
 
-	returns tuple (id of the affix requested, value)
-	"""
+    returns tuple (id of the affix requested, value)
+    """
     # Get all modifiers of a certian type
     def get_mods_by_type(type: ItemModifierType) -> Iterable[ItemModifier]:
         return (x for x in ITEM_MODIFIERS if x.type == type)
@@ -826,9 +830,9 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
 
 def stat_translate(jaffix: str) -> ItemModifier:
     """
-	Translate id to the equivalent stat.
+    Translate id to the equivalent stat.
     Returns the ItemModifier equivalent to requested id
-	"""
+    """
     return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
 
 
@@ -1017,10 +1021,10 @@ def get_clipboard():
 
 def watch_clipboard():
     """
-	Continously poll the clipboard looking for any changes to it's contents.
+    Continously poll the clipboard looking for any changes to it's contents.
     Then immediately price that item.
     No return.
-	"""
+    """
     print("[*] Watching clipboard (Ctrl+C to stop)...")
     prev = None
     while True:
