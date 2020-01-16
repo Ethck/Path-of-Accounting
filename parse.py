@@ -27,7 +27,7 @@ from utils.currency import (
     VIALS,
 )
 from utils.exceptions import InvalidAPIResponseException
-from utils.trade import get_item_modifiers, get_leagues
+from utils.trade import get_item_modifiers, get_leagues, find_latest_update
 
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
@@ -1042,6 +1042,8 @@ def watch_clipboard():
 
 
 if __name__ == "__main__":
+    find_latest_update()
+
     init(autoreset=True)  # Colorama
     # Init Tk() window
     root = Tk()
