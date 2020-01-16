@@ -27,7 +27,7 @@ from utils.currency import (
     VIALS,
 )
 from utils.exceptions import InvalidAPIResponseException
-from utils.trade import get_item_modifiers, get_leagues, find_latest_update
+from utils.trade import find_latest_update, get_item_modifiers, get_leagues
 
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False

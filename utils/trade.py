@@ -1,10 +1,10 @@
+import pathlib
+import zipfile
 from itertools import chain
 from typing import List, Tuple
-from tqdm import tqdm
 
-import pathlib
 import requests
-import zipfile
+from tqdm import tqdm
 
 from factories.item_modifier import build_from_json
 from models.item_modifier import ItemModifier
@@ -34,11 +34,11 @@ def find_latest_update():
     prompt for an upgrade.
     """
     # Get the list of releases from github, choose newest (even pre-release)
-    remote = requests.get(url = "https://api.github.com/repos/Ethck/Path-of-Accounting/releases").json()[0]
+    remote = requests.get(url="https://api.github.com/repos/Ethck/Path-of-Accounting/releases").json()[0]
     # local version
     local = VERSION
     # Check if the same
-    if remote['tag_name'] != local:
+    if remote["tag_name"] != local:
         print("[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)")
         # Keep going till user makes a valid choice
         choice_made = False
@@ -47,12 +47,12 @@ def find_latest_update():
             if user_choice.lower() == "y":
                 choice_made = True
                 # Get the sole zip url
-                r = requests.get(url = remote['assets'][0]['browser_download_url'], stream = True)
+                r = requests.get(url=remote["assets"][0]["browser_download_url"], stream=True)
 
                 # Set up a progress bar
-                total_size = int(r.headers.get('content-length', 0))
+                total_size = int(r.headers.get("content-length", 0))
                 block_size = 1024
-                timer = tqdm(total = total_size, unit = "iB", unit_scale = True)
+                timer = tqdm(total=total_size, unit="iB", unit_scale=True)
 
                 # Write the file
                 with open("Path-of-Accounting.zip", "wb") as f:
@@ -67,10 +67,9 @@ def find_latest_update():
                     print("[!] Error, something went wrong while downloading the file.")
                 else:
                     # Unzip it and tell the user where we unzipped it to.
-                    with zipfile.ZipFile("Path-of-Accounting.zip", 'r') as zip_file:
+                    with zipfile.ZipFile("Path-of-Accounting.zip", "r") as zip_file:
                         zip_file.extractall()
                     print(f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path-of-Accounting")
-
 
             elif user_choice.lower() == "n":
                 choice_made = True
