@@ -1,4 +1,6 @@
 import pathlib
+import subprocess
+import sys
 import zipfile
 from itertools import chain
 from typing import List, Tuple
@@ -69,7 +71,10 @@ def find_latest_update():
                     # Unzip it and tell the user where we unzipped it to.
                     with zipfile.ZipFile("Path-of-Accounting.zip", "r") as zip_file:
                         zip_file.extractall()
-                    print(f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path-of-Accounting")
+                    print(f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting")
+
+                # subprocess.Popen(f"{pathlib.Path().absolute()}\\Path\\ of\\Accounting\\parse.exe")
+                # sys.exit()
 
             elif user_choice.lower() == "n":
                 choice_made = True
