@@ -98,11 +98,15 @@ class Gui:
 
         self.reset()
 
+        # Setting up Master Frame
+        masterFrame = Frame(self.root, bg='#1f1f1f')
+        masterFrame.place(relwidth=1, relheight=1)
+
         # Currently only support for these items with pictures, will get the rest in a later update.
         curr_types = ["alchemy", "chaos", "exalt", "mirror"]
         if currency in curr_types:
             img = ImageTk.PhotoImage(Image.open(f"images/{currency}.png"))
-            currencyLabel = Label(self.root, image=img)
+            currencyLabel = Label(masterFrame, image=img)
             currencyLabel.grid(column=1, row=0)
 
         rows_used = len(price_vals)
@@ -124,19 +128,22 @@ class Gui:
                 avg_time_text = days + hours
             else:
                 avg_time_text = hours
-            priceLabel = Label(self.root, text=price_vals[row]).grid(column=0, row=row)
-            avgTimeLabel = Label(self.root, text=avg_time_text).grid(column=2, row=row)
 
-        minPriceLabel = Label(self.root, text=price[0])
+
+            priceLabel = Label(self.root, text='Current: '+ str(price_vals[row]), bg='#1f1f1f', fg='#e6b800').grid(column=0, row=row)
+            avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1f1f1f', fg='#e6b800').grid(column=2, row=row)
+
+        minPriceLabel = Label(self.root, text='Min: ' + str(price[0]), bg='#1f1f1f', fg='#e6b800')
         minPriceLabel.grid(column=0, row=rows_used + 1, padx=10)
 
-        avgPriceLabel = Label(self.root, text=price[1])
+        avgPriceLabel = Label(self.root, text='Avg: ' + str(price[1]), bg='#1f1f1f', fg='#e6b800')
         avgPriceLabel.grid(column=1, row=rows_used + 1, padx=10)
 
-        maxPriceLabel = Label(self.root, text=price[2])
+        maxPriceLabel = Label(self.root, text='Max: ' + str(price[2]), bg='#1f1f1f', fg='#e6b800')
         maxPriceLabel.grid(column=2, row=rows_used + 1, padx=10)
 
         # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
         self.show()
         time.sleep(5)
         self.hide()
+
