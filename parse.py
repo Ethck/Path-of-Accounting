@@ -29,6 +29,7 @@ from utils.currency import (
 from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
 
+
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
 
@@ -181,7 +182,8 @@ def parse_item_info(text: str) -> Dict:
             info["ilvl"] = int(m[0])
 
         # Find all the affixes
-        m = re.findall(r"Item Level: \d+\n--------\n(.+)((?:\n.+)+)", text)
+        m = re.findall(r"Item Level: \d+[\r\n]+--------[\r\n]+(.+)((?:[\r\n]+.+)+)", text)
+        
         if DEBUG:
             print("STATS:", m)
 
@@ -201,6 +203,8 @@ def parse_item_info(text: str) -> Dict:
 
             if "" in info["stats"]:
                 info["stats"].remove("")
+
+            info["stats"] = [stat.strip() for stat in info["stats"]]
 
     if DEBUG:  # DEBUG
         print("COMPLETE INFO: ", info)
@@ -251,8 +255,8 @@ def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:  # JSON
             results += res.json()["result"]
     else:
         raise InvalidAPIResponseException()
-    if DEBUG:
-        print(results)
+    #if DEBUG:
+    #    print(results)
 
     return results
 
