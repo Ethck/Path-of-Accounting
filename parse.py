@@ -1,6 +1,7 @@
 import re
 import time
 import traceback
+from datetime import datetime, timezone
 from itertools import chain
 from tkinter import TclError, Tk
 from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
@@ -28,7 +29,6 @@ from utils.currency import (
 )
 from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
-
 
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
@@ -183,7 +183,7 @@ def parse_item_info(text: str) -> Dict:
 
         # Find all the affixes
         m = re.findall(r"Item Level: \d+[\r\n]+--------[\r\n]+(.+)((?:[\r\n]+.+)+)", text)
-        
+
         if DEBUG:
             print("STATS:", m)
 
@@ -255,7 +255,7 @@ def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:  # JSON
             results += res.json()["result"]
     else:
         raise InvalidAPIResponseException()
-    #if DEBUG:
+    # if DEBUG:
     #    print(results)
 
     return results
@@ -840,6 +840,24 @@ def stat_translate(jaffix: str) -> ItemModifier:
     return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
 
 
+def getAverageTimes(priceList):
+    avg_times = []
+    for tdList in priceList:
+        avg_time = []
+        days = 0
+        seconds = 0
+        num = 0
+        for td in tdList:
+            days += td.days
+            seconds += td.seconds
+            num += 1
+
+        avg_time = [int(round(float(days) / float(num), 2)), int(round((float(seconds) / float(num)), 2))]
+        avg_times.append(avg_time)
+
+    return avg_times
+
+
 def price_item(text):
     """
     Taking the text from the clipboard, parse the item, then price the item.
@@ -931,6 +949,27 @@ def price_item(text):
                     # Print the pretty string, ignoring trailing comma
                     print(f"[$] Price: {print_string[:-2]}\n\n")
                     if USE_GUI:
+                        priceList = prices
+                        # Get difference between current time and posted time in timedelta format
+                        times = [
+                            (
+                                datetime.now(timezone.utc)
+                                - datetime.replace(
+                                    datetime.strptime(time["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                                    tzinfo=timezone.utc,
+                                )
+                            )
+                            for time in trade_info
+                        ]
+                        # Assign times to proper price values (for getting average later.)
+                        priceTimes = []
+                        total = 0
+                        for price in priceList:
+                            num = priceList[price]
+                            priceTimes.append(times[total : num + total])
+                            total += num
+
+                        avg_times = getAverageTimes(priceTimes)
 
                         price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
 
@@ -958,7 +997,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        gui.show_price(price, currency)
+                        gui.show_price(price, list(prices), currency, avg_times)
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -1081,6 +1120,7 @@ if __name__ == "__main__":
 
         if USE_GUI:
             from utils.gui import Gui
+
             gui = Gui()
 
         # Begin our polling

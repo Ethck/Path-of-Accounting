@@ -17,6 +17,7 @@ def windowEnumerationHandler(hwnd, top_windows):
     """
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
 
+
 def windowToFront(root):
     # This is necessary for displaying the GUI window above active window(s) on the Windows OS
     if os.name == "nt":
@@ -28,6 +29,7 @@ def windowToFront(root):
         shell = win32com.client.Dispatch("WScript.Shell")
         shell.SendKeys("%")
         win32gui.SetForegroundWindow(root.winfo_id())
+
 
 def windowRefocus(name):
     """
@@ -45,7 +47,8 @@ def windowRefocus(name):
                 win32gui.SetForegroundWindow(i[0])
                 break
 
-class Gui():
+
+class Gui:
     def __init__(self):
         self.root = self.prepare_window()
 
@@ -88,7 +91,7 @@ class Gui():
         self.root.geometry(f"-{abs_coord_x}-{abs_coord_y}")
         windowRefocus("path of exile")
 
-    def show_price(self, price, currency):
+    def show_price(self, price, price_vals, currency, avg_times):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
@@ -102,14 +105,36 @@ class Gui():
             currencyLabel = Label(self.root, image=img)
             currencyLabel.grid(column=1, row=0)
 
+        rows_used = len(price_vals)
+
+        for row in range(rows_used):
+            days = avg_times[row][0]
+            if days > 0:
+                days = str(days) + "days "
+            else:
+                days = None
+
+            hours = None
+            if avg_times[row][1] > 3600:
+                hours = str(round(avg_times[row][1] / 3600, 2)) + " hours"
+            else:
+                hours = "< 1 hour"
+
+            if days is not None:
+                avg_time_text = days + hours
+            else:
+                avg_time_text = hours
+            priceLabel = Label(self.root, text=price_vals[row]).grid(column=0, row=row)
+            avgTimeLabel = Label(self.root, text=avg_time_text).grid(column=2, row=row)
+
         minPriceLabel = Label(self.root, text=price[0])
-        minPriceLabel.grid(column=0, row=1, padx=10)
+        minPriceLabel.grid(column=0, row=rows_used + 1, padx=10)
 
         avgPriceLabel = Label(self.root, text=price[1])
-        avgPriceLabel.grid(column=1, row=1, padx=10)
+        avgPriceLabel.grid(column=1, row=rows_used + 1, padx=10)
 
         maxPriceLabel = Label(self.root, text=price[2])
-        maxPriceLabel.grid(column=2, row=1, padx=10)
+        maxPriceLabel.grid(column=2, row=rows_used + 1, padx=10)
 
         # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
         self.show()
