@@ -997,7 +997,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        gui.show_price(price, list(prices), currency, avg_times)
+                        utils.gui.gui.show_price(price, list(prices), currency, avg_times)
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -1007,7 +1007,7 @@ def price_item(text):
                         price = f"{price_val} x {price_curr}"
 
                         if USE_GUI:
-                            gui.show_price(price, price_curr)
+                            gui.show_price(price, price_val, price_curr)
 
                     print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
 
@@ -1049,8 +1049,7 @@ def price_item(text):
         print(exception)
 
 
-def open_trade_site():
-    text = get_clipboard()
+def open_trade_site(text):
     info = parse_item_info(text)
     print(info)
 
@@ -1062,7 +1061,7 @@ def get_clipboard():
     return pyperclip.paste()
 
 
-def watch_clipboard():
+def watch_clipboard_no_hotkeys():
     """
     Continously poll the clipboard looking for any changes to it's contents.
     Then immediately price that item.
@@ -1080,6 +1079,7 @@ def watch_clipboard():
             prev = text
 
             time.sleep(0.3)
+
         except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
             continue
 
@@ -1088,16 +1088,37 @@ def watch_clipboard():
             break
 
 
+def watch_keyboard():
+    # Use the "f5" key to go to hideout
+    keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
+
+    # Use the alt+d key as an alternative to ctrl+c
+    keyboard.add_hotkey("alt+d", lambda: hotkey_handler("ctrl+c"))
+
+    keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
+
+    keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
+
+
+def hotkey_handler(hotkey):
+    text = get_clipboard()
+    if hotkey == "ctrl+c":
+        price_item(text)
+    elif hotkey == "alt+t":
+        open_trade_site(text)
+
+
+def watch_clipboard_with_hotkeys():
+    print("[*] Watching clipboard (Ctrl+C to stop)...")
+    while True:
+        time.sleep(0.3)
+
+
 if __name__ == "__main__":
     find_latest_update()
 
     init(autoreset=True)  # Colorama
     # Init Tk() window
-    root = Tk()
-    root.wm_attributes("-topmost", 1)
-    root.update()
-    root.withdraw()
-
     # Get some basic setup stuff
     ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
@@ -1112,18 +1133,18 @@ if __name__ == "__main__":
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
 
+        if USE_GUI:
+            import utils.gui
+
         # Optional features to use, by default it's on.
         if USE_HOTKEYS:
-            import utils.hotkeys as hotkeys
+            import keyboard
 
-            hotkeys.watch_keyboard()
+            watch_keyboard()
+            watch_clipboard_with_hotkeys()
+        else:
+            # Begin our polling
+            watch_clipboard_no_hotkeys()
 
-        if USE_GUI:
-            from utils.gui import Gui
-
-            gui = Gui()
-
-        # Begin our polling
-        watch_clipboard()
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama

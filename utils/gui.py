@@ -140,3 +140,6 @@ class Gui:
         self.show()
         time.sleep(5)
         self.hide()
+
+
+gui = Gui()

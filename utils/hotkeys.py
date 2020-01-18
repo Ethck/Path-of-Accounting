@@ -8,9 +8,11 @@ def watch_keyboard():
     keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
 
     # Use the alt+d key as an alternative to ctrl+c
-    keyboard.add_hotkey("alt+d", lambda: keyboard.press_and_release("ctrl+c"))
+    keyboard.add_hotkey("alt+d", lambda: parse.hotkey_handler("ctrl+c"))
 
-    keyboard.add_hotkey("alt+t", lambda: parse.open_trade_site())
+    keyboard.add_hotkey("alt+t", lambda: parse.hotkey_handler("alt+t"))
+
+    keyboard.add_hotkey("ctrl+c", lambda: parse.hotkey_handler("ctrl+c"))
 
 
 if __name__ == "__main__":
