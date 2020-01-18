@@ -104,22 +104,20 @@ class Gui:
 
         # Currently only support for these items with pictures, will get the rest in a later update.
         curr_types = ["alchemy", "chaos", "exalt", "mirror"]
-        if currency in curr_types:
-            img = ImageTk.PhotoImage(Image.open(f"images/{currency}.png"))
-            currencyLabel = Label(self.root, image=img)
-            currencyLabel.grid(column=1, row=0)
+        #if currency in curr_types:
+            #img = ImageTk.PhotoImage(Image.open(f"images/{currency}.png"))
+            #currencyLabel = Label(self.root, image=img)
+            #currencyLabel.grid(column=1, row=0)
 
-        # Considering logo use
-        logo = Image.open(f"images/logo.png")
-        logoResized = logo.resize((364, 50),Image.ANTIALIAS)
-        img = ImageTk.PhotoImage(logoResized)
 
-        logoLabel = Label(self.root, image=img, bg='#1a1a1a')
-        logoLabel.grid(column=0, row=0, columnspan=3, sticky='w'+'e')
+        spacerLabel = Label(self.root, text='   ', bg='#0d0d0d')
+        spacerLabel.grid(column=0, row=0, columnspan=3, sticky='w'+'e')
         
         # Setting up header row of labels.
-        headerLabel = Label(self.root, text='Listed Price:', bg='#1f1f1f', fg='#e6b800').grid(column=0, row=1, sticky='s')
-        headerLabel2= Label(self.root, text='Time Listed:', bg='#1f1f1f', fg='#e6b800').grid(column=2, row=1, sticky='s')
+        bglabel= Label(self.root, bg='#0d0d0d').grid(column=0, row=1,columnspan=3, sticky='w'+'e')
+        headerLabel = Label(self.root, text='Listed Price:', bg='#0d0d0d', fg='#e6b800').grid(column=0, row=1, padx=5)
+        headerLabel2= Label(self.root, text='Avg. Time Listed:', bg='#0d0d0d', fg='#e6b800').grid(column=2, row=1, padx=5)
+        headerLabel3= Label(self.root, text='   ', bg='#0d0d0d', fg='#e6b800').grid(column=1, row=1, sticky='w'+'e')
 
         rows_used = len(price_vals)
 
@@ -140,19 +138,26 @@ class Gui:
                 avg_time_text = days + hours
             else:
                 avg_time_text = hours
+            
+            # Alternates row color.
+            if row % 2 == 0:
+                # Needed here because other color is consistent with canvas color.
+                bgAltLabel = Label(self.root, bg='#1a1a1a').grid(column=0, row=2+row,columnspan=3, sticky='w'+'e')
+                priceLabel = Label(self.root, text=price_vals[row], bg='#1a1a1a', fg='#e6b800').grid(column=0, row=2+row, sticky='w', padx=5)
+                avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1a1a1a', fg='#e6b800').grid(column=2, row=2+row, sticky='w', padx=5)
+            else:
+                priceLabel = Label(self.root, text=price_vals[row], bg='#1f1f1f', fg='#e6b800').grid(column=0, row=2+row, sticky='w', padx=5)
+                avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1f1f1f', fg='#e6b800').grid(column=2, row=2+row, sticky='w', padx=5)
 
+        footerbgLabel = Label(self.root, bg='#0d0d0d').grid(column=0, row=rows_used + 3, columnspan=3, sticky='w'+'e')
 
-            priceLabel = Label(self.root, text=price_vals[row], bg='#1f1f1f', fg='#e6b800').grid(column=0, row=2+row, sticky='w')
-            avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1f1f1f', fg='#e6b800').grid(column=2, row=2+row, sticky='w')
-
-
-        minPriceLabel = Label(self.root, text='Low: ' + str(price[0]), bg='#1f1f1f', fg='#e6b800')
+        minPriceLabel = Label(self.root, text='Low: ' + str(price[0]), bg='#0d0d0d', fg='#e6b800')
         minPriceLabel.grid(column=0, row=rows_used + 3, padx=10)
 
-        avgPriceLabel = Label(self.root, text='Avg: ' + str(price[1]), bg='#1f1f1f', fg='#e6b800')
+        avgPriceLabel = Label(self.root, text='Avg: ' + str(price[1]), bg='#0d0d0d', fg='#e6b800')
         avgPriceLabel.grid(column=1, row=rows_used + 3, padx=10)
 
-        maxPriceLabel = Label(self.root, text='High: ' + str(price[2]), bg='#1f1f1f', fg='#e6b800')
+        maxPriceLabel = Label(self.root, text='High: ' + str(price[2]), bg='#0d0d0d', fg='#e6b800')
         maxPriceLabel.grid(column=2, row=rows_used + 3, padx=10)
 
         # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
