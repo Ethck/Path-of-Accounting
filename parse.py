@@ -510,9 +510,7 @@ def query_trade(
                     else:
                         return results
             else:
-                print(
-                    "[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues"
-                )
+                raise InvalidAPIResponseException
 
     if not fetch_called:  # Any time we ignore stats.
         query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
@@ -997,7 +995,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        utils.gui.gui.show_price(price, list(prices), currency, avg_times)
+                        gui.show_price(price, list(prices), currency, avg_times)
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -1110,7 +1108,13 @@ def hotkey_handler(hotkey):
 
 def watch_clipboard_with_hotkeys():
     print("[*] Watching clipboard (Ctrl+C to stop)...")
+    prev = None
     while True:
+        text = get_clipboard()
+        if prev != text:
+            # We have something new!
+            root.after(5000)
+
         time.sleep(0.3)
 
 
@@ -1134,7 +1138,14 @@ if __name__ == "__main__":
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
 
         if USE_GUI:
-            import utils.gui
+            from utils.gui import Gui
+
+            root = Tk()
+            root.wm_attributes("-topmost", 1)
+            root.update()
+            root.withdraw()
+
+            gui = Gui()
 
         # Optional features to use, by default it's on.
         if USE_HOTKEYS:
