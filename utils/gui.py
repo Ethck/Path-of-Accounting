@@ -98,7 +98,7 @@ class Gui:
 
         self.reset()
 
-        # Setting up Master Frame
+        # Setting up Master Frame, only currently used for background color due to grid format.
         masterFrame = Frame(self.root, bg='#1f1f1f')
         masterFrame.place(relwidth=1, relheight=1)
 
@@ -106,15 +106,27 @@ class Gui:
         curr_types = ["alchemy", "chaos", "exalt", "mirror"]
         if currency in curr_types:
             img = ImageTk.PhotoImage(Image.open(f"images/{currency}.png"))
-            currencyLabel = Label(masterFrame, image=img)
+            currencyLabel = Label(self.root, image=img)
             currencyLabel.grid(column=1, row=0)
+
+        # Considering logo use
+        logo = Image.open(f"images/logo.png")
+        logoResized = logo.resize((364, 50),Image.ANTIALIAS)
+        img = ImageTk.PhotoImage(logoResized)
+
+        logoLabel = Label(self.root, image=img, bg='#1a1a1a')
+        logoLabel.grid(column=0, row=0, columnspan=3, sticky='w'+'e')
+        
+        # Setting up header row of labels.
+        headerLabel = Label(self.root, text='Listed Price:', bg='#1f1f1f', fg='#e6b800').grid(column=0, row=1, sticky='s')
+        headerLabel2= Label(self.root, text='Time Listed:', bg='#1f1f1f', fg='#e6b800').grid(column=2, row=1, sticky='s')
 
         rows_used = len(price_vals)
 
         for row in range(rows_used):
             days = avg_times[row][0]
             if days > 0:
-                days = str(days) + "days "
+                days = str(days) + " days, "
             else:
                 days = None
 
@@ -130,17 +142,18 @@ class Gui:
                 avg_time_text = hours
 
 
-            priceLabel = Label(self.root, text='Current: '+ str(price_vals[row]), bg='#1f1f1f', fg='#e6b800').grid(column=0, row=row)
-            avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1f1f1f', fg='#e6b800').grid(column=2, row=row)
+            priceLabel = Label(self.root, text=price_vals[row], bg='#1f1f1f', fg='#e6b800').grid(column=0, row=2+row, sticky='w')
+            avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1f1f1f', fg='#e6b800').grid(column=2, row=2+row, sticky='w')
 
-        minPriceLabel = Label(self.root, text='Min: ' + str(price[0]), bg='#1f1f1f', fg='#e6b800')
-        minPriceLabel.grid(column=0, row=rows_used + 1, padx=10)
+
+        minPriceLabel = Label(self.root, text='Low: ' + str(price[0]), bg='#1f1f1f', fg='#e6b800')
+        minPriceLabel.grid(column=0, row=rows_used + 3, padx=10)
 
         avgPriceLabel = Label(self.root, text='Avg: ' + str(price[1]), bg='#1f1f1f', fg='#e6b800')
-        avgPriceLabel.grid(column=1, row=rows_used + 1, padx=10)
+        avgPriceLabel.grid(column=1, row=rows_used + 3, padx=10)
 
-        maxPriceLabel = Label(self.root, text='Max: ' + str(price[2]), bg='#1f1f1f', fg='#e6b800')
-        maxPriceLabel.grid(column=2, row=rows_used + 1, padx=10)
+        maxPriceLabel = Label(self.root, text='High: ' + str(price[2]), bg='#1f1f1f', fg='#e6b800')
+        maxPriceLabel.grid(column=2, row=rows_used + 3, padx=10)
 
         # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
         self.show()
