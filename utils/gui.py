@@ -111,7 +111,7 @@ class Gui:
         # TODO: Either make another hide method, or move windowRefocus. It's called at initialization now...
         windowRefocus("path of exile")
 
-    def show_price(self, price, price_vals, currency, avg_times):
+    def show_price(self, price, price_vals, avg_times):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
@@ -119,25 +119,19 @@ class Gui:
         self.reset()
 
         # Setting up Master Frame, only currently used for background color due to grid format.
-        masterFrame = Frame(self.root, bg='#1f1f1f')
+        masterFrame = Frame(self.root, bg="#1f1f1f")
         masterFrame.place(relwidth=1, relheight=1)
 
-        # Currently only support for these items with pictures, will get the rest in a later update.
-        curr_types = ["alchemy", "chaos", "exalt", "mirror"]
-        #if currency in curr_types:
-            #img = ImageTk.PhotoImage(Image.open(f"images/{currency}.png"))
-            #currencyLabel = Label(self.root, image=img)
-            #currencyLabel.grid(column=1, row=0)
+        spacerLabel = Label(self.root, text="   ", bg="#0d0d0d")
+        spacerLabel.grid(column=0, row=0, columnspan=3, sticky="w" + "e")
 
-
-        spacerLabel = Label(self.root, text='   ', bg='#0d0d0d')
-        spacerLabel.grid(column=0, row=0, columnspan=3, sticky='w'+'e')
-        
         # Setting up header row of labels.
-        bglabel= Label(self.root, bg='#0d0d0d').grid(column=0, row=1,columnspan=3, sticky='w'+'e')
-        headerLabel = Label(self.root, text='Listed Price:', bg='#0d0d0d', fg='#e6b800').grid(column=0, row=1, padx=5)
-        headerLabel2= Label(self.root, text='Avg. Time Listed:', bg='#0d0d0d', fg='#e6b800').grid(column=2, row=1, padx=5)
-        headerLabel3= Label(self.root, text='   ', bg='#0d0d0d', fg='#e6b800').grid(column=1, row=1, sticky='w'+'e')
+        bglabel = Label(self.root, bg="#0d0d0d").grid(column=0, row=1, columnspan=3, sticky="w" + "e")
+        headerLabel = Label(self.root, text="Listed Price:", bg="#0d0d0d", fg="#e6b800").grid(column=0, row=1, padx=5)
+        headerLabel2 = Label(self.root, text="Avg. Time Listed:", bg="#0d0d0d", fg="#e6b800").grid(
+            column=2, row=1, padx=5
+        )
+        headerLabel3 = Label(self.root, text="   ", bg="#0d0d0d", fg="#e6b800").grid(column=1, row=1, sticky="w" + "e")
 
         rows_used = len(price_vals)
 
@@ -158,30 +152,37 @@ class Gui:
                 avg_time_text = days + hours
             else:
                 avg_time_text = hours
-            
+
             # Alternates row color.
             if row % 2 == 0:
                 # Needed here because other color is consistent with canvas color.
-                bgAltLabel = Label(self.root, bg='#1a1a1a').grid(column=0, row=2+row,columnspan=3, sticky='w'+'e')
-                priceLabel = Label(self.root, text=price_vals[row], bg='#1a1a1a', fg='#e6b800').grid(column=0, row=2+row, sticky='w', padx=5)
-                avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1a1a1a', fg='#e6b800').grid(column=2, row=2+row, sticky='w', padx=5)
+                bgAltLabel = Label(self.root, bg="#1a1a1a").grid(column=0, row=2 + row, columnspan=3, sticky="w" + "e")
+                priceLabel = Label(self.root, text=price_vals[row], bg="#1a1a1a", fg="#e6b800").grid(
+                    column=0, row=2 + row, sticky="w", padx=5
+                )
+                avgTimeLabel = Label(self.root, text=avg_time_text, bg="#1a1a1a", fg="#e6b800").grid(
+                    column=2, row=2 + row, sticky="w", padx=5
+                )
             else:
-                priceLabel = Label(self.root, text=price_vals[row], bg='#1f1f1f', fg='#e6b800').grid(column=0, row=2+row, sticky='w', padx=5)
-                avgTimeLabel = Label(self.root, text=avg_time_text, bg='#1f1f1f', fg='#e6b800').grid(column=2, row=2+row, sticky='w', padx=5)
+                priceLabel = Label(self.root, text=price_vals[row], bg="#1f1f1f", fg="#e6b800").grid(
+                    column=0, row=2 + row, sticky="w", padx=5
+                )
+                avgTimeLabel = Label(self.root, text=avg_time_text, bg="#1f1f1f", fg="#e6b800").grid(
+                    column=2, row=2 + row, sticky="w", padx=5
+                )
 
-        footerbgLabel = Label(self.root, bg='#0d0d0d').grid(column=0, row=rows_used + 3, columnspan=3, sticky='w'+'e')
+        footerbgLabel = Label(self.root, bg="#0d0d0d").grid(column=0, row=rows_used + 3, columnspan=3, sticky="w" + "e")
 
-        minPriceLabel = Label(self.root, text='Low: ' + str(price[0]), bg='#0d0d0d', fg='#e6b800')
+        minPriceLabel = Label(self.root, text="Low: " + str(price[0]), bg="#0d0d0d", fg="#e6b800")
         minPriceLabel.grid(column=0, row=rows_used + 3, padx=10)
 
-        avgPriceLabel = Label(self.root, text='Avg: ' + str(price[1]), bg='#0d0d0d', fg='#e6b800')
+        avgPriceLabel = Label(self.root, text="Avg: " + str(price[1]), bg="#0d0d0d", fg="#e6b800")
         avgPriceLabel.grid(column=1, row=rows_used + 3, padx=10)
 
-        maxPriceLabel = Label(self.root, text='High: ' + str(price[2]), bg='#0d0d0d', fg='#e6b800')
+        maxPriceLabel = Label(self.root, text="High: " + str(price[2]), bg="#0d0d0d", fg="#e6b800")
         maxPriceLabel.grid(column=2, row=rows_used + 3, padx=10)
 
         # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
         self.show()
         time.sleep(5)
         self.hide()
-

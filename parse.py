@@ -996,7 +996,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        gui.show_price(price, list(prices), currency, avg_times)
+                        gui.show_price(price, list(prices), avg_times)
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -1004,9 +1004,13 @@ def price_item(text):
                         price_val = price["amount"]
                         price_curr = price["currency"]
                         price = f"{price_val} x {price_curr}"
+                        time = datetime.now(timezone.utc) - datetime.replace(
+                            datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                            tzinfo=timezone.utc,
+                        )
 
                         if USE_GUI:
-                            gui.show_price(price, price_val, price_curr)
+                            gui.show_price(price, f"{price_val}{price_curr}", time)
 
                     print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
 
@@ -1092,7 +1096,8 @@ def watch_keyboard():
     keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
 
     # Use the alt+d key as an alternative to ctrl+c
-    keyboard.add_hotkey("alt+d", lambda: hotkey_handler("ctrl+c"))
+    # Currently broken...
+    # keyboard.add_hotkey("alt+d", lambda: keyboard.hotkey_handler("alt+d"))
 
     keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
 
@@ -1107,8 +1112,12 @@ def hotkey_handler(hotkey):
         open_trade_site(text)
 
 
-def watch_clipboard_with_hotkeys():
-    print("[*] Watching clipboard (Ctrl+C to stop)...")
+#    elif hotkey == "alt+d":
+#        # This is for some reason broken...
+#        keyboard.press_and_release("ctrl+c")
+#
+#        text = get_clipboard()
+#        price_item(text)
 
 
 if __name__ == "__main__":
@@ -1132,6 +1141,8 @@ if __name__ == "__main__":
         # Optional features to use, by default it's on.
         if USE_HOTKEYS:
             import keyboard
+
+            print("[*] Watching clipboard (Ctrl+C to stop)...")
 
             thread = threading.Thread(target=watch_keyboard)
             thread.start()
