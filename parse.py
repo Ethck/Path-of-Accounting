@@ -1,4 +1,5 @@
 import re
+import sys
 import threading
 import time
 import traceback
@@ -1097,27 +1098,19 @@ def watch_keyboard():
 
     # Use the alt+d key as an alternative to ctrl+c
     # Currently broken...
-    # keyboard.add_hotkey("alt+d", lambda: keyboard.hotkey_handler("alt+d"))
+    keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
 
     keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
-
-    keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
 
 
 def hotkey_handler(hotkey):
     text = get_clipboard()
-    if hotkey == "ctrl+c":
-        price_item(text)
-    elif hotkey == "alt+t":
+    if hotkey == "alt+t":
         open_trade_site(text)
-
-
-#    elif hotkey == "alt+d":
-#        # This is for some reason broken...
-#        keyboard.press_and_release("ctrl+c")
-#
-#        text = get_clipboard()
-#        price_item(text)
+    else:  # alt+d
+        keyboard.press_and_release("ctrl+c")
+        text = get_clipboard()
+        price_item(text)
 
 
 if __name__ == "__main__":
