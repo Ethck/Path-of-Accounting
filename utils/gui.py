@@ -2,11 +2,11 @@ import os
 import time
 from tkinter import *
 
-import pythoncom
 from PIL import Image, ImageTk
 
 # We do not need this on Linux.
 if os.name == "nt":
+    import pythoncom
     import win32com.client
     import win32gui
 
