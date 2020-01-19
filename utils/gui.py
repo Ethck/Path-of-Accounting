@@ -82,9 +82,25 @@ class Gui:
     def show(self):
         windowToFront(self.root)
         self.relayout_grid()
+        self.root.update()
 
-        abs_coord_x, abs_coord_y = self.mouse_pos()
-        self.root.geometry(f"+{abs_coord_x}+{abs_coord_y}")
+        mouse_x, mouse_y = self.mouse_pos()
+        screen_w = self.root.winfo_screenwidth()
+        screen_h = self.root.winfo_screenheight()
+        root_w = self.root.winfo_width()
+        root_h = self.root.winfo_height()
+
+        # Confine widget to screen
+
+        coord_x = mouse_x
+        if mouse_x + root_w >= screen_w:
+            coord_x = screen_w - root_w - 5
+
+        coord_y = mouse_y
+        if mouse_y + root_h >= screen_h:
+            coord_y = screen_h - root_h - 5
+
+        self.root.geometry(f"+{coord_x}+{coord_y}")
         self.root.deiconify()
         self.root.update()
 
