@@ -2,6 +2,7 @@ import os
 import time
 from tkinter import *
 
+import pythoncom
 from PIL import Image, ImageTk
 
 # We do not need this on Linux.
@@ -26,6 +27,8 @@ def windowToFront(root):
         # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
         # We satisfy this by internally sending the alt character so that Windows believes we are
         # an active window.
+        # We need this pythoncom call for win32com use in a thread.
+        pythoncom.CoInitialize()
         shell = win32com.client.Dispatch("WScript.Shell")
         shell.SendKeys("%")
         win32gui.SetForegroundWindow(root.winfo_id())
@@ -89,6 +92,7 @@ class Gui:
         abs_coord_x, abs_coord_y = self.mouse_pos()
         self.root.withdraw()
         self.root.geometry(f"-{abs_coord_x}-{abs_coord_y}")
+        # TODO: Either make another hide method, or move windowRefocus. It's called at initialization now...
         windowRefocus("path of exile")
 
     def show_price(self, price, price_vals, currency, avg_times):

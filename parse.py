@@ -1,4 +1,5 @@
 import re
+import threading
 import time
 import traceback
 from datetime import datetime, timezone
@@ -881,7 +882,7 @@ def price_item(text):
             else:
                 # Do intensive search.
                 if info["itype"] != info["name"] and info["itype"] != None:
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
+                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}", flush=True)
                 else:
                     extra_strings = ""
                     if info["rarity"] == "Gem":
@@ -1108,14 +1109,6 @@ def hotkey_handler(hotkey):
 
 def watch_clipboard_with_hotkeys():
     print("[*] Watching clipboard (Ctrl+C to stop)...")
-    prev = None
-    while True:
-        text = get_clipboard()
-        if prev != text:
-            # We have something new!
-            root.after(5000)
-
-        time.sleep(0.3)
 
 
 if __name__ == "__main__":
@@ -1136,6 +1129,26 @@ if __name__ == "__main__":
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
+        # Optional features to use, by default it's on.
+        if USE_HOTKEYS:
+            import keyboard
+
+            thread = threading.Thread(target=watch_keyboard)
+            thread.start()
+        else:
+            # This is necessary for when the user does not wish to use hotkeys.
+            if USE_GUI:
+                from utils.gui import Gui
+
+                root = Tk()
+                root.wm_attributes("-topmost", 1)
+                root.update()
+                root.withdraw()
+
+                gui = Gui()
+                gui.hide()
+
+            watch_clipboard_no_hotkeys()
 
         if USE_GUI:
             from utils.gui import Gui
@@ -1146,16 +1159,10 @@ if __name__ == "__main__":
             root.withdraw()
 
             gui = Gui()
+            gui.hide()
 
-        # Optional features to use, by default it's on.
-        if USE_HOTKEYS:
-            import keyboard
-
-            watch_keyboard()
-            watch_clipboard_with_hotkeys()
-        else:
-            # Begin our polling
-            watch_clipboard_no_hotkeys()
+            if USE_HOTKEYS:
+                root.mainloop()
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
