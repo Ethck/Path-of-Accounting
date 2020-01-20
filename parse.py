@@ -1150,9 +1150,7 @@ if __name__ == "__main__":
                 root.wm_attributes("-topmost", 1)
                 root.update()
                 root.withdraw()
-
                 gui = Gui()
-                gui.hide()
 
             watch_clipboard_no_hotkeys()
 
@@ -1163,9 +1161,7 @@ if __name__ == "__main__":
             root.wm_attributes("-topmost", 1)
             root.update()
             root.withdraw()
-
             gui = Gui()
-            gui.hide()
 
             if USE_HOTKEYS:
                 root.mainloop()

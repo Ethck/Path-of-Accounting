@@ -59,6 +59,7 @@ class Gui:
         root = Toplevel()
         root.overrideredirect(True)
         root.option_add("*Font", "courier 12")
+        root.withdraw()
         return root
 
     def relayout_grid(self):
@@ -108,7 +109,6 @@ class Gui:
         abs_coord_x, abs_coord_y = self.mouse_pos()
         self.root.withdraw()
         self.root.geometry(f"-{abs_coord_x}-{abs_coord_y}")
-        # TODO: Either make another hide method, or move windowRefocus. It's called at initialization now...
         windowRefocus("path of exile")
 
     def show_price(self, price, price_vals, avg_times):
