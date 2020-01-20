@@ -1,4 +1,5 @@
 import re
+import threading
 import time
 import traceback
 from datetime import datetime, timezone
@@ -510,9 +511,7 @@ def query_trade(
                     else:
                         return results
             else:
-                print(
-                    "[!] Something went horribly wrong. Please make an issue on the github page and include the item that caused this error. https://github.com/ethck/path-of-accounting/issues"
-                )
+                raise InvalidAPIResponseException
 
     if not fetch_called:  # Any time we ignore stats.
         query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
@@ -883,7 +882,7 @@ def price_item(text):
             else:
                 # Do intensive search.
                 if info["itype"] != info["name"] and info["itype"] != None:
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}")
+                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}", flush=True)
                 else:
                     extra_strings = ""
                     if info["rarity"] == "Gem":
@@ -997,7 +996,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        gui.show_price(price, list(prices), currency, avg_times)
+                        gui.show_price(price, list(prices), avg_times)
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -1005,9 +1004,13 @@ def price_item(text):
                         price_val = price["amount"]
                         price_curr = price["currency"]
                         price = f"{price_val} x {price_curr}"
+                        time = datetime.now(timezone.utc) - datetime.replace(
+                            datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                            tzinfo=timezone.utc,
+                        )
 
                         if USE_GUI:
-                            gui.show_price(price, price_curr)
+                            gui.show_price(price, f"{price_val}{price_curr}", time)
 
                     print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
 
@@ -1049,8 +1052,7 @@ def price_item(text):
         print(exception)
 
 
-def open_trade_site():
-    text = get_clipboard()
+def open_trade_site(text):
     info = parse_item_info(text)
     print(info)
 
@@ -1062,7 +1064,7 @@ def get_clipboard():
     return pyperclip.paste()
 
 
-def watch_clipboard():
+def watch_clipboard_no_hotkeys():
     """
     Continously poll the clipboard looking for any changes to it's contents.
     Then immediately price that item.
@@ -1080,6 +1082,7 @@ def watch_clipboard():
             prev = text
 
             time.sleep(0.3)
+
         except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
             continue
 
@@ -1088,16 +1091,35 @@ def watch_clipboard():
             break
 
 
+def watch_keyboard():
+    # Use the "f5" key to go to hideout
+    keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
+
+    # Use the alt+d key as an alternative to ctrl+c
+    # Currently broken...
+    keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
+
+    keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
+    keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
+
+
+def hotkey_handler(hotkey):
+    text = get_clipboard()
+    if hotkey == "alt+t":
+        open_trade_site(text)
+    else:  # alt+d
+        keyboard.press_and_release("ctrl+c")
+        time.sleep(0.1)
+        keyboard.press_and_release("ctrl+c")
+        text = get_clipboard()
+        price_item(text)
+
+
 if __name__ == "__main__":
     find_latest_update()
 
     init(autoreset=True)  # Colorama
     # Init Tk() window
-    root = Tk()
-    root.wm_attributes("-topmost", 1)
-    root.update()
-    root.withdraw()
-
     # Get some basic setup stuff
     ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
@@ -1111,19 +1133,42 @@ if __name__ == "__main__":
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
-
         # Optional features to use, by default it's on.
         if USE_HOTKEYS:
-            import utils.hotkeys as hotkeys
+            import keyboard
 
-            hotkeys.watch_keyboard()
+            print("[*] Watching clipboard (Ctrl+C to stop)...")
+
+            thread = threading.Thread(target=watch_keyboard)
+            thread.start()
+        else:
+            # This is necessary for when the user does not wish to use hotkeys.
+            if USE_GUI:
+                from utils.gui import Gui
+
+                root = Tk()
+                root.wm_attributes("-topmost", 1)
+                root.update()
+                root.withdraw()
+
+                gui = Gui()
+                gui.hide()
+
+            watch_clipboard_no_hotkeys()
 
         if USE_GUI:
             from utils.gui import Gui
 
-            gui = Gui()
+            root = Tk()
+            root.wm_attributes("-topmost", 1)
+            root.update()
+            root.withdraw()
 
-        # Begin our polling
-        watch_clipboard()
+            gui = Gui()
+            gui.hide()
+
+            if USE_HOTKEYS:
+                root.mainloop()
+
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
