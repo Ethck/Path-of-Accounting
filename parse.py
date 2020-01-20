@@ -1100,6 +1100,7 @@ def watch_keyboard():
     keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
 
     keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
+    keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
 
 
 def hotkey_handler(hotkey):
@@ -1107,6 +1108,8 @@ def hotkey_handler(hotkey):
     if hotkey == "alt+t":
         open_trade_site(text)
     else:  # alt+d
+        keyboard.press_and_release("ctrl+c")
+        time.sleep(0.1)
         keyboard.press_and_release("ctrl+c")
         text = get_clipboard()
         price_item(text)
