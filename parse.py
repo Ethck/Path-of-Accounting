@@ -30,6 +30,7 @@ from utils.currency import (
 )
 from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
+from utils.wikiLookup import wikiLookup
 
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
@@ -1099,6 +1100,7 @@ def watch_keyboard():
     # Currently broken...
     keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
 
+    keyboard.add_hotkey("alt+w", lambda: hotkey_handler("alt+w"))
     keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
     keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
 
@@ -1107,6 +1109,15 @@ def hotkey_handler(hotkey):
     text = get_clipboard()
     if hotkey == "alt+t":
         open_trade_site(text)
+    
+    if hotkey =="alt+w":
+        keyboard.press_and_release("ctrl+c")
+        time.sleep(0.1)
+        keyboard.press_and_release("ctrl+c")
+        text = get_clipboard()
+        info = parse_item_info(text)
+        wikiLookup(text,info)
+
     else:  # alt+d
         keyboard.press_and_release("ctrl+c")
         time.sleep(0.1)
