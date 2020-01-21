@@ -7,9 +7,9 @@ from itertools import chain
 from tkinter import TclError, Tk
 from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
 
+import keyboard
 import pyperclip
 import requests
-import keyboard
 from colorama import Fore, deinit, init
 
 # Local imports
@@ -33,7 +33,7 @@ from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
 from utils.web import open_trade_site, wiki_lookup
 
-ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
+# ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
 
 
@@ -1131,6 +1131,9 @@ def hotkey_handler(hotkey):
         price_item(text)
 
 
+# This is necessary to do Unit Testing
+ITEM_MODIFIERS = get_item_modifiers()
+
 if __name__ == "__main__":
     find_latest_update()
 
@@ -1151,6 +1154,7 @@ if __name__ == "__main__":
 
         if USE_GUI:
             from utils.gui import Gui
+
             gui = Gui()
 
         watch_keyboard(USE_HOTKEYS)
