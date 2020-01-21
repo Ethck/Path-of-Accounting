@@ -30,7 +30,7 @@ from utils.currency import (
 )
 from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
-from utils.wikiLookup import wikiLookup
+from utils.web import open_trade_site, wiki_lookup
 
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
@@ -259,14 +259,11 @@ def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:  # JSON
             results += res.json()["result"]
     else:
         raise InvalidAPIResponseException()
-    # if DEBUG:
-    #    print(results)
 
     return results
 
 
-def query_trade(
-    league: str,
+def build_json_official(
     name: str = None,
     ilvl: int = None,
     itype: str = None,
@@ -283,7 +280,7 @@ def query_trade(
     Build JSON for fetch request of an item for trade.
     Take all the parsed item info, and construct JSON based off of it.
 
-    returns JSON of similar items listed (from the fetch() function).
+    returns JSON of format for pathofexile.com/trade.
     """
     if stats is None:
         stats = []
@@ -443,10 +440,21 @@ def query_trade(
         # Turn life + resists into pseudo-mods
         j = create_pseudo_mods(j)
 
-        if DEBUG:
-            print("FULL Query:", j)
+    if DEBUG:
+        print("FULL Query:", j)
 
-        # Now search for similar items, if none found remove a stat and try again. TODO: Refactor and include more vars.
+    return j
+
+
+def search_item(j, league):
+    """
+    Based on j (JSON) and given league,
+    search for similar items (with exact preferred).
+
+    returns results
+    """
+    # Now search for similar items, if none found remove a stat and try again. TODO: Refactor and include more vars.
+    if "stats" in j["query"]:
         num_stats_ignored = 0
         total_num_stats = len(j["query"]["stats"][0]["filters"])
         while len(j["query"]["stats"][0]["filters"]) > 0:
@@ -485,7 +493,6 @@ def query_trade(
                     num_stats_ignored += 1
                 else:  # Found a result!
                     res = query.json()
-                    fetch_called = True
                     results = fetch(res)
 
                     if DEBUG:
@@ -516,7 +523,7 @@ def query_trade(
             else:
                 raise InvalidAPIResponseException
 
-    if not fetch_called:  # Any time we ignore stats.
+    else:  # Any time we ignore stats.
         query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
         res = query.json()
         results = fetch(res)
@@ -876,11 +883,11 @@ def price_item(text):
 
             if info["itype"] == "Currency":
                 print(f'[-] Found currency {info["name"]} in clipboard')
-                trade_info = query_exchange(info["name"])
+                json = query_exchange(info["name"])
 
             elif info["itype"] == "Divination Card":
                 print(f'[-] Found Divination Card {info["name"]}')
-                trade_info = query_exchange(info["name"])
+                json = query_exchange(info["name"])
 
             else:
                 # Do intensive search.
@@ -900,8 +907,7 @@ def price_item(text):
 
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
-                trade_info = query_trade(
-                    LEAGUE,
+                json = build_json_official(
                     **{
                         k: v
                         for k, v in info.items()
@@ -921,6 +927,8 @@ def price_item(text):
                         )
                     },
                 )
+
+            trade_info = search_item(json, LEAGUE)
 
             # If results found
             if trade_info:
@@ -1055,11 +1063,6 @@ def price_item(text):
         print(exception)
 
 
-def open_trade_site(text):
-    info = parse_item_info(text)
-    print(info)
-
-
 def get_clipboard():
     """
     Returns the current value of the clipboard
@@ -1119,11 +1122,34 @@ def hotkey_handler(hotkey):
 
     text = get_clipboard()
     if hotkey == "alt+t":
-        open_trade_site(text)
+        info = parse_item_info(text)
+        j = build_json_official(
+            **{
+                k: v
+                for k, v in info.items()
+                if k
+                in (
+                    "name",
+                    "itype",
+                    "ilvl",
+                    "links",
+                    "corrupted",
+                    "influenced",
+                    "stats",
+                    "rarity",
+                    "gem_level",
+                    "quality",
+                    "maps",
+                )
+            },
+        )
+        query = requests.post(f"https://www.pathofexile.com/api/trade/search/{LEAGUE}", json=j)
+        res = query.json()
+        open_trade_site(res["id"], LEAGUE)
 
     elif hotkey == "alt+w":
         info = parse_item_info(text)
-        wikiLookup(text, info)
+        wiki_lookup(text, info)
 
     else:  # alt+d, ctrl+c
         price_item(text)
