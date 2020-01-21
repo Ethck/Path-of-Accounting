@@ -229,8 +229,7 @@ This is a Support Gem. It does not grant a bonus to your character, but to skill
 --------
 Corrupted
 """,
-    f"""
-Rarity: Normal
+    f"""Rarity: Normal
 The Jeweller's Touch
 --------
 The Jeweller leaves five fingerprints and connects them with a single thread.

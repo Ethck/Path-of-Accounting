@@ -524,6 +524,11 @@ def search_item(j, league):
             else:
                 raise InvalidAPIResponseException
 
+        # If we have legitimately run out of stats...
+        # Then this item can not be found.
+        # TODO: Figure out why it can't find anything...
+        raise InvalidAPIResponseException
+
     else:  # Any time we ignore stats.
         query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
         res = query.json()
@@ -878,17 +883,18 @@ def price_item(text):
     try:
         info = parse_item_info(text)
         trade_info = None
+        json = None
 
         if info:
             # Uniques, only search by corrupted status, links, and name.
 
             if info["itype"] == "Currency":
                 print(f'[-] Found currency {info["name"]} in clipboard')
-                json = query_exchange(info["name"])
+                trade_info = query_exchange(info["name"])
 
             elif info["itype"] == "Divination Card":
                 print(f'[-] Found Divination Card {info["name"]}')
-                json = query_exchange(info["name"])
+                trade_info = query_exchange(info["name"])
 
             else:
                 # Do intensive search.
@@ -929,7 +935,8 @@ def price_item(text):
                     },
                 )
 
-            trade_info = search_item(json, LEAGUE)
+            if json != None:
+                trade_info = search_item(json, LEAGUE)
 
             # If results found
             if trade_info:
@@ -1131,7 +1138,7 @@ def hotkey_handler(hotkey):
         price_item(text)
 
 
-# This is necessary to do Unit Testing
+# This is necessary to do Unit Testing, needs to be GLOBAL
 ITEM_MODIFIERS = get_item_modifiers()
 
 if __name__ == "__main__":
@@ -1139,7 +1146,7 @@ if __name__ == "__main__":
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff
-    ITEM_MODIFIERS = get_item_modifiers()
+    # ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
 
