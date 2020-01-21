@@ -9,6 +9,7 @@ from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
 
 import pyperclip
 import requests
+import keyboard
 from colorama import Fore, deinit, init
 
 # Local imports
@@ -1070,47 +1071,22 @@ def get_clipboard():
     return pyperclip.paste()
 
 
-def watch_clipboard_no_hotkeys():
-    """
-    Continously poll the clipboard looking for any changes to it's contents.
-    Then immediately price that item.
-    No return.
-    """
-    print("[*] Watching clipboard (Ctrl+C to stop)...")
-    prev = None
-    while True:
-        try:
-            text = get_clipboard()
+def watch_keyboard(use_hotkeys):
+    if use_hotkeys:
+        # Use the "f5" key to go to hideout
+        keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
 
-            if text != prev:
-                price_item(text)
+        # Use the alt+d key as an alternative to ctrl+c
+        keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
 
-            prev = text
+        # Open item in the Path of Exile Wiki
+        keyboard.add_hotkey("alt+w", lambda: hotkey_handler("alt+w"))
 
-            time.sleep(0.3)
-
-        except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
-            continue
-
-        except KeyboardInterrupt:
-            print(f"[!] Exiting, user requested termination.")
-            break
-
-
-def watch_keyboard():
-    # Use the "f5" key to go to hideout
-    keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
-
-    # Use the alt+d key as an alternative to ctrl+c
-    keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
-
-    # Open item in the Path of Exile Wiki
-    keyboard.add_hotkey("alt+w", lambda: hotkey_handler("alt+w"))
-
-    # Open item search in pathofexile.com/trade
-    keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
+        # Open item search in pathofexile.com/trade
+        keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
 
     # Fetch the item's approximate price
+    print("[*] Watching clipboard (Ctrl+C to stop)...")
     keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
 
 
@@ -1159,7 +1135,6 @@ if __name__ == "__main__":
     find_latest_update()
 
     init(autoreset=True)  # Colorama
-    # Init Tk() window
     # Get some basic setup stuff
     ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
@@ -1173,38 +1148,20 @@ if __name__ == "__main__":
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
-        # Optional features to use, by default it's on.
-        if USE_HOTKEYS:
-            import keyboard
-
-            print("[*] Watching clipboard (Ctrl+C to stop)...")
-
-            thread = threading.Thread(target=watch_keyboard)
-            thread.start()
-        else:
-            # This is necessary for when the user does not wish to use hotkeys.
-            if USE_GUI:
-                from utils.gui import Gui
-
-                root = Tk()
-                root.wm_attributes("-topmost", 1)
-                root.update()
-                root.withdraw()
-                gui = Gui()
-
-            watch_clipboard_no_hotkeys()
 
         if USE_GUI:
             from utils.gui import Gui
-
-            root = Tk()
-            root.wm_attributes("-topmost", 1)
-            root.update()
-            root.withdraw()
             gui = Gui()
 
-            if USE_HOTKEYS:
-                root.mainloop()
+        watch_keyboard(USE_HOTKEYS)
+
+        try:
+            if USE_GUI:
+                gui.wait()
+            else:
+                keyboard.wait()
+        except KeyboardInterrupt:
+            print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
