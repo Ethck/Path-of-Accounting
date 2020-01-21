@@ -53,6 +53,11 @@ def windowRefocus(name):
 
 class Gui:
     def __init__(self):
+        tk = Tk()
+        tk.wm_attributes("-topmost", 1)
+        tk.update()
+        tk.withdraw()
+
         self.root = self.prepare_window()
 
     def prepare_window(self):
@@ -61,6 +66,9 @@ class Gui:
         root.option_add("*Font", "courier 12")
         root.withdraw()
         return root
+
+    def wait(self):
+        self.root.mainloop()
 
     def relayout_grid(self):
         col_count, row_count = self.root.grid_size()
