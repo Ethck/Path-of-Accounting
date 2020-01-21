@@ -83,9 +83,11 @@ def parse_item_info(text: str) -> Dict:
 
     # Oh, it's currency!
     if info["rarity"] == "Currency":
-        info["itype"] = info.pop("rarity")
+        info["itype"] = info.pop("rarity").rstrip()
     elif info["rarity"] == "Divination Card":
+        info["rarity"] = info["rarity"].strip()
         info["itype"] = info.pop("rarity")
+        print(info)
     elif info["rarity"] == "Normal" and "Scarab" in info["name"]:
         info["itype"] = "Currency"
     elif "Map" in info["itype"]:
@@ -840,7 +842,7 @@ def stat_translate(jaffix: str) -> ItemModifier:
     return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
 
 
-def getAverageTimes(priceList):
+def get_average_times(priceList):
     avg_times = []
     for tdList in priceList:
         avg_time = []
@@ -969,7 +971,7 @@ def price_item(text):
                             priceTimes.append(times[total : num + total])
                             total += num
 
-                        avg_times = getAverageTimes(priceTimes)
+                        avg_times = get_average_times(priceTimes)
 
                         price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
 
@@ -1097,32 +1099,33 @@ def watch_keyboard():
     keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
 
     # Use the alt+d key as an alternative to ctrl+c
-    # Currently broken...
     keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
 
+    # Open item in the Path of Exile Wiki
     keyboard.add_hotkey("alt+w", lambda: hotkey_handler("alt+w"))
+
+    # Open item search in pathofexile.com/trade
     keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
+
+    # Fetch the item's approximate price
     keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
 
 
 def hotkey_handler(hotkey):
+    # Without this block, the clipboard's contents seem to always be from 1 before the current
+    keyboard.press_and_release("ctrl+c")
+    time.sleep(0.1)
+    keyboard.press_and_release("ctrl+c")
+
     text = get_clipboard()
     if hotkey == "alt+t":
         open_trade_site(text)
-    
-    if hotkey =="alt+w":
-        keyboard.press_and_release("ctrl+c")
-        time.sleep(0.1)
-        keyboard.press_and_release("ctrl+c")
-        text = get_clipboard()
-        info = parse_item_info(text)
-        wikiLookup(text,info)
 
-    else:  # alt+d
-        keyboard.press_and_release("ctrl+c")
-        time.sleep(0.1)
-        keyboard.press_and_release("ctrl+c")
-        text = get_clipboard()
+    elif hotkey == "alt+w":
+        info = parse_item_info(text)
+        wikiLookup(text, info)
+
+    else:  # alt+d, ctrl+c
         price_item(text)
 
 

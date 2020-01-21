@@ -284,3 +284,17 @@ Item Level: 84
 10% increased Projectile Damage
 --------
 Place into an allocated Jewel Socket on the Passive Skill Tree. Right click to remove from the Socket.
+
+Rarity: Divination Card
+A Mother's Parting Gift
+--------
+Stack Size: 2/6
+--------
+Fertile Mind
+--------
+Nature was her domain,
+Love was her song,
+Family was her devotion,
+Knowledge was her gift.
+--------
+Shift click to unstack.
