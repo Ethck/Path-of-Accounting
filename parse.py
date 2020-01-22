@@ -33,7 +33,6 @@ from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
 from utils.web import open_trade_site, wiki_lookup
 
-# ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
 
 
@@ -62,8 +61,8 @@ def parse_item_info(text: str) -> Dict:
     # Corruption status and influenced status
 
     info["influenced"] = {}
-    info["influenced"]["shaper"] = bool(re.search("Shaper Item", text, re.M))
-    info["influenced"]["elder"] = bool(re.search("Elder Item", text, re.M))
+    info["influenced"]["shaper"] = bool(re.search(r"^Shaper Item", text, re.M))
+    info["influenced"]["elder"] = bool(re.search(r"^Elder Item", text, re.M))
     info["influenced"]["crusader"] = bool(re.search("Crusader Item", text, re.M))
     info["influenced"]["hunter"] = bool(re.search("Hunter Item", text, re.M))
     info["influenced"]["redeemer"] = bool(re.search("Redeemer Item", text, re.M))
@@ -1139,14 +1138,13 @@ def hotkey_handler(hotkey):
 
 
 # This is necessary to do Unit Testing, needs to be GLOBAL
-ITEM_MODIFIERS = get_item_modifiers()
+ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = get_item_modifiers()
 
 if __name__ == "__main__":
     find_latest_update()
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff
-    # ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
 
