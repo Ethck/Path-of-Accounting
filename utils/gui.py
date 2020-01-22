@@ -1,5 +1,6 @@
 import os
 import time
+import screeninfo
 from tkinter import *
 
 from PIL import Image, ImageTk
@@ -70,19 +71,26 @@ class Gui:
     def wait(self):
         self.root.mainloop()
 
-    def relayout_grid(self):
-        col_count, row_count = self.root.grid_size()
-
-        for col in range(col_count):
-            self.root.grid_columnconfigure(col, minsize=20)
-
-        for row in range(row_count):
-            self.root.grid_rowconfigure(row, minsize=20)
-
     def mouse_pos(self):
         x = self.root.winfo_pointerx()
         y = self.root.winfo_pointery()
         return x, y
+
+    def screen_size(self):
+        def get_monitor_from_coord(x, y):
+            monitors = screeninfo.get_monitors()
+
+            for m in reversed(monitors):
+                if m.x <= x <= m.width + m.x and m.y <= y <= m.height + m.y:
+                    return m
+
+            return monitors[0]
+
+        # Get the screen which contains top
+        current_screen = get_monitor_from_coord(self.root.winfo_x(), self.root.winfo_y())
+
+        # Get the monitor's size
+        return current_screen.width, current_screen.height
 
     def reset(self):
         for child in self.root.winfo_children():
@@ -90,12 +98,10 @@ class Gui:
 
     def show(self):
         windowToFront(self.root)
-        #self.relayout_grid()
         self.root.update()
 
         mouse_x, mouse_y = self.mouse_pos()
-        screen_w = self.root.winfo_screenwidth()
-        screen_h = self.root.winfo_screenheight()
+        screen_w, screen_h = self.screen_size()
         root_w = self.root.winfo_width()
         root_h = self.root.winfo_height()
 
