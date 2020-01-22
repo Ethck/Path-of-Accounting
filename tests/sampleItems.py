@@ -1,4 +1,5 @@
-Rarity: Rare
+items = [
+    f"""Rarity: Rare
 Corruption Spiker
 Boot Blade
 --------
@@ -29,9 +30,8 @@ Adds 25 to 47 Cold Damage to Spells
 35% increased Damage with Poison
 Gain 5% of Non-Chaos Damage as extra Chaos Damage
 +27% to Global Critical Strike Multiplier (crafted)
-
-
-Rarity: Rare
+""",
+    f"""Rarity: Rare
 Skull Pelt
 Destroyer Regalia
 --------
@@ -54,9 +54,8 @@ Item Level: 82
 17% increased Stun and Block Recovery
 --------
 Corrupted
-
-
-Rarity: Rare
+""",
+    f"""Rarity: Rare
 Gloom Vise
 Assassin's Mitts
 --------
@@ -79,9 +78,8 @@ Item Level: 78
 +23% to Lightning Resistance
 +11 Life gained on Kill
 +19% to Fire and Cold Resistances (crafted)
-
-
-Rarity: Unique
+""",
+    f"""Rarity: Unique
 Starkonja's Head
 Silken Hood
 --------
@@ -108,8 +106,8 @@ Item Level: 79
 --------
 There was no hero made out of Starkonja's death,
 but merely a long sleep made eternal.
-
-Rarity: Rare
+""",
+    f"""Rarity: Rare
 Dread Hunger
 Karui Chopper
 --------
@@ -136,9 +134,8 @@ Adds 21 to 40 Cold Damage
 16% chance to Blind Enemies on Hit with Attacks
 --------
 Redeemer Item
-
-
-Rarity: Rare
+""",
+    f"""Rarity: Rare
 Rapture Caress
 Fingerless Silk Gloves
 --------
@@ -161,8 +158,8 @@ Adds 3 to 7 Physical Damage to Attacks
 +21% to Cold Resistance
 --------
 Warlord Item
-
-Rarity: Rare
+""",
+    f"""Rarity: Rare
 Grim Ward
 Oiled Vest
 --------
@@ -186,9 +183,8 @@ Item Level: 12
 +11% to Cold Resistance
 19% increased Stun and Block Recovery
 +242 to Evasion Rating (crafted)
-
-
-Rarity: Magic
+""",
+    f"""Rarity: Magic
 Rotund Sun Plate of the Lizard
 --------
 Armour: 451
@@ -203,9 +199,8 @@ Item Level: 61
 --------
 +64 to maximum Life
 Regenerate 2.5 Life per second
-
-
-Rarity: Normal
+""",
+    f"""Rarity: Normal
 Steel Ring
 --------
 Requirements:
@@ -214,8 +209,8 @@ Level: 80
 Item Level: 78
 --------
 Adds 3 to 11 Physical Damage to Attacks (implicit)
-
-Rarity: Gem
+""",
+    f"""Rarity: Gem
 Empower Support
 --------
 Support
@@ -233,9 +228,8 @@ Supports any skill gem. Once this gem reaches level 2 or above, will raise the l
 This is a Support Gem. It does not grant a bonus to your character, but to skills in sockets connected to it. Place into an item socket connected to a socket containing the Active Skill Gem you wish to augment. Right click to remove from a socket.
 --------
 Corrupted
-
-
-Rarity: Normal
+""",
+    f"""Rarity: Normal
 The Jeweller's Touch
 --------
 The Jeweller leaves five fingerprints and connects them with a single thread.
@@ -245,9 +239,8 @@ You will create a fully-linked five-socket item with a single Jeweller's Orb
 Right-click to add this prophecy to your character.
 --------
 Note: ~price 9 chaos
-
-
-Rarity: Rare
+""",
+    f"""Rarity: Rare
 Cataclysm Brow
 Necromancer Circlet
 --------
@@ -271,9 +264,8 @@ Regenerate 1% of Life per second
 Reflects 10 Physical Damage to Melee Attackers
 Nearby Enemies have -9% to Cold Resistance
 +47 to maximum Mana (crafted)
-
-
-Rarity: Rare
+""",
+    f"""Rarity: Rare
 Entropy Blow
 Crimson Jewel
 --------
@@ -284,3 +276,19 @@ Item Level: 84
 10% increased Projectile Damage
 --------
 Place into an allocated Jewel Socket on the Passive Skill Tree. Right click to remove from the Socket.
+""",
+    f"""Rarity: Divination Card
+A Mother's Parting Gift
+--------
+Stack Size: 2/6
+--------
+Fertile Mind
+--------
+Nature was her domain,
+Love was her song,
+Family was her devotion,
+Knowledge was her gift.
+--------
+Shift click to unstack.
+""",
+]

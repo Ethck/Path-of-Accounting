@@ -7,8 +7,8 @@ idna==2.8
 keyboard==0.13.4
 Pillow==7.0.0
 pyperclip==1.7.0
-pypiwin32==223
-pywin32==227
+pypiwin32==223; platform_system == "Windows"
+pywin32==227; platform_system == "Windows"
 requests==2.22.0
 tqdm==4.41.1
 typing==3.7.4.1

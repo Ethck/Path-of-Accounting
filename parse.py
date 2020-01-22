@@ -7,6 +7,7 @@ from itertools import chain
 from tkinter import TclError, Tk
 from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
 
+import keyboard
 import pyperclip
 import requests
 from colorama import Fore, deinit, init
@@ -30,8 +31,9 @@ from utils.currency import (
 )
 from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
+from utils.web import open_trade_site, wiki_lookup
 
-ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
+# ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = None
 DEBUG = False
 
 
@@ -82,9 +84,11 @@ def parse_item_info(text: str) -> Dict:
 
     # Oh, it's currency!
     if info["rarity"] == "Currency":
-        info["itype"] = info.pop("rarity")
+        info["itype"] = info.pop("rarity").rstrip()
     elif info["rarity"] == "Divination Card":
+        info["rarity"] = info["rarity"].strip()
         info["itype"] = info.pop("rarity")
+        print(info)
     elif info["rarity"] == "Normal" and "Scarab" in info["name"]:
         info["itype"] = "Currency"
     elif "Map" in info["itype"]:
@@ -256,14 +260,11 @@ def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:  # JSON
             results += res.json()["result"]
     else:
         raise InvalidAPIResponseException()
-    # if DEBUG:
-    #    print(results)
 
     return results
 
 
-def query_trade(
-    league: str,
+def build_json_official(
     name: str = None,
     ilvl: int = None,
     itype: str = None,
@@ -280,7 +281,7 @@ def query_trade(
     Build JSON for fetch request of an item for trade.
     Take all the parsed item info, and construct JSON based off of it.
 
-    returns JSON of similar items listed (from the fetch() function).
+    returns JSON of format for pathofexile.com/trade.
     """
     if stats is None:
         stats = []
@@ -440,10 +441,21 @@ def query_trade(
         # Turn life + resists into pseudo-mods
         j = create_pseudo_mods(j)
 
-        if DEBUG:
-            print("FULL Query:", j)
+    if DEBUG:
+        print("FULL Query:", j)
 
-        # Now search for similar items, if none found remove a stat and try again. TODO: Refactor and include more vars.
+    return j
+
+
+def search_item(j, league):
+    """
+    Based on j (JSON) and given league,
+    search for similar items (with exact preferred).
+
+    returns results
+    """
+    # Now search for similar items, if none found remove a stat and try again. TODO: Refactor and include more vars.
+    if "stats" in j["query"]:
         num_stats_ignored = 0
         total_num_stats = len(j["query"]["stats"][0]["filters"])
         while len(j["query"]["stats"][0]["filters"]) > 0:
@@ -482,7 +494,6 @@ def query_trade(
                     num_stats_ignored += 1
                 else:  # Found a result!
                     res = query.json()
-                    fetch_called = True
                     results = fetch(res)
 
                     if DEBUG:
@@ -513,7 +524,12 @@ def query_trade(
             else:
                 raise InvalidAPIResponseException
 
-    if not fetch_called:  # Any time we ignore stats.
+        # If we have legitimately run out of stats...
+        # Then this item can not be found.
+        # TODO: Figure out why it can't find anything...
+        raise InvalidAPIResponseException
+
+    else:  # Any time we ignore stats.
         query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
         res = query.json()
         results = fetch(res)
@@ -839,7 +855,7 @@ def stat_translate(jaffix: str) -> ItemModifier:
     return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
 
 
-def getAverageTimes(priceList):
+def get_average_times(priceList):
     avg_times = []
     for tdList in priceList:
         avg_time = []
@@ -867,6 +883,7 @@ def price_item(text):
     try:
         info = parse_item_info(text)
         trade_info = None
+        json = None
 
         if info:
             # Uniques, only search by corrupted status, links, and name.
@@ -897,8 +914,7 @@ def price_item(text):
 
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
-                trade_info = query_trade(
-                    LEAGUE,
+                json = build_json_official(
                     **{
                         k: v
                         for k, v in info.items()
@@ -918,6 +934,9 @@ def price_item(text):
                         )
                     },
                 )
+
+            if json != None:
+                trade_info = search_item(json, LEAGUE)
 
             # If results found
             if trade_info:
@@ -968,7 +987,7 @@ def price_item(text):
                             priceTimes.append(times[total : num + total])
                             total += num
 
-                        avg_times = getAverageTimes(priceTimes)
+                        avg_times = get_average_times(priceTimes)
 
                         price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
 
@@ -1052,11 +1071,6 @@ def price_item(text):
         print(exception)
 
 
-def open_trade_site(text):
-    info = parse_item_info(text)
-    print(info)
-
-
 def get_clipboard():
     """
     Returns the current value of the clipboard
@@ -1064,64 +1078,75 @@ def get_clipboard():
     return pyperclip.paste()
 
 
-def watch_clipboard_no_hotkeys():
-    """
-    Continously poll the clipboard looking for any changes to it's contents.
-    Then immediately price that item.
-    No return.
-    """
+def watch_keyboard(use_hotkeys):
+    if use_hotkeys:
+        # Use the "f5" key to go to hideout
+        keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
+
+        # Use the alt+d key as an alternative to ctrl+c
+        keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
+
+        # Open item in the Path of Exile Wiki
+        keyboard.add_hotkey("alt+w", lambda: hotkey_handler("alt+w"))
+
+        # Open item search in pathofexile.com/trade
+        keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
+
+    # Fetch the item's approximate price
     print("[*] Watching clipboard (Ctrl+C to stop)...")
-    prev = None
-    while True:
-        try:
-            text = get_clipboard()
-
-            if text != prev:
-                price_item(text)
-
-            prev = text
-
-            time.sleep(0.3)
-
-        except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
-            continue
-
-        except KeyboardInterrupt:
-            print(f"[!] Exiting, user requested termination.")
-            break
-
-
-def watch_keyboard():
-    # Use the "f5" key to go to hideout
-    keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
-
-    # Use the alt+d key as an alternative to ctrl+c
-    # Currently broken...
-    keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
-
-    keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
     keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
 
 
 def hotkey_handler(hotkey):
+    # Without this block, the clipboard's contents seem to always be from 1 before the current
+    keyboard.press_and_release("ctrl+c")
+    time.sleep(0.1)
+    keyboard.press_and_release("ctrl+c")
+
     text = get_clipboard()
     if hotkey == "alt+t":
-        open_trade_site(text)
-    else:  # alt+d
-        keyboard.press_and_release("ctrl+c")
-        time.sleep(0.1)
-        keyboard.press_and_release("ctrl+c")
-        text = get_clipboard()
+        info = parse_item_info(text)
+        j = build_json_official(
+            **{
+                k: v
+                for k, v in info.items()
+                if k
+                in (
+                    "name",
+                    "itype",
+                    "ilvl",
+                    "links",
+                    "corrupted",
+                    "influenced",
+                    "stats",
+                    "rarity",
+                    "gem_level",
+                    "quality",
+                    "maps",
+                )
+            },
+        )
+        query = requests.post(f"https://www.pathofexile.com/api/trade/search/{LEAGUE}", json=j)
+        res = query.json()
+        open_trade_site(res["id"], LEAGUE)
+
+    elif hotkey == "alt+w":
+        info = parse_item_info(text)
+        wiki_lookup(text, info)
+
+    else:  # alt+d, ctrl+c
         price_item(text)
 
+
+# This is necessary to do Unit Testing, needs to be GLOBAL
+ITEM_MODIFIERS = get_item_modifiers()
 
 if __name__ == "__main__":
     find_latest_update()
 
     init(autoreset=True)  # Colorama
-    # Init Tk() window
     # Get some basic setup stuff
-    ITEM_MODIFIERS = get_item_modifiers()
+    # ITEM_MODIFIERS = get_item_modifiers()
     print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
 
@@ -1133,38 +1158,21 @@ if __name__ == "__main__":
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
-        # Optional features to use, by default it's on.
-        if USE_HOTKEYS:
-            import keyboard
-
-            print("[*] Watching clipboard (Ctrl+C to stop)...")
-
-            thread = threading.Thread(target=watch_keyboard)
-            thread.start()
-        else:
-            # This is necessary for when the user does not wish to use hotkeys.
-            if USE_GUI:
-                from utils.gui import Gui
-
-                root = Tk()
-                root.wm_attributes("-topmost", 1)
-                root.update()
-                root.withdraw()
-                gui = Gui()
-
-            watch_clipboard_no_hotkeys()
 
         if USE_GUI:
             from utils.gui import Gui
 
-            root = Tk()
-            root.wm_attributes("-topmost", 1)
-            root.update()
-            root.withdraw()
             gui = Gui()
 
-            if USE_HOTKEYS:
-                root.mainloop()
+        watch_keyboard(USE_HOTKEYS)
+
+        try:
+            if USE_GUI:
+                gui.wait()
+            else:
+                keyboard.wait()
+        except KeyboardInterrupt:
+            print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
