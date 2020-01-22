@@ -195,7 +195,6 @@ def parse_item_info(text: str) -> Dict:
             info["stats"] = []
             info["stats"].append(m[0][0])
             info["stats"].extend(m[0][1].split("\n"))
-            print(m[0][1])
 
             # Clean up the leftover stuff / Make it useable data
             if info["stats"][1] == "" and info["stats"][2] == "--------":  # Implicits and enchantments.
