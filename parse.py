@@ -33,7 +33,7 @@ from utils.exceptions import InvalidAPIResponseException
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues
 from utils.web import open_trade_site, wiki_lookup
 
-DEBUG = False
+DEBUG = True
 
 
 def parse_item_info(text: str) -> Dict:
@@ -195,13 +195,13 @@ def parse_item_info(text: str) -> Dict:
             info["stats"] = []
             info["stats"].append(m[0][0])
             info["stats"].extend(m[0][1].split("\n"))
+            print(m[0][1])
 
             # Clean up the leftover stuff / Make it useable data
             if info["stats"][1] == "" and info["stats"][2] == "--------":  # Implicits and enchantments.
                 del info["stats"][1:3]
             elif "--------" in info["stats"]:
-                index = info["stats"].index("--------")
-                info["stats"] = info["stats"][:index]
+                pass  # It might have implicits, annointments, and/or enchantments.
             else:
                 info["stats"] = info["stats"][:-1]
 

@@ -291,4 +291,34 @@ Knowledge was her gift.
 --------
 Shift click to unstack.
 """,
+    f"""Rarity: Unique
+Hands of the High Templar
+Crusader Gloves
+--------
+Armour: 325 (augmented)
+Energy Shield: 65 (augmented)
+--------
+Requirements:
+Level: 66
+Str: 51
+Int: 51
+--------
+Sockets: W-B-W-R 
+--------
+Item Level: 86
+--------
+8% increased Attack Speed (implicit)
+Curse Enemies with Level 10 Despair on Hit (implicit)
+Attacks have +0.78% to Critical Strike Chance (implicit)
+--------
+Can be modified while Corrupted
+Can have up to 5 Implicit Modifiers while Item has this Modifier
+169% increased Armour and Energy Shield
+8% increased maximum Life
++30% to Fire and Lightning Resistances
+--------
+The laws of the faith do not apply to its leader.
+--------
+Corrupted
+""",
 ]
