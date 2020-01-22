@@ -1,4 +1,5 @@
 ![Logo](/images/logo.png)
+# Path of Accounting [![Travis](https://img.shields.io/travis/Ethck/Path-of-Accounting.svg)](https://travis-ci.org/Ethck/Path-of-Accounting) [![Discord](https://img.shields.io/discord/667548003820634132.svg)](https://discord.gg/BUV2x6N)
 
 Path of Accounting is a replacement of POE TradeMacro that utilizes Path of Exile's Official API. Built from the ground up, Path of Accounting is lightning fast and has support for just about every item in the game.
 
@@ -52,6 +53,3 @@ Hotkeys!
 
 For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
 For those of you who want to help but don't know how to program, feel free to offer suggestions on the issues page! I can't make this tool better without knowing what everyone want.
-
-Path of Accounting Discord! 
-https://discord.gg/mfKT7E
