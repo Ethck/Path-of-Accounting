@@ -80,3 +80,27 @@ def find_latest_update():
                 choice_made = True
             else:
                 print("I did not understand your response. Please user either y or n.")
+
+
+def get_ninja_bases():
+    """
+    Retrieve all of the bases and their respective prices listed on poe.ninja
+
+    Returns list[dict]
+    """
+    query = requests.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en")
+    tbases = query.json()
+
+    bases = [
+        {
+            "base": b["baseType"],
+            "ilvl": b["levelRequired"],
+            "influence": b["variant"],
+            "corrupted": b["corrupted"],
+            "exalt": b["exaltedValue"],
+            "chaos": b["chaosValue"],
+        }
+        for b in tbases["lines"]
+    ]
+
+    return bases

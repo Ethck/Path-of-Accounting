@@ -30,10 +30,10 @@ from utils.currency import (
     VIALS,
 )
 from utils.exceptions import InvalidAPIResponseException
-from utils.trade import find_latest_update, get_item_modifiers, get_leagues
+from utils.trade import find_latest_update, get_item_modifiers, get_leagues, get_ninja_bases
 from utils.web import open_trade_site, wiki_lookup
 
-DEBUG = True
+DEBUG = False
 
 
 def parse_item_info(text: str) -> Dict:
@@ -1090,6 +1090,9 @@ def watch_keyboard(use_hotkeys):
         # Open item search in pathofexile.com/trade
         keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
 
+        # poe.ninja base check
+        keyboard.add_hotkey("alt+c", lambda: hotkey_handler("alt+c"))
+
     # Fetch the item's approximate price
     print("[*] Watching clipboard (Ctrl+C to stop)...")
     keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
@@ -1132,6 +1135,43 @@ def hotkey_handler(hotkey):
         info = parse_item_info(text)
         wiki_lookup(text, info)
 
+    elif hotkey == "alt+c":
+        info = parse_item_info(text)
+        influence = None
+        if any(i == True for i in info["influenced"].values()):
+            if info["influenced"]["shaper"]:
+                influence = "shaper"
+            elif info["influenced"]["elder"]:
+                influence = "elder"
+            elif info["influenced"]["crusader"]:
+                influence = "crusader"
+            elif info["influenced"]["warlord"]:
+                influence = "warlord"
+            elif info["influenced"]["redeemer"]:
+                influence = "redeemer"
+            elif info["influenced"]["hunter"]:
+                influence = "hunter"
+
+        ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
+
+        print(f"[*] Searching for base {info['itype']}. Item Level: {ilvl}, Influence: {influence}")
+
+        result = next(
+            item
+            for item in NINJA_BASES
+            if (
+                item["base"] == info["itype"]
+                and (
+                    (influence == None and item["influence"] == None)
+                    or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+                )
+                and ilvl == item["ilvl"]
+            )
+        )
+        price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
+        currency = "ex" if result["exalt"] >= 1 else "chaos"
+        print(f"[$] Price: {price} {currency}")
+
     else:  # alt+d, ctrl+c
         price_item(text)
 
@@ -1144,8 +1184,11 @@ if __name__ == "__main__":
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff
-    print(f"Loaded {len(ITEM_MODIFIERS)} item mods.")
+    print(f"[*] Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
+
+    NINJA_BASES = get_ninja_bases()
+    print(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
 
     # Inform user of choices
     print(f"If you wish to change the selected league you may do so in settings.cfg.")
