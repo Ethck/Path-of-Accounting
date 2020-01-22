@@ -90,7 +90,7 @@ class Gui:
 
     def show(self):
         windowToFront(self.root)
-        self.relayout_grid()
+        #self.relayout_grid()
         self.root.update()
 
         mouse_x, mouse_y = self.mouse_pos()
