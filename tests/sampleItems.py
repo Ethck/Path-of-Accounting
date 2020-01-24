@@ -321,4 +321,27 @@ The laws of the faith do not apply to its leader.
 --------
 Corrupted
 """,
+    f"""Rarity: Rare
+Dread Knot
+Synthesised Ruby Ring
+--------
+Requirements:
+Level: 48
+--------
+Item Level: 82
+--------
+13% reduced Reflected Damage taken (implicit)
+20% increased Damage if Corrupted (implicit)
+--------
+7% increased Cold Damage
+Adds 1 to 22 Lightning Damage to Attacks
++293 to Accuracy Rating
++13 to maximum Energy Shield
++65 to maximum Life
++1 Mana gained on Kill
+--------
+Corrupted
+--------
+Synthesised Item
+""",
 ]
