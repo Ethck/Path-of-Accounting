@@ -78,6 +78,9 @@ def parse_item_info(text: str) -> Dict:
         if info["itype"] == "--------":
             info["itype"] = info["name"]
 
+    if "Synthesised" in info["itype"]:
+        info["itype"] = info["itype"].replace("Synthesised ", "")
+
     if "<<set:MS>><<set:M>><<set:S>>" in info["name"]:  # For checking in chat items... For some reason this is added.
         info["name"] = info["name"].replace("<<set:MS>><<set:M>><<set:S>>", "").strip()
 
@@ -87,7 +90,6 @@ def parse_item_info(text: str) -> Dict:
     elif info["rarity"] == "Divination Card":
         info["rarity"] = info["rarity"].strip()
         info["itype"] = info.pop("rarity")
-        print(info)
     elif info["rarity"] == "Normal" and "Scarab" in info["name"]:
         info["itype"] = "Currency"
     elif "Map" in info["itype"]:
