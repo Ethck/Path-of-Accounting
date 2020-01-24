@@ -1,8 +1,8 @@
 import os
 import time
-import screeninfo
 from tkinter import *
 
+import screeninfo
 from PIL import Image, ImageTk
 
 # We do not need this on Linux.
@@ -150,17 +150,21 @@ class Gui:
         rows_used = len(price_vals)
 
         for row in range(rows_used):
-            days = avg_times[row][0]
+            days = avg_times[row][0] if len(avg_times) > 1 else avg_times[0][0]
             if days > 0:
                 days = str(days) + " days, "
             else:
                 days = None
 
             hours = None
-            if avg_times[row][1] > 3600:
-                hours = str(round(avg_times[row][1] / 3600, 2)) + " hours"
+            if len(avg_times) > 1:
+                if avg_times[row][1] > 3600:
+                    hours = str(round(avg_times[row][1] / 3600, 2)) + " hours"
+                else:
+                    hours = "< 1 hour"
             else:
-                hours = "< 1 hour"
+                if avg_times[0][1] > 3600:
+                    hours = str(round(avg_times[0][1] / 3600, 2)) + " hours"
 
             if days is not None:
                 avg_time_text = days + hours
