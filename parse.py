@@ -140,6 +140,7 @@ def parse_item_info(text: str) -> Dict:
 
         if m:
             info["ilvl"] = int(m[0])
+
     elif metamorph:
         info["itype"] = "Metamorph"
         m = re.findall(r"Item Level: (\d+)", text)
@@ -151,7 +152,7 @@ def parse_item_info(text: str) -> Dict:
         info["itype"] = "Prophecy"
 
     else:
-        if info["rarity"] == "Magic" or info["rarity"] == "Normal":
+        if info["rarity"] == "Magic" or info["rarity"] == "Normal" or info["rarity"] == "Rare":
             info["itype"] = None
 
         if info["rarity"] == "Gem":
@@ -1023,15 +1024,18 @@ def price_item(text):
                         price_val = price["amount"]
                         price_curr = price["currency"]
                         price = f"{price_val} x {price_curr}"
+                        print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
                         time = datetime.now(timezone.utc) - datetime.replace(
                             datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
                             tzinfo=timezone.utc,
                         )
+                        time = [[time.days, time.seconds]]
+                        price_vals = [[str(price_val) + price_curr]]
 
                         if USE_GUI:
-                            gui.show_price(price, f"{price_val}{price_curr}", time)
-
-                    print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
+                            gui.show_price(price, price_vals, time)
+                    else:
+                        print(f"[$] Price: {Fore.YELLOW}None \n\n")
 
             elif trade_info is not None:
                 print(f"[!] No results!")
