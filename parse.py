@@ -11,7 +11,7 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS, MIN_RESULTS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -903,8 +903,8 @@ def watch_clipboard():
 
                     # If results found
                     if trade_info:
-                        # If more than 1 result, assemble price list.
-                        if len(trade_info) > 1:
+                        # If more than MIN_RESULTS results, assemble price list.
+                        if len(trade_info) >= MIN_RESULTS:
                             # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
                             prev_account_name = ""
                             # Modify data to usable status.
@@ -960,21 +960,11 @@ def watch_clipboard():
                                 ]
 
                                 testGui.assemble_price_gui(price, currency)
-
                         else:
-                            price = trade_info[0]["listing"]["price"]
-                            if price != None:
-                                price_val = price["amount"]
-                                price_curr = price["currency"]
-                                price = f"{price_val} x {price_curr}"
-
-                                if USE_GUI:
-                                    testGui.assemble_price_gui(price, price_curr)
-
-                            print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
-
+                            testGui.assemble_not_enough_data()
                     elif trade_info is not None:
                         print(f"[!] No results!")
+                        testGui.assemble_not_enough_data()
 
             time.sleep(0.3)
 

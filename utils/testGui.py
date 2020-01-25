@@ -14,6 +14,36 @@ if os.name == "nt":
 def windowEnumerationHandler(hwnd, top_windows):
     top_windows.append((hwnd, win32gui.GetWindowText(hwnd)))
 
+def assemble_not_enough_data():
+    root = Toplevel()
+    root.overrideredirect(True)
+
+    # This is necessary for displaying the GUI window above active window(s) on the Windows OS
+    if os.name == "nt":
+        # In order to prevent SetForegroundWindow from erroring, we must satisfy the requirements
+        # listed here:
+        # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
+        # We satisfy this by internally sending the alt character so that Windows believes we are
+        # an active window.
+        shell = win32com.client.Dispatch("WScript.Shell")
+        shell.SendKeys("%")
+        win32gui.SetForegroundWindow(root.winfo_id())
+
+    x = root.winfo_pointerx()
+    y = root.winfo_pointery()
+
+    abs_coord_x = root.winfo_pointerx() - root.winfo_rootx()
+    abs_coord_y = root.winfo_pointery() - root.winfo_rooty()
+    root.geometry(f"364x40+{abs_coord_x}+{abs_coord_y}")
+
+    text = "Not enough results found to confidently price this item."
+    annotation = "You should manually search for it."
+    Label(root, text=text).grid(column=0, row=0)
+    Label(root, text=annotation).grid(column=0, row=1)
+
+    root.update()
+    time.sleep(5)
+    root.destroy()
 
 def assemble_price_gui(price, currency):
     root = Toplevel()
