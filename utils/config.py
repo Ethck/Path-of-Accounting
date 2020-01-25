@@ -14,3 +14,5 @@ PROJECT_URL = config["GENERAL"]["projectURL"]
 VERSION = config["GENERAL"]["version"]
 
 RELEASE_URL = config["GENERAL"]["releaseURL"]
+
+MIN_RESULTS = 10

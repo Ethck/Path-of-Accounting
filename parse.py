@@ -15,7 +15,7 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS, MIN_RESULTS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
