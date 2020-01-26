@@ -15,7 +15,7 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS, MIN_RESULTS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -873,7 +873,6 @@ def get_average_times(priceList):
 
     return avg_times
 
-
 def price_item(text):
     """
     Taking the text from the clipboard, parse the item, then price the item.
@@ -942,7 +941,7 @@ def price_item(text):
             # If results found
             if trade_info:
                 # If more than 1 result, assemble price list.
-                if len(trade_info) > 1:
+                if len(trade_info) > MIN_RESULTS:
                     # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
                     prev_account_name = ""
                     # Modify data to usable status.
@@ -1017,10 +1016,9 @@ def price_item(text):
                         ]
 
                         gui.show_price(price, list(prices), avg_times)
-
                 else:
                     price = trade_info[0]["listing"]["price"]
-                    if price != None:
+                    if price != None and bool(info["itype"]):
                         price_val = price["amount"]
                         price_curr = price["currency"]
                         price = f"{price_val} x {price_curr}"
@@ -1035,10 +1033,15 @@ def price_item(text):
                         if USE_GUI:
                             gui.show_price(price, price_vals, time)
                     else:
-                        print(f"[$] Price: {Fore.YELLOW}None \n\n")
+                        print(f"[!] Not enough data to confidently price this item.")
+                        if USE_GUI:
+                            gui.show_not_enough_data()
+
 
             elif trade_info is not None:
-                print(f"[!] No results!")
+                print(f"[!] Not enough data to confidently price this item.")
+                if USE_GUI:
+                    gui.show_not_enough_data()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
