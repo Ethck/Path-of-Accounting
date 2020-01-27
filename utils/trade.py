@@ -11,6 +11,8 @@ from tqdm import tqdm
 from factories.item_modifier import build_from_json
 from models.item_modifier import ItemModifier
 from utils.config import RELEASE_URL, VERSION
+from utils.exceptions import InvalidAPIResponseException
+
 
 def query_item(query: dict, league: str) -> dict:
     """
