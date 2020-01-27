@@ -1,6 +1,4 @@
 import pathlib
-import subprocess
-import sys
 import zipfile
 from itertools import chain
 from typing import List, Tuple
@@ -17,7 +15,7 @@ from utils.exceptions import InvalidAPIResponseException
 def query_item(query: dict, league: str) -> dict:
     """
     :param query: A JSON query to send to the trade api
-    :param league: the leage (as a String) to search for items in
+    :param league: the league (as a String) to search for items in
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
