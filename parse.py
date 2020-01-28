@@ -1,14 +1,10 @@
 import re
-import threading
 import time
 import traceback
 from datetime import datetime, timezone
 from itertools import chain
-from tkinter import TclError, Tk
-from typing import Any, Collection, Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
-import keyboard
-import pyperclip
 import requests
 from colorama import Fore, deinit, init
 
@@ -30,6 +26,7 @@ from utils.currency import (
     VIALS,
 )
 from utils.exceptions import InvalidAPIResponseException
+from utils.input import Keyboard, get_clipboard
 from utils.trade import find_latest_update, get_item_modifiers, get_leagues, get_ninja_bases
 from utils.web import open_trade_site, wiki_lookup
 
@@ -1085,36 +1082,30 @@ def price_item(text):
         print(exception)
 
 
-def get_clipboard():
-    """
-    Returns the current value of the clipboard
-    """
-    return pyperclip.paste()
-
-
-def watch_keyboard(use_hotkeys):
+def watch_keyboard(keyboard, use_hotkeys):
     if use_hotkeys:
         # Use the "f5" key to go to hideout
-        keyboard.add_hotkey("f5", lambda: keyboard.write("\n/hideout\n"))
+        keyboard.add_hotkey('<f5>', lambda: keyboard.write("\n/hideout\n"))
 
         # Use the alt+d key as an alternative to ctrl+c
-        keyboard.add_hotkey("alt+d", lambda: hotkey_handler("alt+d"))
+        keyboard.add_hotkey('<alt>+d', lambda: hotkey_handler(keyboard, "alt+d"))
 
         # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey("alt+w", lambda: hotkey_handler("alt+w"))
+        keyboard.add_hotkey('<alt>+w', lambda: hotkey_handler(keyboard, "alt+w"))
 
         # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey("alt+t", lambda: hotkey_handler("alt+t"))
+        keyboard.add_hotkey('<alt>+t', lambda: hotkey_handler(keyboard, "alt+t"))
 
         # poe.ninja base check
-        keyboard.add_hotkey("alt+c", lambda: hotkey_handler("alt+c"))
+        keyboard.add_hotkey('<alt>+c', lambda: hotkey_handler(keyboard, "alt+c"))
 
     # Fetch the item's approximate price
     print("[*] Watching clipboard (Ctrl+C to stop)...")
-    keyboard.add_hotkey("ctrl+c", lambda: hotkey_handler("ctrl+c"))
+    keyboard.add_hotkey(Keyboard.CLIPBOARD_HOTKEY, lambda: hotkey_handler(keyboard, "ctrl+c"))
+    keyboard.start()
 
 
-def hotkey_handler(hotkey):
+def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     keyboard.press_and_release("ctrl+c")
     time.sleep(0.1)
@@ -1214,16 +1205,13 @@ if __name__ == "__main__":
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
     else:
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
-
-        if USE_GUI:
-            from utils.gui import Gui
-
-            gui = Gui()
-
-        watch_keyboard(USE_HOTKEYS)
+        keyboard = Keyboard()
+        watch_keyboard(keyboard, USE_HOTKEYS)
 
         try:
             if USE_GUI:
+                from utils.gui import Gui
+                gui = Gui()
                 gui.wait()
             else:
                 keyboard.wait()
@@ -1231,4 +1219,4 @@ if __name__ == "__main__":
             print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
-        deinit()  # Colorama
+        deinit() # Colorama
