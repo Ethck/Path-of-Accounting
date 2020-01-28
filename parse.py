@@ -27,7 +27,15 @@ from utils.currency import (
 )
 from utils.exceptions import InvalidAPIResponseException
 from utils.input import Keyboard, get_clipboard
-from utils.trade import find_latest_update, get_item_modifiers, get_leagues, get_ninja_bases
+from utils.trade import (
+    exchange_currency,
+    fetch,
+    find_latest_update,
+    get_item_modifiers,
+    get_leagues,
+    get_ninja_bases,
+    query_item,
+)
 from utils.web import open_trade_site, wiki_lookup
 
 DEBUG = False
@@ -214,53 +222,6 @@ def parse_item_info(text: str) -> Dict:
         print("COMPLETE INFO: ", info)
 
     return info
-
-
-def fetch(q_res: Dict, exchange: bool = False) -> List[Dict]:  # JSON
-    """
-    Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
-    there are any similar items like it listed.
-
-    returns JSON of all available similar items.
-    """
-
-    if DEBUG:
-        print(q_res)
-
-    results = []
-    # Limited to crawling by 10 results at a time due to API restrictions, so check first 50
-    # TODO: This doesn't work...
-    DEFAULT_CAP = 50
-    DEFAULT_INTERVAL = 10
-    cap = DEFAULT_CAP
-    interval = DEFAULT_INTERVAL
-
-    # If there's less than 10 results, change to the number there is.
-    if len(q_res) < DEFAULT_CAP:
-        cap = int((len(q_res) / 10) * 10)
-
-    # Find all the results
-    if "result" in q_res:
-        for i in range(0, cap, interval):
-            url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(q_res["result"][i:i+10])}?query={q_res["id"]}'
-
-            if exchange:
-                url += "exchange=true"
-
-            res = requests.get(url)
-            if res.status_code != 200:
-                print(
-                    f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
-                    f'Message: {res.json().get("error", "unknown error")}'
-                )
-                break
-
-            # Return the results from our fetch (this has who to whisper, prices, and more!)
-            results += res.json()["result"]
-    else:
-        raise InvalidAPIResponseException()
-
-    return results
 
 
 def build_json_official(
@@ -468,11 +429,11 @@ def search_item(j, league):
                 )
 
             # Make the actual request.
-            query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
+            res = query_item(j, league)
 
             # No results found. Trim the mod list until we find results.
-            if "result" in query.json():
-                if (len(query.json()["result"])) == 0:
+            if "result" in res:
+                if (len(res["result"])) == 0:
 
                     # Choose a non-priority mod
                     i = choose_bad_mod(j)
@@ -492,7 +453,6 @@ def search_item(j, league):
                     j["query"]["stats"][0]["filters"].remove(i)
                     num_stats_ignored += 1
                 else:  # Found a result!
-                    res = query.json()
                     results = fetch(res)
 
                     if DEBUG:
@@ -529,8 +489,7 @@ def search_item(j, league):
         raise InvalidAPIResponseException
 
     else:  # Any time we ignore stats.
-        query = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=j)
-        res = query.json()
+        res = query_item(j, league)
         results = fetch(res)
         return results
 
@@ -742,8 +701,7 @@ def query_exchange(qcur):
     for haveCurrency in ["chaos", "exa", "mir"]:
         def_json = {"exchange": {"have": [haveCurrency], "want": [selection], "status": {"option": "online"},}}
 
-        query = requests.post(f"https://www.pathofexile.com/api/trade/exchange/{LEAGUE}", json=def_json)
-        res = query.json()
+        res = exchange_currency(def_json, LEAGUE)
         if DEBUG:
             print(def_json)
 
@@ -1076,19 +1034,19 @@ def price_item(text):
 def watch_keyboard(keyboard, use_hotkeys):
     if use_hotkeys:
         # Use the "f5" key to go to hideout
-        keyboard.add_hotkey('<f5>', lambda: keyboard.write("\n/hideout\n"))
+        keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
 
         # Use the alt+d key as an alternative to ctrl+c
-        keyboard.add_hotkey('<alt>+d', lambda: hotkey_handler(keyboard, "alt+d"))
+        keyboard.add_hotkey("<alt>+d", lambda: hotkey_handler(keyboard, "alt+d"))
 
         # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey('<alt>+w', lambda: hotkey_handler(keyboard, "alt+w"))
+        keyboard.add_hotkey("<alt>+w", lambda: hotkey_handler(keyboard, "alt+w"))
 
         # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey('<alt>+t', lambda: hotkey_handler(keyboard, "alt+t"))
+        keyboard.add_hotkey("<alt>+t", lambda: hotkey_handler(keyboard, "alt+t"))
 
         # poe.ninja base check
-        keyboard.add_hotkey('<alt>+c', lambda: hotkey_handler(keyboard, "alt+c"))
+        keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
 
     # Fetch the item's approximate price
     print("[*] Watching clipboard (Ctrl+C to stop)...")
@@ -1125,8 +1083,7 @@ def hotkey_handler(keyboard, hotkey):
                 )
             },
         )
-        query = requests.post(f"https://www.pathofexile.com/api/trade/search/{LEAGUE}", json=j)
-        res = query.json()
+        res = query_item(j, LEAGUE)
         open_trade_site(res["id"], LEAGUE)
 
     elif hotkey == "alt+w":
@@ -1202,6 +1159,7 @@ if __name__ == "__main__":
         try:
             if USE_GUI:
                 from utils.gui import Gui
+
                 gui = Gui()
                 gui.wait()
             else:
@@ -1210,4 +1168,4 @@ if __name__ == "__main__":
             print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
-        deinit() # Colorama
+        deinit()  # Colorama
