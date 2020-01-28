@@ -153,6 +153,7 @@ def parse_item_info(text: str) -> Dict:
 
     else:
         if info["rarity"] == "Magic" or info["rarity"] == "Normal" or info["rarity"] == "Rare":
+            info["base"] = info["itype"]
             info["itype"] = None
 
         if info["rarity"] == "Gem":
