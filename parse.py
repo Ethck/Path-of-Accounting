@@ -27,7 +27,7 @@ from utils.currency import (
 )
 from utils.exceptions import InvalidAPIResponseException
 from utils.input import Keyboard, get_clipboard
-from utils.trade import find_latest_update, get_item_modifiers, get_leagues, get_ninja_bases, query_item, fetch
+from utils.trade import find_latest_update, get_item_modifiers, get_leagues, get_ninja_bases, query_item, fetch, exchange_currency
 from utils.web import open_trade_site, wiki_lookup
 
 DEBUG = False
@@ -693,8 +693,7 @@ def query_exchange(qcur):
     for haveCurrency in ["chaos", "exa", "mir"]:
         def_json = {"exchange": {"have": [haveCurrency], "want": [selection], "status": {"option": "online"},}}
 
-        query = requests.post(f"https://www.pathofexile.com/api/trade/exchange/{LEAGUE}", json=def_json)
-        res = query.json()
+        res = exchange_currency(def_json, LEAGUE)
         if DEBUG:
             print(def_json)
 
