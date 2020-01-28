@@ -1082,6 +1082,33 @@ def get_clipboard():
     return pyperclip.paste()
 
 
+def watch_clipboard_no_hotkeys():
+    """
+    Continously poll the clipboard looking for any changes to it's contents.
+    Then immediately price that item.
+    No return.
+    """
+    print("[*] Watching clipboard (Ctrl+C to stop)...")
+    prev = None
+    while True:
+        try:
+            text = get_clipboard()
+
+            if text != prev:
+                price_item(text)
+
+            prev = text
+
+            time.sleep(0.3)
+
+        except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
+            continue
+
+        except KeyboardInterrupt:
+            print(f"[!] Exiting, user requested termination.")
+            break
+
+
 def watch_keyboard(use_hotkeys):
     if use_hotkeys:
         # Use the "f5" key to go to hideout
@@ -1210,13 +1237,17 @@ if __name__ == "__main__":
 
             gui = Gui()
 
-        watch_keyboard(USE_HOTKEYS)
-
         try:
+            watch_keyboard(USE_HOTKEYS)
             if USE_GUI:
                 gui.wait()
             else:
                 keyboard.wait()
+        except ImportError:
+            # watch_keyboard throws an ImportError if running under Linux as non-root, so we
+            # fallback to the old clipboard polling method
+            print(f"[!] Failed to import keyboard module, fallback to keyboard watching.")
+            watch_clipboard_no_hotkeys()
         except KeyboardInterrupt:
             print(f"[!] Exiting, user requested termination.")
 
