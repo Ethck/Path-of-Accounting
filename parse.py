@@ -1110,23 +1110,31 @@ def hotkey_handler(keyboard, hotkey):
 
         ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
 
-        print(f"[*] Searching for base {info['itype']}. Item Level: {ilvl}, Influence: {influence}")
+        base = info["itype"] if info["itype"] != None else info["base"]
 
-        result = next(
-            item
-            for item in NINJA_BASES
-            if (
-                item["base"] == info["itype"]
-                and (
-                    (influence == None and item["influence"] == None)
-                    or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+        print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
+        result = None
+
+        try:
+            result = next(
+                item
+                for item in NINJA_BASES
+                if (
+                    item["base"] == base
+                    and (
+                        (influence == None and item["influence"] == None)
+                        or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+                    )
+                    and ilvl == item["ilvl"]
                 )
-                and ilvl == item["ilvl"]
             )
-        )
-        price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
-        currency = "ex" if result["exalt"] >= 1 else "chaos"
-        print(f"[$] Price: {price} {currency}")
+        except StopIteration:
+            print("[!] Could not find the requested item.")
+
+        if result != None:
+            price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
+            currency = "ex" if result["exalt"] >= 1 else "chaos"
+            print(f"[$] Price: {price} {currency}")
 
     else:  # alt+d, ctrl+c
         price_item(text)
