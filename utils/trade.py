@@ -12,10 +12,21 @@ from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
 
+def exchange_currency(query: dict, league: str) -> dict:
+    """
+    :param query: A JSON query to send to the currency trade api
+    :param league: the league to search in
+    :return results: return a JSON object with the amount of items found and a key to get
+     item details
+    """
+    results = requests.post(f"https://www.pathofexile.com/api/trade/exchange/{league}", json=query)
+    return results.json()
+
+
 def query_item(query: dict, league: str) -> dict:
     """
     :param query: A JSON query to send to the trade api
-    :param league: the league (as a String) to search for items in
+    :param league: the league to search in
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
