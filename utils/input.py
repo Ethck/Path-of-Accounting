@@ -73,10 +73,11 @@ class HotkeyWatcher(Thread):
         self.queue = Queue()
 
     def is_empty(self):
-        return self.queue.qsize() == 0
+        return self.queue.unfinished_tasks == 0 and self.queue.qsize() == 0
 
     def push(self, hotkey):
-        self.queue.put(hotkey)
+        if self.is_empty():
+            self.queue.put(hotkey)
 
     def run(self):
         while not self.stopping:
@@ -101,6 +102,7 @@ class Keyboard:
     def __init__(self):
         self.combination_to_function = {}
         self.hotkey_watcher = None
+        self.clipboard_watcher = None
         self.clipboard_callback = None
 
         if is_pyinput_module_available:
@@ -114,7 +116,6 @@ class Keyboard:
         # Create hotkey watcher with all our hotkey callbacks
         self.hotkey_watcher = HotkeyWatcher(self.combination_to_function)
         self.clipboard_watcher = ClipboardWatcher(self.clipboard_callback, self.hotkey_watcher.is_empty)
-        self.hotkey_watcher.start()
         combination_to_queue = {}
 
         def to_watcher(watcher, hotkey):
@@ -132,10 +133,13 @@ class Keyboard:
             self.listener.daemon = True
             self.listener.start()
 
+        if is_keyboard_module_available or is_pyinput_module_available:
+            self.hotkey_watcher.start()
+
         self.clipboard_watcher.start()
 
     def wait(self):
-        self.hotkey_watcher.join()
+        self.clipboard_watcher.join()
 
     def write(self, string):
         if is_keyboard_module_available:
