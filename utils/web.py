@@ -6,10 +6,15 @@ def wiki_lookup(text, info):
     baseURL = "https://pathofexile.gamepedia.com/"
 
     x = info.get("itype")
+    if x == None:
+        try:
+            x = info.get("base")
+        except:
+            pass
     x = str(x)
 
     if info:
-        if info["itype"] == "Currency":
+        if x == "Currency":
             print(f'[*] wiki_lookup item : {info["name"]}')
             print(baseURL + info["name"])
             webbrowser.open(baseURL + info["name"])
@@ -26,9 +31,9 @@ def wiki_lookup(text, info):
 
         # Magic items will have a NoneType, that is why we store them in x so other non uniques may be checked.
         elif x != "None" and info["rarity"] == "Magic" or info["rarity"] == "Rare":
-            print(f'[*] wiki_lookup item : {info["itype"]}')
-            print(baseURL + info["itype"])
-            webbrowser.open(baseURL + info["itype"])
+            print(f"[*] wiki_lookup item : {x}")
+            print(baseURL + x)
+            webbrowser.open(baseURL + x)
 
         # Only items not supported are magic items.
         else:
