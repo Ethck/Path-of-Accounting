@@ -1101,15 +1101,15 @@ def watch_keyboard(keyboard, use_hotkeys):
 
     # Fetch the item's approximate price
     print("[*] Watching clipboard (Ctrl+C to stop)...")
-    keyboard.add_hotkey(Keyboard.CLIPBOARD_HOTKEY, lambda: hotkey_handler(keyboard, "ctrl+c"))
+    keyboard.clipboard_callback = lambda _: hotkey_handler(keyboard, "clipboard")
     keyboard.start()
 
 
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
-    keyboard.press_and_release("ctrl+c")
-    time.sleep(0.1)
-    keyboard.press_and_release("ctrl+c")
+    if hotkey != "clipboard":
+        keyboard.press_and_release("ctrl+c")
+        time.sleep(0.1)
 
     text = get_clipboard()
     if hotkey == "alt+t":
