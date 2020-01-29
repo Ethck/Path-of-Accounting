@@ -53,22 +53,26 @@ def windowRefocus(name):
 
 class Gui:
     def __init__(self):
+        self.root = None
+    def prepare_window(self):
+
         tk = Tk()
         tk.wm_attributes("-topmost", 1)
         tk.update()
         tk.withdraw()
 
-        self.root = self.prepare_window()
-
-    def prepare_window(self):
         root = Toplevel()
         root.overrideredirect(True)
         root.option_add("*Font", "courier 12")
         root.withdraw()
-        return root
+        self.root = root
+    def close(self):
+        self.root.destroy()
 
     def wait(self):
         self.root.mainloop()
+    
+    
 
     def mouse_pos(self):
         x = self.root.winfo_pointerx()
@@ -129,7 +133,8 @@ class Gui:
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
 
-        self.reset()
+        #self.reset()
+        self.prepare_window()
 
         # Setting up Master Frame, only currently used for background color due to grid format.
         masterFrame = Frame(self.root, bg="#1f1f1f")
@@ -198,4 +203,4 @@ class Gui:
         # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
         self.show()
         time.sleep(5)
-        self.hide()
+        self.close()

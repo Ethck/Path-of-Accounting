@@ -1059,8 +1059,8 @@ def hotkey_handler(keyboard, hotkey):
     if hotkey != "clipboard":
         keyboard.press_and_release("ctrl+c")
         time.sleep(0.1)
-
     text = get_clipboard()
+    #print(text)
     if hotkey == "alt+t":
         info = parse_item_info(text)
         j = build_json_official(
@@ -1167,13 +1167,11 @@ if __name__ == "__main__":
         try:
             if USE_GUI:
                 from utils.gui import Gui
-
                 gui = Gui()
-                gui.wait()
-            else:
-                keyboard.wait()
+            while True:
+                time.sleep(1) # main thread does nothing exept wait for interrupt now
         except KeyboardInterrupt:
-            print(f"[!] Exiting, user requested termination.")
+                print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama

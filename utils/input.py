@@ -27,40 +27,6 @@ if not is_keyboard_module_available:
 def get_clipboard():
     return pyperclip.paste()
 
-
-class ClipboardWatcher(Thread):
-    """
-    Watches for changes in clipboard and calls callback.
-    """
-    def __init__(self, callback, should_process, pause=0.3):
-        super(ClipboardWatcher, self).__init__()
-        self.daemon = True
-        self.callback = callback
-        self.should_process = should_process
-        self.pause = pause
-        self.stopping = False
-
-    def run(self):
-        prev = ""
-
-        while not self.stopping:
-            try:
-                text = get_clipboard()
-
-                if text != prev and self.should_process():
-                    self.callback(text)
-
-                prev = text
-                time.sleep(self.pause)
-            except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
-                continue
-            except KeyboardInterrupt:
-                break
-
-    def stop(self):
-        self.stopping = True
-
-
 class HotkeyWatcher(Thread):
     """
     Watches for changes in hotkey queue and calls callbacks
@@ -102,8 +68,6 @@ class Keyboard:
     def __init__(self):
         self.combination_to_function = {}
         self.hotkey_watcher = None
-        self.clipboard_watcher = None
-        self.clipboard_callback = None
 
         if is_pyinput_module_available:
             self.controller = Controller()
@@ -115,7 +79,6 @@ class Keyboard:
     def start(self):
         # Create hotkey watcher with all our hotkey callbacks
         self.hotkey_watcher = HotkeyWatcher(self.combination_to_function)
-        self.clipboard_watcher = ClipboardWatcher(self.clipboard_callback, self.hotkey_watcher.is_empty)
         combination_to_queue = {}
 
         def to_watcher(watcher, hotkey):
@@ -135,11 +98,6 @@ class Keyboard:
 
         if is_keyboard_module_available or is_pyinput_module_available:
             self.hotkey_watcher.start()
-
-        self.clipboard_watcher.start()
-
-    def wait(self):
-        self.clipboard_watcher.join()
 
     def write(self, string):
         if is_keyboard_module_available:
