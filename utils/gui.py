@@ -125,6 +125,41 @@ class Gui:
         self.root.geometry(f"-{abs_coord_x}-{abs_coord_y}")
         windowRefocus("path of exile")
 
+    def show_not_enough_data(self):
+        """
+        Assemble a simple informative window which tells the user
+        that we were unable to confidently price the current clipboard
+        item.
+        """
+
+        self.reset()
+
+        # Setting up Master Frame, only currently used for background color due to grid format.
+        masterFrame = Frame(self.root, bg="#1f1f1f")
+        masterFrame.place(relwidth=1, relheight=1)
+
+
+        headerLabel = Label(
+            self.root,
+            text="Not Enough Data",
+            bg="#0d0d0d",
+            fg="#e6b800"
+        )
+        headerLabel.grid(column=0, row=1, padx=5)
+
+        displayText = "Could not find enough data to confidently price this item."
+        annotation = Label(
+            self.root,
+            text=displayText,
+            bg="#0d0d0d",
+            fg="#e6b800"
+        )
+        annotation.grid(column=0, row=2)
+
+        self.show()
+        time.sleep(5)
+        self.hide()
+
     def show_price(self, price, price_vals, avg_times):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
