@@ -1173,7 +1173,9 @@ if __name__ == "__main__":
             else:
                 keyboard.wait()
         except KeyboardInterrupt:
-            print(f"[!] Exiting, user requested termination.")
+            pass
+
+        print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama

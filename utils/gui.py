@@ -65,6 +65,15 @@ class Gui:
         root.overrideredirect(True)
         root.option_add("*Font", "courier 12")
         root.withdraw()
+
+        def check():
+            try:
+                time.sleep(0.5)
+                root.after(50, check)
+            except KeyboardInterrupt:
+                root.quit()
+
+        check()
         return root
 
     def wait(self):
