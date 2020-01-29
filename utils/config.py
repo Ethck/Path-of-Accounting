@@ -14,3 +14,7 @@ PROJECT_URL = config["GENERAL"]["projectURL"]
 VERSION = config["GENERAL"]["version"]
 
 RELEASE_URL = config["GENERAL"]["releaseURL"]
+
+TIMEOUT_GUI = config["GENERAL"]["timeoutGUI"]
+
+MIN_RESULTS = 10

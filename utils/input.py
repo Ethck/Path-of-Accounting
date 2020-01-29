@@ -32,6 +32,7 @@ class ClipboardWatcher(Thread):
     """
     Watches for changes in clipboard and calls callback.
     """
+
     def __init__(self, callback, should_process, pause=0.3):
         super(ClipboardWatcher, self).__init__()
         self.daemon = True
@@ -39,6 +40,8 @@ class ClipboardWatcher(Thread):
         self.should_process = should_process
         self.pause = pause
         self.stopping = False
+        # Clear the clipboard
+        pyperclip.copy("")
 
     def run(self):
         prev = ""
@@ -97,7 +100,7 @@ class HotkeyWatcher(Thread):
 
 
 class Keyboard:
-    CLIPBOARD_HOTKEY = '<ctrl>+c'
+    CLIPBOARD_HOTKEY = "<ctrl>+c"
 
     def __init__(self):
         self.combination_to_function = {}
@@ -127,7 +130,7 @@ class Keyboard:
 
         if is_keyboard_module_available:
             for h in combination_to_queue:
-                keyboard.add_hotkey(h.replace('<', '').replace('>', ''), combination_to_queue[h])
+                keyboard.add_hotkey(h.replace("<", "").replace(">", ""), combination_to_queue[h])
         elif is_pyinput_module_available:
             self.listener = GlobalHotKeys(combination_to_queue)
             self.listener.daemon = True
@@ -135,8 +138,8 @@ class Keyboard:
 
         if is_keyboard_module_available or is_pyinput_module_available:
             self.hotkey_watcher.start()
-
-        self.clipboard_watcher.start()
+        else:
+            self.clipboard_watcher.start()
 
     def wait(self):
         self.clipboard_watcher.join()
@@ -151,6 +154,7 @@ class Keyboard:
         if is_keyboard_module_available:
             keyboard.press_and_release(key)
         elif is_pyinput_module_available:
+
             def safe_press(controller, k, press=True):
                 try:
                     # Lazy way to try and convert special key to enum
@@ -163,7 +167,7 @@ class Keyboard:
                 else:
                     controller.release(k)
 
-            keys = key.split('+')
+            keys = key.split("+")
 
             if len(keys) == 2:
                 # Press first key, then second key, then release second key and finally release first key

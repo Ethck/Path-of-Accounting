@@ -11,7 +11,7 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_GUI, USE_HOTKEYS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -37,8 +37,15 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
+from gui.UI import PriceInfo, NoResult, SelectSearchingMods
+from gui.guiComponent import check_timeout_gui, destroy_gui
 
 DEBUG = False
+
+if USE_GUI:
+    priceInfo = PriceInfo()
+    noResult = NoResult()
+    selectSearch = SelectSearchingMods()
 
 
 def parse_item_info(text: str) -> Dict:
@@ -854,6 +861,7 @@ def price_item(text):
                 trade_info = query_exchange(info["name"])
 
             else:
+
                 # Do intensive search.
                 if info["itype"] != info["name"] and info["itype"] != None:
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}", flush=True)
@@ -870,6 +878,15 @@ def price_item(text):
                         extra_strings += f"Quality: {info['quality']}+"
 
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
+                
+                #TODO This needs to be its own hotkey, need to refractor this and related function
+                #if USE_GUI:
+                    #selectSearch.add_info(info)
+                    #selectSearch.create_at_cursor()
+                    #selectSearch.run()
+                    #if selectSearch.searched:
+                        #info = selectSearch.info
+                        #selectSearch.searched = False
 
                 json = build_json_official(
                     **{
@@ -891,7 +908,6 @@ def price_item(text):
                         )
                     },
                 )
-
             if json != None:
                 trade_info = search_item(json, LEAGUE)
 
@@ -971,9 +987,7 @@ def price_item(text):
                             average,
                             round(float(price[-1]), 2),
                         ]
-
-                        gui.show_price(price, list(prices), avg_times)
-
+                        priceInfo.add_price_info(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
                 else:
                     price = trade_info[0]["listing"]["price"]
                     if price != None:
@@ -988,13 +1002,19 @@ def price_item(text):
                         time = [[time.days, time.seconds]]
                         price_vals = [[str(price_val) + price_curr]]
 
+                        print("[!] Not enough data to confidently price this item.")
                         if USE_GUI:
-                            gui.show_price(price, price_vals, time)
+                            priceInfo.add_price_info(price, price_vals, time, True)
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
-
+                        print("[!] Not enough data to confidently price this item.")
+                        if USE_GUI:
+                            noResult.create_at_cursor()
             elif trade_info is not None:
-                print(f"[!] No results!")
+                print("[!] No results!")
+                print("[!] Not enough data to confidently price this item.")
+                if USE_GUI:
+                    noResult.create_at_cursor()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
@@ -1053,13 +1073,21 @@ def watch_keyboard(keyboard, use_hotkeys):
     keyboard.clipboard_callback = lambda _: hotkey_handler(keyboard, "clipboard")
     keyboard.start()
 
+from queue import Queue
+queue = Queue()
 
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
         keyboard.press_and_release("ctrl+c")
         time.sleep(0.1)
+    queue.put(hotkey)
 
+
+def hotkey_handler_mainthread():
+    if queue.empty():
+        return
+    hotkey = queue.get()
     text = get_clipboard()
     if hotkey == "alt+t":
         info = parse_item_info(text)
@@ -1163,17 +1191,15 @@ if __name__ == "__main__":
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
-
         try:
-            if USE_GUI:
-                from utils.gui import Gui
-
-                gui = Gui()
-                gui.wait()
-            else:
-                keyboard.wait()
+            while True:
+                hotkey_handler_mainthread()
+                check_timeout_gui()
         except KeyboardInterrupt:
-            print(f"[!] Exiting, user requested termination.")
+            pass
 
+        print(f"[!] Exiting, user requested termination.")
+
+        destroy_gui()
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
