@@ -14,8 +14,8 @@ class TestItemLookup(unittest.TestCase):
                 sys.stdout = out
                 parse.price_item(items[i])
                 sys.stdout = sys.__stdout__
-                self.assertTrue("[$]" in out.getvalue())
-
+                alternate = "[!] Not enough data to confidently price this item."
+                self.assertTrue("[$]" in out.getvalue() or alternate in out.getvalue())
 
 if __name__ == "__main__":
     unittest.main()
