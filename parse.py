@@ -941,7 +941,7 @@ def price_item(text):
             # If results found
             if trade_info:
                 # If more than 1 result, assemble price list.
-                if len(trade_info) >= MIN_RESULTS:
+                if len(trade_info) > 1:
                     # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
                     prev_account_name = ""
                     # Modify data to usable status.
@@ -1015,10 +1015,14 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        gui.show_price(price, list(prices), avg_times)
+                        if USE_GUI:
+                            gui.show_price(
+                                price, list(prices), avg_times,
+                                len(trade_info) < MIN_RESULTS
+                            )
                 else:
                     price = trade_info[0]["listing"]["price"]
-                    if price != None and bool(info["itype"]):
+                    if price != None:
                         price_val = price["amount"]
                         price_curr = price["currency"]
                         price = f"{price_val} x {price_curr}"
@@ -1030,16 +1034,18 @@ def price_item(text):
                         time = [[time.days, time.seconds]]
                         price_vals = [[str(price_val) + price_curr]]
 
+                        print("[!] Not enough data to confidently price this item.")
                         if USE_GUI:
-                            gui.show_price(price, price_vals, time)
+                            gui.show_price(price, price_vals, time, True)
                     else:
-                        print(f"[!] Not enough data to confidently price this item.")
+                        print(f"[$] Price: {Fore.YELLOW}None \n\n")
+                        print("[!] Not enough data to confidently price this item.")
                         if USE_GUI:
                             gui.show_not_enough_data()
 
-
             elif trade_info is not None:
-                print(f"[!] Not enough data to confidently price this item.")
+                print("[!] No reesults!")
+                print("[!] Not enough data to confidently price this item.")
                 if USE_GUI:
                     gui.show_not_enough_data()
 
