@@ -1,6 +1,4 @@
 import pathlib
-import subprocess
-import sys
 import zipfile
 from itertools import chain
 from typing import List, Tuple
@@ -11,6 +9,76 @@ from tqdm import tqdm
 from factories.item_modifier import build_from_json
 from models.item_modifier import ItemModifier
 from utils.config import RELEASE_URL, VERSION
+from utils.exceptions import InvalidAPIResponseException
+
+
+def exchange_currency(query: dict, league: str) -> dict:
+    """
+    :param query: A JSON query to send to the currency trade api
+    :param league: the league to search in
+    :return results: return a JSON object with the amount of items found and a key to get
+     item details
+    """
+    results = requests.post(f"https://www.pathofexile.com/api/trade/exchange/{league}", json=query)
+    return results.json()
+
+
+def query_item(query: dict, league: str) -> dict:
+    """
+    :param query: A JSON query to send to the trade api
+    :param league: the league to search in
+    :return results: return a JSON object with the amount of items found and a key to get
+     item details
+    """
+    results = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=query)
+    return results.json()
+
+
+def fetch(q_res: dict, exchange: bool = False) -> List[dict]:  # JSON
+    """
+    Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
+    there are any similar items like it listed.
+
+    returns JSON of all available similar items.
+    """
+
+    # TODO: Bring back debug statement
+
+    results = []
+    # Limited to crawling by 10 results at a time due to API restrictions, so check first 50
+    # TODO: This doesn't work...
+    DEFAULT_CAP = 50
+    DEFAULT_INTERVAL = 10
+    cap = DEFAULT_CAP
+    interval = DEFAULT_INTERVAL
+
+    # If there's less than 10 results, change to the number there is.
+    if len(q_res) < DEFAULT_CAP:
+        cap = int((len(q_res) / 10) * 10)
+
+    # Find all the results
+    if "result" in q_res:
+        for i in range(0, cap, interval):
+            url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(q_res["result"][i:i+10])}?query={q_res["id"]}'
+
+            if exchange:
+                url += "exchange=true"
+
+            res = requests.get(url)
+            if res.status_code != 200:
+                print(
+                    f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
+                    f'Message: {res.json().get("error", "unknown error")}'
+                    )
+                break
+
+            # Return the results from our fetch (this has who to whisper, prices, and more!)
+            results += res.json()["result"]
+
+    else:
+        raise InvalidAPIResponseException()
+
+    return results
 
 
 def get_leagues() -> Tuple[str, ...]:

@@ -3,7 +3,6 @@ import time
 from tkinter import *
 
 import screeninfo
-from PIL import Image, ImageTk
 
 # We do not need this on Linux.
 if os.name == "nt":
