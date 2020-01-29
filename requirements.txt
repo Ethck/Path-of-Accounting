@@ -7,7 +7,6 @@ dataclasses==0.6
 idna==2.8
 keyboard==0.13.4
 Pillow==7.0.0
-pkg-resources==0.0.0
 pyperclip==1.7.0
 pypiwin32==223; platform_system == "Windows"
 pywin32==227; platform_system == "Windows"
