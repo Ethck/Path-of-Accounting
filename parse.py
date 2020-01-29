@@ -942,7 +942,7 @@ def price_item(text):
             # If results found
             if trade_info:
                 # If more than 1 result, assemble price list.
-                if len(trade_info) > 1:
+                if len(trade_info) >= MIN_RESULTS:
                     # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
                     prev_account_name = ""
                     # Modify data to usable status.
