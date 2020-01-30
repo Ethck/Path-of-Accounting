@@ -59,6 +59,7 @@ class Gui:
         tk.withdraw()
 
         self.root = self.prepare_window()
+        self.last_task = None
 
     def prepare_window(self):
         root = Toplevel()
@@ -127,17 +128,25 @@ class Gui:
         self.root.deiconify()
         self.root.update()
 
-    def hide(self):
-        abs_coord_x, abs_coord_y = self.mouse_pos()
+    def hide(self, refocus=True):
         self.root.withdraw()
-        self.root.geometry(f"-{abs_coord_x}-{abs_coord_y}")
-        windowRefocus("path of exile")
+        self.root.update()
+
+        if refocus:
+            windowRefocus("path of exile")
+
+    def schedule_hide(self, delay=5000):
+        if self.last_task:
+            self.root.after_cancel(self.last_task)
+
+        self.last_task = self.root.after(delay, self.hide)
 
     def show_price(self, price, price_vals, avg_times):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
 
+        self.hide(False)
         self.reset()
 
         # Setting up Master Frame, only currently used for background color due to grid format.
@@ -204,7 +213,5 @@ class Gui:
         maxPriceLabel = Label(self.root, text="High: " + str(price[2]), bg="#0d0d0d", fg="#e6b800")
         maxPriceLabel.grid(column=2, row=rows_used + 3, padx=10)
 
-        # Show the new GUI, then get rid of it after 5 seconds. Might lower delay in the future.
         self.show()
-        time.sleep(5)
-        self.hide()
+        self.schedule_hide()
