@@ -70,7 +70,8 @@ class Gui:
         for child in self.root.winfo_children():
             child.destroy()
         self.root.destroy()
-        self.root.mainloop()
+        self.root.update()
+        self.root.quit()
         self.root = None
 
     def wait(self):
