@@ -13,28 +13,31 @@ from tests.mocks import *
 from tests.sampleItems import items
 
 LOOKUP_URL = "https://www.pathofexile.com/api/trade/search/Metamorph"
+EXCHANGE_URL = "https://www.pathofexile.com/api/trade/exchange/Metamorph"
 
 class TestItemLookup(unittest.TestCase):
     def test_lookups(self):
         # Mockups of response data from pathofexile.com/trade
         expected = [
-            # (mocked up json response, expected condition)
-            (mockResponse(11), lambda v: "[$]" in v),
-            (mockResponse(12), lambda v: "[$]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(1), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(66), lambda v: "[$]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(0), lambda v: "[!]" in v),
-            (mockResponse(10), lambda v: "[$]" in v),
+            # (mocked up json response, expected condition, search url)
+            (mockResponse(11), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(12), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(1), lambda v: "[!] Not enough data to confidently price this item" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(66), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            # 14th item in sampleItems is a divination card, which is looked
+            # up via exchange URL instead of search.
+            (mockResponse(0), lambda v: "[!] No results!" in v, EXCHANGE_URL),
+            (mockResponse(0), lambda v: "[!] No results!" in v, LOOKUP_URL),
+            (mockResponse(10), lambda v: "[$]" in v, LOOKUP_URL),
         ]
 
         # Mocked up prices to return when searching. We only take the first
@@ -91,7 +94,7 @@ class TestItemLookup(unittest.TestCase):
                 # Mockup response
                 with requests_mock.Mocker() as mock:
                     mock.post(
-                        LOOKUP_URL,
+                        expected[i][2],
                         json=expected[i][0]
                     )
 
@@ -123,8 +126,12 @@ class TestItemLookup(unittest.TestCase):
                     # If we have at least MIN_RESULTS items, we should mock
                     # the GET request for fetching the first 10 items.
                     # See search_item's pathing in parse.py
-                    if len(expected[i][0]["result"]) >= config.MIN_RESULTS:
-                        fetch_url = makeFetchURL(expected[i][0])
+                    if len(expected[i][0]["result"]) >= 0:
+                        fetch_url = makeFetchURL(
+                            expected[i][0],
+                            # True if the expected item's search url is EXCHANGE_URL
+                            expected[i][2] == EXCHANGE_URL
+                        )
                         mock.get(fetch_url, json=response)
 
                     # Callout to API and price the item

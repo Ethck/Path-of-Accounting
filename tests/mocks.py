@@ -28,8 +28,11 @@ def mockResponse(n):
 #
 # result: A MockResponse dict-converted value
 # Returns a formatted fetch URL.
-def makeFetchURL(result):
-    return f'https://www.pathofexile.com/api/trade/fetch/{",".join(result["result"][0:10])}?query={result["id"]}'
+def makeFetchURL(result, exchange=False):
+    url = f'https://www.pathofexile.com/api/trade/fetch/{",".join(result["result"][0:10])}?query={result["id"]}'
+    if exchange:
+        url += "exchange=true"
+    return url
 
 # A simple helper function that generates the (info, json) of
 # an item before using them to search the item on PoE/trade.
