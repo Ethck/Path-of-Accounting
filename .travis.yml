@@ -12,6 +12,7 @@ before_install:
   - pip3 install virtualenv
   - virtualenv -p python3 ~/venv
   - source ~/venv/bin/activate
+  - sed -i.bak 's/useGUI = yes/useGUI = no/' settings.cfg
 install:
   - pip install -r requirements.txt
 script:
