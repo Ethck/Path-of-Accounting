@@ -11,7 +11,7 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_GUI, USE_HOTKEYS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -972,8 +972,8 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        gui.show_price(price, list(prices), avg_times)
-
+                        if USE_GUI:
+                            gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
                 else:
                     price = trade_info[0]["listing"]["price"]
                     if price != None:
@@ -988,13 +988,20 @@ def price_item(text):
                         time = [[time.days, time.seconds]]
                         price_vals = [[str(price_val) + price_curr]]
 
+                        print("[!] Not enough data to confidently price this item.")
                         if USE_GUI:
-                            gui.show_price(price, price_vals, time)
+                            gui.show_price(price, price_vals, time, True)
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
+                        print("[!] Not enough data to confidently price this item.")
+                        if USE_GUI:
+                            gui.show_not_enough_data()
 
             elif trade_info is not None:
-                print(f"[!] No results!")
+                print("[!] No reesults!")
+                print("[!] Not enough data to confidently price this item.")
+                if USE_GUI:
+                    gui.show_not_enough_data()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
@@ -1113,7 +1120,6 @@ def hotkey_handler(keyboard, hotkey):
 
         print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
         result = None
-
         try:
             result = next(
                 item

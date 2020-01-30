@@ -141,7 +141,31 @@ class Gui:
 
         self.last_task = self.root.after(delay, self.hide)
 
-    def show_price(self, price, price_vals, avg_times):
+    def show_not_enough_data(self):
+        """
+        Assemble a simple informative window which tells the user
+        that we were unable to confidently price the current clipboard
+        item.
+        """
+
+        self.reset()
+
+        # Setting up Master Frame, only currently used for background color due to grid format.
+        masterFrame = Frame(self.root, bg="#1f1f1f")
+        masterFrame.place(relwidth=1, relheight=1)
+
+        headerLabel = Label(self.root, text="Not Enough Data", bg="#0d0d0d", fg="#e6b800")
+        headerLabel.grid(column=0, row=1, padx=5)
+
+        displayText = "Could not find enough data to confidently price this item."
+        annotation = Label(self.root, text=displayText, bg="#0d0d0d", fg="#e6b800")
+        annotation.grid(column=0, row=2)
+
+        self.show()
+        time.sleep(5)
+        self.hide()
+
+    def show_price(self, price, price_vals, avg_times, not_enough=False):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
@@ -212,6 +236,23 @@ class Gui:
 
         maxPriceLabel = Label(self.root, text="High: " + str(price[2]), bg="#0d0d0d", fg="#e6b800")
         maxPriceLabel.grid(column=2, row=rows_used + 3, padx=10)
+
+        extrabgLabel = None
+        extrabgLabel2 = None
+        notEnoughLabel = None
+        manualSearchLabel = None
+
+        if not_enough:
+            extrabgLabel = Label(self.root, bg="#0d0d0d")
+            extrabgLabel.grid(column=0, row=rows_used + 4, columnspan=3, sticky="w" + "e")
+            notEnoughText = "Found limited search results"
+            notEnoughLabel = Label(self.root, text=notEnoughText, bg="#0d0d0d", fg="#e6b800")
+            notEnoughLabel.grid(column=0, row=rows_used + 4, columnspan=3)
+            extrabgLabel2 = Label(self.root, bg="#0d0d0d")
+            extrabgLabel2.grid(column=0, row=rows_used + 5, columnspan=3, sticky="w" + "e")
+            manualSearchText = "Use alt+t to search manually"
+            manualSearchLabel = Label(self.root, text=manualSearchText, bg="#0d0d0d", fg="#e6b800")
+            manualSearchLabel.grid(column=0, row=rows_used + 5, columnspan=3)
 
         self.show()
         self.schedule_hide()
