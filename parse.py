@@ -998,7 +998,7 @@ def price_item(text):
                             gui.show_not_enough_data()
 
             elif trade_info is not None:
-                print("[!] No reesults!")
+                print("[!] No results!")
                 print("[!] Not enough data to confidently price this item.")
                 if USE_GUI:
                     gui.show_not_enough_data()
