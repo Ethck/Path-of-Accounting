@@ -25,7 +25,7 @@ from utils.currency import (
     SCARABS,
     VIALS,
 )
-from utils.exceptions import InvalidAPIResponseException
+from utils.exceptions import InvalidAPIResponseException, NotFoundException
 from utils.input import Keyboard, get_clipboard
 from utils.trade import (
     exchange_currency,
@@ -486,7 +486,7 @@ def search_item(j, league):
         # If we have legitimately run out of stats...
         # Then this item can not be found.
         # TODO: Figure out why it can't find anything...
-        raise InvalidAPIResponseException
+        raise NotFoundException
 
     else:  # Any time we ignore stats.
         res = query_item(j, league)
@@ -999,9 +999,13 @@ def price_item(text):
 
             elif trade_info is not None:
                 print("[!] No results!")
-                print("[!] Not enough data to confidently price this item.")
                 if USE_GUI:
                     gui.show_not_enough_data()
+
+    except NotFoundException as e:
+        print("[!] No results!")
+        if USE_GUI:
+            gui.show_not_enough_data()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
