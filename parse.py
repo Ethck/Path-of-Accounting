@@ -11,7 +11,7 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, PROJECT_URL, USE_GUI, USE_HOTKEYS, MIN_RESULTS
+from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_GUI, USE_HOTKEYS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -27,7 +27,15 @@ from utils.currency import (
 )
 from utils.exceptions import InvalidAPIResponseException
 from utils.input import Keyboard, get_clipboard
-from utils.trade import find_latest_update, get_item_modifiers, get_leagues, get_ninja_bases, query_item, fetch, exchange_currency
+from utils.trade import (
+    exchange_currency,
+    fetch,
+    find_latest_update,
+    get_item_modifiers,
+    get_leagues,
+    get_ninja_bases,
+    query_item,
+)
 from utils.web import open_trade_site, wiki_lookup
 
 DEBUG = False
@@ -821,6 +829,7 @@ def get_average_times(priceList):
 
     return avg_times
 
+
 def price_item(text):
     """
     Taking the text from the clipboard, parse the item, then price the item.
@@ -964,10 +973,7 @@ def price_item(text):
                         ]
 
                         if USE_GUI:
-                            gui.show_price(
-                                price, list(prices), avg_times,
-                                len(trade_info) < MIN_RESULTS
-                            )
+                            gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
                 else:
                     price = trade_info[0]["listing"]["price"]
                     if price != None:
@@ -1035,19 +1041,19 @@ def price_item(text):
 def watch_keyboard(keyboard, use_hotkeys):
     if use_hotkeys:
         # Use the "f5" key to go to hideout
-        keyboard.add_hotkey('<f5>', lambda: keyboard.write("\n/hideout\n"))
+        keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
 
         # Use the alt+d key as an alternative to ctrl+c
-        keyboard.add_hotkey('<alt>+d', lambda: hotkey_handler(keyboard, "alt+d"))
+        keyboard.add_hotkey("<alt>+d", lambda: hotkey_handler(keyboard, "alt+d"))
 
         # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey('<alt>+w', lambda: hotkey_handler(keyboard, "alt+w"))
+        keyboard.add_hotkey("<alt>+w", lambda: hotkey_handler(keyboard, "alt+w"))
 
         # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey('<alt>+t', lambda: hotkey_handler(keyboard, "alt+t"))
+        keyboard.add_hotkey("<alt>+t", lambda: hotkey_handler(keyboard, "alt+t"))
 
         # poe.ninja base check
-        keyboard.add_hotkey('<alt>+c', lambda: hotkey_handler(keyboard, "alt+c"))
+        keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
 
     # Fetch the item's approximate price
     print("[*] Watching clipboard (Ctrl+C to stop)...")
@@ -1114,7 +1120,6 @@ def hotkey_handler(keyboard, hotkey):
 
         print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
         result = None
-
         try:
             result = next(
                 item
@@ -1168,6 +1173,7 @@ if __name__ == "__main__":
         try:
             if USE_GUI:
                 from utils.gui import Gui
+
                 gui = Gui()
                 gui.wait()
             else:
@@ -1176,4 +1182,4 @@ if __name__ == "__main__":
             print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
-        deinit() # Colorama
+        deinit()  # Colorama
