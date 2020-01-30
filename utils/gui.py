@@ -67,7 +67,11 @@ class Gui:
         root.withdraw()
         self.root = root
     def close(self):
+        for child in self.root.winfo_children():
+            child.destroy()
         self.root.destroy()
+        self.root.mainloop()
+        self.root = None
 
     def wait(self):
         self.root.mainloop()
