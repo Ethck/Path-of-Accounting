@@ -1,6 +1,6 @@
 import time
 from queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 from tkinter import TclError
 import pyperclip
 
@@ -40,20 +40,24 @@ class ClipboardWatcher(Thread):
         self.should_process = should_process
         self.pause = pause
         self.stopping = False
-        # Clear the clipboard
-        pyperclip.copy("")
+        self.lock = Lock()
+        self.prev = get_clipboard()
+    
 
     def run(self):
-        prev = ""
-
         while not self.stopping:
+            
             try:
-                text = get_clipboard()
+                self.lock.acquire()
+                try:
+                    text = get_clipboard()
 
-                if text != prev and self.should_process():
-                    self.callback(text)
+                    if text != self.prev and self.should_process():
+                        self.callback(text)
 
-                prev = text
+                    self.prev = text
+                finally:
+                    self.lock.release()
                 time.sleep(self.pause)
             except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
                 continue
@@ -138,8 +142,8 @@ class Keyboard:
 
         if is_keyboard_module_available or is_pyinput_module_available:
             self.hotkey_watcher.start()
-        else:
-            self.clipboard_watcher.start()
+
+        self.clipboard_watcher.start()
 
     def wait(self):
         self.clipboard_watcher.join()
@@ -151,6 +155,8 @@ class Keyboard:
             self.controller.type(string)
 
     def press_and_release(self, key):
+        if key == "ctrl+c":
+            self.clipboard_watcher.lock.acquire()
         if is_keyboard_module_available:
             keyboard.press_and_release(key)
         elif is_pyinput_module_available:
@@ -178,3 +184,8 @@ class Keyboard:
             elif len(keys) == 1:
                 safe_press(self.controller, keys[0])
                 safe_press(self.controller, keys[0], False)
+        if key == "ctrl+c":
+            try:
+                self.clipboard_watcher.prev = get_clipboard()
+            finally:
+                self.clipboard_watcher.lock.release()

@@ -11,7 +11,8 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils import config
+from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_HOTKEYS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -37,15 +38,11 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-from gui.UI import PriceInfo, NoResult, SelectSearchingMods
-from gui.guiComponent import check_timeout_gui, destroy_gui
+from gui.UI import priceInfo, noResult, selectSearch
+from gui.guiComponent import check_timeout_gui, destroy_gui, init_ui
+import webbrowser
 
 DEBUG = False
-
-if USE_GUI:
-    priceInfo = PriceInfo()
-    noResult = NoResult()
-    selectSearch = SelectSearchingMods()
 
 
 def parse_item_info(text: str) -> Dict:
@@ -879,8 +876,8 @@ def price_item(text):
 
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
                 
-                #TODO This needs to be its own hotkey, need to refractor this and related function
-                #if USE_GUI:
+                #TODO This needs to be its own hotkey, I will change this when Df010 is done with his item class
+                #if config.USE_GUI:
                     #selectSearch.add_info(info)
                     #selectSearch.create_at_cursor()
                     #selectSearch.run()
@@ -908,6 +905,13 @@ def price_item(text):
                         )
                     },
                 )
+                if config.USE_GUI:
+                    if selectSearch.openTrade:
+                        j = query_item(json, LEAGUE)
+                        selectSearch.openTrade = False
+                        selectSearch.searched = False
+                        url = f"https://www.pathofexile.com/trade/search/{LEAGUE}/" + j["id"]
+                        webbrowser.open(url)
             if json != None:
                 trade_info = search_item(json, LEAGUE)
 
@@ -939,7 +943,7 @@ def price_item(text):
 
                     # Print the pretty string, ignoring trailing comma
                     print(f"[$] Price: {print_string[:-2]}\n\n")
-                    if USE_GUI:
+                    if config.USE_GUI:
                         priceList = prices
                         # Get difference between current time and posted time in timedelta format
                         times = [
@@ -988,6 +992,8 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
                         priceInfo.add_price_info(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
+                        priceInfo.create_at_cursor()
+
                 else:
                     price = trade_info[0]["listing"]["price"]
                     if price != None:
@@ -1003,18 +1009,25 @@ def price_item(text):
                         price_vals = [[str(price_val) + price_curr]]
 
                         print("[!] Not enough data to confidently price this item.")
-                        if USE_GUI:
+                        if config.USE_GUI:
                             priceInfo.add_price_info(price, price_vals, time, True)
+                            priceInfo.create_at_cursor()
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
                         print("[!] Not enough data to confidently price this item.")
-                        if USE_GUI:
+                        if config.USE_GUI:
                             noResult.create_at_cursor()
             elif trade_info is not None:
                 print("[!] No results!")
                 print("[!] Not enough data to confidently price this item.")
-                if USE_GUI:
+                if config.USE_GUI:
                     noResult.create_at_cursor()
+
+
+    except NotFoundException as e:
+        print("[!] No results!")
+        if config.USE_GUI:
+            noResult.create_at_cursor()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
@@ -1075,6 +1088,7 @@ def watch_keyboard(keyboard, use_hotkeys):
 
 from queue import Queue
 queue = Queue()
+
 
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
@@ -1191,10 +1205,13 @@ if __name__ == "__main__":
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
+        if config.USE_GUI:
+            init_ui()
         try:
             while True:
                 hotkey_handler_mainthread()
-                check_timeout_gui()
+                if config.USE_GUI:
+                    check_timeout_gui()
         except KeyboardInterrupt:
             pass
 

@@ -1,4 +1,5 @@
 from gui.guiComponent import *
+import re
 import time
 class PriceInfo(GuiComponent):
     def __init__(self):
@@ -15,7 +16,6 @@ class PriceInfo(GuiComponent):
         self.price_vals = price_vals
         self.avg_times = avg_times
         self.not_enough = not_enough
-        self.create_at_cursor()
     
     def add_components(self):
         # Setting up Master Frame, only currently used for background color due to grid format.
@@ -128,11 +128,12 @@ class SelectSearchingMods(GuiRunningComponent):
         self.info = {}
         self.selected = []
         self.searched = False
+        self.openTrade = False
     def add_info(self, info):
         self.info = info
         self.selected = {}
-        #print(info)
     def search(self):
+        self.searched = True
         print("You have selected:")
         values = []
         for key, value in self.selected.items():
@@ -141,6 +142,18 @@ class SelectSearchingMods(GuiRunningComponent):
                 print(key)
         print("                                            ")
         self.info["stats"] = values
+        self.stop()
+    def open_trade(self):
+        print("You have selected:")
+        values = []
+        for key, value in self.selected.items():
+            if value.get():
+                values.append(key)
+                print(key)
+        print("                                            ")
+        self.info["stats"] = values
+        self.searched = True
+        self.openTrade = True
         self.stop()
     def add_components(self):
 
@@ -151,6 +164,8 @@ class SelectSearchingMods(GuiRunningComponent):
         headerLabel = Label(self.frame, text="Select Mods to include in search", bg="#0d0d0d", fg="#e6b800")
         headerLabel.grid(column=0, row=1, padx=5)
 
+        def hasNumber(string):
+            return re.search('\d', string)
         j = 2
         for key, value in self.info.items():
             #print(key,value)
@@ -158,9 +173,21 @@ class SelectSearchingMods(GuiRunningComponent):
                 for v in value:
                     if v == "--------":
                         continue
+                    if not hasNumber(v):
+                        continue
                     self.selected[v] = IntVar()
-                    Checkbutton(self.frame, text=v, variable=self.selected[v], bg="#1f1f1f", fg="#e6b800").grid(row=j, sticky=W)
+                    if j % 2:
+                        s = Checkbutton(self.frame, text=v, variable=self.selected[v], bg="#1f1f1f", fg="#e6b800")
+                        s.select()
+                        s.grid(row=j, sticky=W)
+                    else:
+                        s = Checkbutton(self.frame, text=v, variable=self.selected[v], bg="#1a1a1a", fg="#e6b800")
+                        s.select()
+                        s.grid(row=j, sticky=W)
                     j = j+1
-        
-        Button(self.frame, text='Search', command=self.search).grid(row=j, sticky=S)
-    
+        Button(self.frame, text='Search', command=self.search, bg="#1f1f1f", fg="#e6b800").grid(row=j, sticky=SW)
+        Button(self.frame, text='Open on Trade', command=self.open_trade, bg="#1f1f1f", fg="#e6b800").grid(row=j, sticky=SE)
+
+priceInfo = PriceInfo()
+noResult = NoResult()
+selectSearch = SelectSearchingMods()
