@@ -1160,6 +1160,12 @@ def hotkey_handler(keyboard, hotkey):
 # This is necessary to do Unit Testing, needs to be GLOBAL
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = get_item_modifiers()
 
+def create_gui():
+    global gui
+    from utils.gui import Gui
+    gui = Gui()
+    gui.wait()
+
 if __name__ == "__main__":
     find_latest_update()
 
@@ -1184,10 +1190,7 @@ if __name__ == "__main__":
 
         try:
             if config.USE_GUI:
-                from utils.gui import Gui
-
-                gui = Gui()
-                gui.wait()
+                create_gui()
             else:
                 keyboard.wait()
         except KeyboardInterrupt:
@@ -1197,3 +1200,4 @@ if __name__ == "__main__":
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
+
