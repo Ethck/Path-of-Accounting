@@ -17,6 +17,9 @@ EXCHANGE_URL = "https://www.pathofexile.com/api/trade/exchange/Metamorph"
 
 class TestItemLookup(unittest.TestCase):
     def test_lookups(self):
+        # Don't use gui during tests
+        config.USE_GUI = False
+
         # Mockups of response data from pathofexile.com/trade
         expected = [
             # (mocked up json response, expected condition, search url)

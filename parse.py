@@ -11,7 +11,8 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils import config
+from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_HOTKEYS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -923,7 +924,7 @@ def price_item(text):
 
                     # Print the pretty string, ignoring trailing comma
                     print(f"[$] Price: {print_string[:-2]}\n\n")
-                    if USE_GUI:
+                    if config.USE_GUI:
                         priceList = prices
                         # Get difference between current time and posted time in timedelta format
                         times = [
@@ -972,7 +973,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        if USE_GUI:
+                        if config.USE_GUI:
                             gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -989,22 +990,22 @@ def price_item(text):
                         price_vals = [[str(price_val) + price_curr]]
 
                         print("[!] Not enough data to confidently price this item.")
-                        if USE_GUI:
+                        if config.USE_GUI:
                             gui.show_price(price, price_vals, time, True)
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
                         print("[!] Not enough data to confidently price this item.")
-                        if USE_GUI:
+                        if config.USE_GUI:
                             gui.show_not_enough_data()
 
             elif trade_info is not None:
                 print("[!] No results!")
-                if USE_GUI:
+                if config.USE_GUI:
                     gui.show_not_enough_data()
 
     except NotFoundException as e:
         print("[!] No results!")
-        if USE_GUI:
+        if config.USE_GUI:
             gui.show_not_enough_data()
 
     except InvalidAPIResponseException as e:
@@ -1175,7 +1176,7 @@ if __name__ == "__main__":
         watch_keyboard(keyboard, USE_HOTKEYS)
 
         try:
-            if USE_GUI:
+            if config.USE_GUI:
                 from utils.gui import Gui
 
                 gui = Gui()
