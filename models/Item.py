@@ -27,8 +27,8 @@ class Item:
         self.b_sockets = sockets.count('b')
         self.g_sockets = sockets.count('g')
         self.w_sockets = sockets.count('w')
-        # TODO: fix link count
-        self.links = sockets.count('-')
+        # R-R-R-R R-R is not incorrectly registered as 5 link
+        self.links = sockets.split(' ')[0].count('-') + 1
 
     def get_pseudo_mods(self):
         raise NotImplementedError
