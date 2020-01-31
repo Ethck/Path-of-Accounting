@@ -1114,8 +1114,6 @@ def search_ninja_base(text):
         if config.USE_GUI:
             gui.show_base_result(base, influence, ilvl, price, currency)
 
-
-
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
