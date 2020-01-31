@@ -1140,11 +1140,14 @@ def hotkey_handler(keyboard, hotkey):
             )
         except StopIteration:
             print("[!] Could not find the requested item.")
+            gui.show_not_enough_data()
 
         if result != None:
             price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
             currency = "ex" if result["exalt"] >= 1 else "chaos"
             print(f"[$] Price: {price} {currency}")
+            if config.USE_GUI:
+                gui.show_base_result(base, influence, ilvl, price, currency)
 
     else:  # alt+d, ctrl+c
         price_item(text)
