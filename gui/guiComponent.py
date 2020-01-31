@@ -2,6 +2,7 @@ import os
 from tkinter import *
 import screeninfo
 import time
+import traceback
 from utils.config import USE_GUI, TIMEOUT_GUI
 
 # We do not need this on Linux.
@@ -63,7 +64,6 @@ class GuiComponent:
         self.opened = time.time()
         self.elapsed = 0
         self.have_timeout = False
-        self.hidden = True
         components.append(self)
 
     def stop(self):
@@ -91,7 +91,6 @@ class GuiComponent:
         frame.option_add("*Font", "courier 12")
         frame.withdraw()
         self.frame = frame
-        self.hidden = True
 
     def is_closed(self):
         if self.closed:
@@ -105,42 +104,44 @@ class GuiComponent:
         self.frame.destroy()
         self.frame.update()
         self.frame = None
+    
+    def close_and_refocus(self, event):
+        self.close()
+        windowRefocus("path of exile")
 
+    def focus_out(self, event):
+        self.close()
 
     def add_components(self):
         pass
 
+    def add_callbacks(self):
+        self.frame.bind('<Escape>', self.close_and_refocus)
+        self.frame.bind("<FocusOut>", self.focus_out)
+
     def create(self, x_cord, y_cord):
+        self.initalize()
+        windowToFront(self.frame)
+        self.finalize(x_cord, y_cord)
+
+    def initalize(self):
         close_all_windows()
         if not self.closed:
             return
         self.closed = False
         self.prepare_window()
         self.add_components()
-        windowToFront(self.frame)
+
+    def finalize(self, x_cord, y_cord):
         self.frame.deiconify()
         self.frame.geometry(f"+{x_cord}+{y_cord}")
+        self.frame.resizable(False, False)
         self.frame.update()
+        self.add_callbacks()
         self.opened = time.time()
 
-
-    def hide(self, refocus=True):
-        if self.hidden:
-            return
-        self.hidden = True
-        self.frame.withdraw()
-        self.frame.update()
-        if refocus:
-            windowRefocus("path of exile")
-
     def create_at_cursor(self):
-        close_all_windows()
-        if not self.closed:
-            return
-        self.closed = False
-        self.prepare_window()
-        self.add_components()
-        self.hidden = False
+        self.initalize()
         windowToFront(self.frame)
         self.frame.update()
         m_x = self.frame.winfo_pointerx()
@@ -153,21 +154,31 @@ class GuiComponent:
             return monitors[0]
 
         # Get the screen which contains top
-        current_screen = get_monitor_from_coord(self.frame.winfo_x(), self.frame.winfo_y())
+        width = 0
+        height = 0
+        try:
+            current_screen = get_monitor_from_coord(self.frame.winfo_x(), self.frame.winfo_y())
+            width = current_screen.width
+            height = current_screen.height
+        except screeninfo.common.ScreenInfoError as e:
+            exception = traceback.format_exc()
+            print("====== TRACEBACK =====")
+            print(exception)
+            self.close()
+            return
+
+
         # Get the monitor's size
         root_w = self.frame.winfo_width()
         root_h = self.frame.winfo_height()
 
-        if m_x + root_w >= current_screen.width:
-            m_x = current_screen.width - root_w - 5
+        if m_x + root_w >= width:
+            m_x = width - root_w - 5
 
-        if m_y + root_h >= current_screen.height:
-            m_y = current_screen.height - root_h - 5
+        if m_y + root_h >= height:
+            m_y = height - root_h - 5
 
-        self.frame.deiconify()
-        self.frame.geometry(f"+{m_x}+{m_y}")
-        self.frame.update()
-        self.opened = time.time()
+        self.finalize(m_x,m_y)
 
 class GuiRunningComponent(GuiComponent):
     def stop(self):
@@ -177,26 +188,17 @@ class GuiRunningComponent(GuiComponent):
     def run(self):
         self.frame.mainloop()
     
-    def prepare_window(self):
-        frame = Toplevel()
-        frame.option_add("*Font", "courier 12")
-        frame.title(" ")
-        self.frame = frame
-
-
-    def add_components(self):
-        pass
+    def stop_event(self, event):
+        self.frame.quit()
+        self.close()
     
-    def create(self, x_cord, y_cord):
-        if not self.closed:
-            return
-        self.closed = False
-        self.prepare_window()
-        self.add_components()
-        windowToFront(self.frame)
-        self.frame.geometry(f"+{x_cord}+{y_cord}")
-        self.frame.update()
-        self.opened = time.time()
+    def stop_event_refocus(self, event):
+        self.frame.quit()
+        self.close_and_refocus(event)
+
+    def add_callbacks(self):
+        self.frame.bind('<Escape>', self.stop_event_refocus)
+        self.frame.bind("<FocusOut>", self.stop_event)
 
 
 

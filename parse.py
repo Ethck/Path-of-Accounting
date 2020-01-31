@@ -44,6 +44,7 @@ import webbrowser
 
 DEBUG = False
 
+ADV_SEARCH_TEST = False
 
 def parse_item_info(text: str) -> Dict:
     """
@@ -877,13 +878,14 @@ def price_item(text):
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
                 
                 #TODO This needs to be its own hotkey, I will change this when Df010 is done with his item class
-                #if config.USE_GUI:
-                    #selectSearch.add_info(info)
-                    #selectSearch.create_at_cursor()
-                    #selectSearch.run()
-                    #if selectSearch.searched:
-                        #info = selectSearch.info
-                        #selectSearch.searched = False
+                if config.USE_GUI and ADV_SEARCH_TEST:
+                    selectSearch.add_info(info)
+                    selectSearch.create_at_cursor()
+                    selectSearch.run()
+                    if selectSearch.searched:
+                        info = selectSearch.info
+                        selectSearch.searched = False
+                
 
                 json = build_json_official(
                     **{

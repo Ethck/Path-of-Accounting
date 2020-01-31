@@ -163,6 +163,7 @@ class SelectSearchingMods(GuiRunningComponent):
 
         headerLabel = Label(self.frame, text="Select Mods to include in search", bg="#0d0d0d", fg="#e6b800")
         headerLabel.grid(column=0, row=1, padx=5)
+        bglabel = Label(self.frame, bg="#0d0d0d").grid(column=0, row=1, columnspan=3, sticky="w" + "e")
 
         def hasNumber(string):
             return re.search('\d', string)
@@ -187,6 +188,7 @@ class SelectSearchingMods(GuiRunningComponent):
                     j = j+1
         Button(self.frame, text='Search', command=self.search, bg="#1f1f1f", fg="#e6b800").grid(row=j, sticky=SW)
         Button(self.frame, text='Open on Trade', command=self.open_trade, bg="#1f1f1f", fg="#e6b800").grid(row=j, sticky=SE)
+        Button(self.frame, text='Close', command=self.stop, bg="#1f1f1f", fg="#e6b800").grid(row=j, sticky=SE)
 
 priceInfo = PriceInfo()
 noResult = NoResult()
