@@ -1066,6 +1066,56 @@ def watch_keyboard(keyboard, use_hotkeys):
     keyboard.start()
 
 
+def search_ninja_base(text):
+    info = parse_item_info(text)
+    influence = None
+    if any(i == True for i in info["influenced"].values()):
+        if info["influenced"]["shaper"]:
+            influence = "shaper"
+        elif info["influenced"]["elder"]:
+            influence = "elder"
+        elif info["influenced"]["crusader"]:
+            influence = "crusader"
+        elif info["influenced"]["warlord"]:
+            influence = "warlord"
+        elif info["influenced"]["redeemer"]:
+            influence = "redeemer"
+        elif info["influenced"]["hunter"]:
+            influence = "hunter"
+
+    ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
+
+    base = info["itype"] if info["itype"] != None else info["base"]
+
+    print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
+    result = None
+    try:
+        result = next(
+            item
+            for item in NINJA_BASES
+            if (
+                item["base"] == base
+                and (
+                    (influence == None and item["influence"] == None)
+                    or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+                )
+                and ilvl == item["ilvl"]
+            )
+        )
+    except StopIteration:
+        print("[!] Could not find the requested item.")
+        if config.USE_GUI:
+            gui.show_not_enough_data()
+
+    if result != None:
+        price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
+        currency = "ex" if result["exalt"] >= 1 else "chaos"
+        print(f"[$] Price: {price} {currency}")
+        if config.USE_GUI:
+            gui.show_base_result(base, influence, ilvl, price, currency)
+
+
+
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
@@ -1103,51 +1153,7 @@ def hotkey_handler(keyboard, hotkey):
         wiki_lookup(text, info)
 
     elif hotkey == "alt+c":
-        info = parse_item_info(text)
-        influence = None
-        if any(i == True for i in info["influenced"].values()):
-            if info["influenced"]["shaper"]:
-                influence = "shaper"
-            elif info["influenced"]["elder"]:
-                influence = "elder"
-            elif info["influenced"]["crusader"]:
-                influence = "crusader"
-            elif info["influenced"]["warlord"]:
-                influence = "warlord"
-            elif info["influenced"]["redeemer"]:
-                influence = "redeemer"
-            elif info["influenced"]["hunter"]:
-                influence = "hunter"
-
-        ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
-
-        base = info["itype"] if info["itype"] != None else info["base"]
-
-        print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
-        result = None
-        try:
-            result = next(
-                item
-                for item in NINJA_BASES
-                if (
-                    item["base"] == base
-                    and (
-                        (influence == None and item["influence"] == None)
-                        or (influence != None and item["influence"] != None and influence == item["influence"].lower())
-                    )
-                    and ilvl == item["ilvl"]
-                )
-            )
-        except StopIteration:
-            print("[!] Could not find the requested item.")
-            gui.show_not_enough_data()
-
-        if result != None:
-            price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
-            currency = "ex" if result["exalt"] >= 1 else "chaos"
-            print(f"[$] Price: {price} {currency}")
-            if config.USE_GUI:
-                gui.show_base_result(base, influence, ilvl, price, currency)
+        search_ninja_base(text)
 
     else:  # alt+d, ctrl+c
         price_item(text)

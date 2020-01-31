@@ -167,6 +167,45 @@ class TestItemLookup(unittest.TestCase):
                     expectedStr = ("%s, " % Fore.WHITE).join(priceList)
                     self.assertTrue(expectedStr in out.getvalue())
 
+    def test_base_lookups(self):
+        config.USE_GUI = False
+
+        # Mock json data for poe.ninja bases
+        data = {
+            "lines": [
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": None,
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0
+                }
+            ]
+        }
+
+        expected = [
+            lambda v: "[$]" in v,
+            lambda v: "[!]" in v
+        ]
+
+        for i in range(len(items[:2])):
+            item = items[i]
+
+            out = io.StringIO()
+            sys.stdout = out
+
+            # Needs mocking
+            with requests_mock.Mocker() as mock:
+                mock.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en", json=data)
+                parse.NINJA_BASES = parse.get_ninja_bases()
+
+            parse.search_ninja_base(item)
+
+            sys.stdout = sys.__stdout__
+
+            self.assertTrue(expected[i](out.getvalue()))
+
 if __name__ == "__main__":
     init(autoreset=True) # Colorama
     unittest.main(failfast=True)
