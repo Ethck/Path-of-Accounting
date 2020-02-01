@@ -1,6 +1,6 @@
 import os
 import time
-from tkinter import *
+import tkinter
 
 import screeninfo
 
@@ -9,7 +9,6 @@ if os.name == "nt":
     import pythoncom
     import win32com.client
     import win32gui
-
 
 def windowEnumerationHandler(hwnd, top_windows):
     """
@@ -53,7 +52,7 @@ def windowRefocus(name):
 
 class Gui:
     def __init__(self):
-        tk = Tk()
+        tk = tkinter.Tk()
         tk.wm_attributes("-topmost", 1)
         tk.update()
         tk.withdraw()
@@ -62,7 +61,7 @@ class Gui:
         self.last_task = None
 
     def prepare_window(self):
-        root = Toplevel()
+        root = tkinter.Toplevel()
         root.overrideredirect(True)
         root.option_add("*Font", "courier 12")
         root.withdraw()
@@ -148,10 +147,10 @@ class Gui:
         """
         self.reset()
 
-        masterFrame = Frame(self.root, bg="#1f1f1f")
+        masterFrame = tkinter.Frame(self.root, bg="#1f1f1f")
         masterFrame.place(relwidth=1, relheight=1)
 
-        baseLabel = Label(self.root,
+        baseLabel = tkinter.Label(self.root,
             text="Base: %s" % base,
             bg="#1f1f1f",
             fg="#e6b800"
@@ -171,7 +170,7 @@ class Gui:
                 "hunter": "Hunter"
             }
 
-            influenceLabel = Label(self.root,
+            influenceLabel = tkinter.Label(self.root,
                 text="Influence: %s" % conversion[influence],
                 bg="#1f1f1f",
                 fg="#e6b800"
@@ -179,7 +178,7 @@ class Gui:
             influenceLabel.grid(column=0, row=row)
 
         row += 1
-        itemLevelLabel = Label(self.root,
+        itemLevelLabel = tkinter.Label(self.root,
             text="Item Level: %d" % ilvl,
             bg="#1f1f1f",
             fg="#e6b800"
@@ -187,7 +186,7 @@ class Gui:
         itemLevelLabel.grid(column=0, row=row)
 
         row += 1
-        priceLabel = Label(self.root,
+        priceLabel = tkinter.Label(self.root,
             text="Price: %d %s" % (price, currency),
             bg="#1f1f1f",
             fg="#e6b800"
@@ -208,14 +207,14 @@ class Gui:
         self.reset()
 
         # Setting up Master Frame, only currently used for background color due to grid format.
-        masterFrame = Frame(self.root, bg="#1f1f1f")
+        masterFrame = tkinter.Frame(self.root, bg="#1f1f1f")
         masterFrame.place(relwidth=1, relheight=1)
 
-        headerLabel = Label(self.root, text="Not Enough Data", bg="#0d0d0d", fg="#e6b800")
+        headerLabel = tkinter.Label(self.root, text="Not Enough Data", bg="#0d0d0d", fg="#e6b800")
         headerLabel.grid(column=0, row=1, padx=5)
 
         displayText = "Could not find enough data to confidently price this item."
-        annotation = Label(self.root, text=displayText, bg="#0d0d0d", fg="#e6b800")
+        annotation = tkinter.Label(self.root, text=displayText, bg="#0d0d0d", fg="#e6b800")
         annotation.grid(column=0, row=2)
 
         self.show()
@@ -231,19 +230,19 @@ class Gui:
         self.reset()
 
         # Setting up Master Frame, only currently used for background color due to grid format.
-        masterFrame = Frame(self.root, bg="#1f1f1f")
+        masterFrame = tkinter.Frame(self.root, bg="#1f1f1f")
         masterFrame.place(relwidth=1, relheight=1)
 
-        spacerLabel = Label(self.root, text="   ", bg="#0d0d0d")
+        spacerLabel = tkinter.Label(self.root, text="   ", bg="#0d0d0d")
         spacerLabel.grid(column=0, row=0, columnspan=3, sticky="w" + "e")
 
         # Setting up header row of labels.
-        bglabel = Label(self.root, bg="#0d0d0d").grid(column=0, row=1, columnspan=3, sticky="w" + "e")
-        headerLabel = Label(self.root, text="Listed Price:", bg="#0d0d0d", fg="#e6b800").grid(column=0, row=1, padx=5)
-        headerLabel2 = Label(self.root, text="Avg. Time Listed:", bg="#0d0d0d", fg="#e6b800").grid(
+        bglabel = tkinter.Label(self.root, bg="#0d0d0d").grid(column=0, row=1, columnspan=3, sticky="w" + "e")
+        headerLabel = tkinter.Label(self.root, text="Listed Price:", bg="#0d0d0d", fg="#e6b800").grid(column=0, row=1, padx=5)
+        headerLabel2 = tkinter.Label(self.root, text="Avg. Time Listed:", bg="#0d0d0d", fg="#e6b800").grid(
             column=2, row=1, padx=5
         )
-        headerLabel3 = Label(self.root, text="   ", bg="#0d0d0d", fg="#e6b800").grid(column=1, row=1, sticky="w" + "e")
+        headerLabel3 = tkinter.Label(self.root, text="   ", bg="#0d0d0d", fg="#e6b800").grid(column=1, row=1, sticky="w" + "e")
 
         rows_used = len(price_vals)
 
@@ -268,30 +267,30 @@ class Gui:
             # Alternates row color.
             if row % 2 == 0:
                 # Needed here because other color is consistent with canvas color.
-                bgAltLabel = Label(self.root, bg="#1a1a1a").grid(column=0, row=2 + row, columnspan=3, sticky="w" + "e")
-                priceLabel = Label(self.root, text=price_vals[row], bg="#1a1a1a", fg="#e6b800").grid(
+                bgAltLabel = tkinter.Label(self.root, bg="#1a1a1a").grid(column=0, row=2 + row, columnspan=3, sticky="w" + "e")
+                priceLabel = tkinter.Label(self.root, text=price_vals[row], bg="#1a1a1a", fg="#e6b800").grid(
                     column=0, row=2 + row, sticky="w", padx=5
                 )
-                avgTimeLabel = Label(self.root, text=avg_time_text, bg="#1a1a1a", fg="#e6b800").grid(
+                avgTimeLabel = tkinter.Label(self.root, text=avg_time_text, bg="#1a1a1a", fg="#e6b800").grid(
                     column=2, row=2 + row, sticky="w", padx=5
                 )
             else:
-                priceLabel = Label(self.root, text=price_vals[row], bg="#1f1f1f", fg="#e6b800").grid(
+                priceLabel = tkinter.Label(self.root, text=price_vals[row], bg="#1f1f1f", fg="#e6b800").grid(
                     column=0, row=2 + row, sticky="w", padx=5
                 )
-                avgTimeLabel = Label(self.root, text=avg_time_text, bg="#1f1f1f", fg="#e6b800").grid(
+                avgTimeLabel = tkinter.Label(self.root, text=avg_time_text, bg="#1f1f1f", fg="#e6b800").grid(
                     column=2, row=2 + row, sticky="w", padx=5
                 )
 
-        footerbgLabel = Label(self.root, bg="#0d0d0d").grid(column=0, row=rows_used + 3, columnspan=3, sticky="w" + "e")
+        footerbgLabel = tkinter.Label(self.root, bg="#0d0d0d").grid(column=0, row=rows_used + 3, columnspan=3, sticky="w" + "e")
 
-        minPriceLabel = Label(self.root, text="Low: " + str(price[0]), bg="#0d0d0d", fg="#e6b800")
+        minPriceLabel = tkinter.Label(self.root, text="Low: " + str(price[0]), bg="#0d0d0d", fg="#e6b800")
         minPriceLabel.grid(column=0, row=rows_used + 3, padx=10)
 
-        avgPriceLabel = Label(self.root, text="Avg: " + str(price[1]), bg="#0d0d0d", fg="#e6b800")
+        avgPriceLabel = tkinter.Label(self.root, text="Avg: " + str(price[1]), bg="#0d0d0d", fg="#e6b800")
         avgPriceLabel.grid(column=1, row=rows_used + 3, padx=10)
 
-        maxPriceLabel = Label(self.root, text="High: " + str(price[2]), bg="#0d0d0d", fg="#e6b800")
+        maxPriceLabel = tkinter.Label(self.root, text="High: " + str(price[2]), bg="#0d0d0d", fg="#e6b800")
         maxPriceLabel.grid(column=2, row=rows_used + 3, padx=10)
 
         extrabgLabel = None
@@ -300,15 +299,15 @@ class Gui:
         manualSearchLabel = None
 
         if not_enough:
-            extrabgLabel = Label(self.root, bg="#0d0d0d")
+            extrabgLabel = tkinter.Label(self.root, bg="#0d0d0d")
             extrabgLabel.grid(column=0, row=rows_used + 4, columnspan=3, sticky="w" + "e")
             notEnoughText = "Found limited search results"
-            notEnoughLabel = Label(self.root, text=notEnoughText, bg="#0d0d0d", fg="#e6b800")
+            notEnoughLabel = tkinter.Label(self.root, text=notEnoughText, bg="#0d0d0d", fg="#e6b800")
             notEnoughLabel.grid(column=0, row=rows_used + 4, columnspan=3)
-            extrabgLabel2 = Label(self.root, bg="#0d0d0d")
+            extrabgLabel2 = tkinter.Label(self.root, bg="#0d0d0d")
             extrabgLabel2.grid(column=0, row=rows_used + 5, columnspan=3, sticky="w" + "e")
             manualSearchText = "Use alt+t to search manually"
-            manualSearchLabel = Label(self.root, text=manualSearchText, bg="#0d0d0d", fg="#e6b800")
+            manualSearchLabel = tkinter.Label(self.root, text=manualSearchText, bg="#0d0d0d", fg="#e6b800")
             manualSearchLabel.grid(column=0, row=rows_used + 5, columnspan=3)
 
         self.show()
