@@ -161,8 +161,18 @@ class Gui:
         row = 1
         if influence is not None:
             row += 1
+
+            conversion = {
+                "elder": "Elder",
+                "shaper": "Shaper",
+                "redeemer": "Redeemer",
+                "crusader": "Crusader",
+                "warlord": "Warlord",
+                "hunter": "Hunter"
+            }
+
             influenceLabel = Label(self.root,
-                text="Influence: %s" % influence,
+                text="Influence: %s" % conversion[influence],
                 bg="#1f1f1f",
                 fg="#e6b800"
             )
