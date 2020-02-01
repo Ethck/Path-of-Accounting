@@ -1,4 +1,5 @@
 items = [
+    # 1
     f"""Rarity: Rare
 Corruption Spiker
 Boot Blade
@@ -31,6 +32,7 @@ Adds 25 to 47 Cold Damage to Spells
 Gain 5% of Non-Chaos Damage as extra Chaos Damage
 +27% to Global Critical Strike Multiplier (crafted)
 """,
+    # 2
     f"""Rarity: Rare
 Skull Pelt
 Destroyer Regalia
@@ -55,6 +57,7 @@ Item Level: 82
 --------
 Corrupted
 """,
+    # 3
     f"""Rarity: Rare
 Gloom Vise
 Assassin's Mitts
@@ -79,6 +82,7 @@ Item Level: 78
 +11 Life gained on Kill
 +19% to Fire and Cold Resistances (crafted)
 """,
+    # 4
     f"""Rarity: Unique
 Starkonja's Head
 Silken Hood
@@ -107,6 +111,7 @@ Item Level: 79
 There was no hero made out of Starkonja's death,
 but merely a long sleep made eternal.
 """,
+    # 5
     f"""Rarity: Rare
 Dread Hunger
 Karui Chopper
@@ -135,6 +140,7 @@ Adds 21 to 40 Cold Damage
 --------
 Redeemer Item
 """,
+    # 6
     f"""Rarity: Rare
 Rapture Caress
 Fingerless Silk Gloves
@@ -159,6 +165,7 @@ Adds 3 to 7 Physical Damage to Attacks
 --------
 Warlord Item
 """,
+    # 7
     f"""Rarity: Rare
 Grim Ward
 Oiled Vest
@@ -184,6 +191,7 @@ Item Level: 12
 19% increased Stun and Block Recovery
 +242 to Evasion Rating (crafted)
 """,
+    # 8
     f"""Rarity: Magic
 Rotund Sun Plate of the Lizard
 --------
@@ -200,6 +208,7 @@ Item Level: 61
 +64 to maximum Life
 Regenerate 2.5 Life per second
 """,
+    # 9
     f"""Rarity: Normal
 Steel Ring
 --------
@@ -210,6 +219,7 @@ Item Level: 78
 --------
 Adds 3 to 11 Physical Damage to Attacks (implicit)
 """,
+    # 10
     f"""Rarity: Gem
 Empower Support
 --------
@@ -229,6 +239,7 @@ This is a Support Gem. It does not grant a bonus to your character, but to skill
 --------
 Corrupted
 """,
+    # 11
     f"""Rarity: Normal
 The Jeweller's Touch
 --------
@@ -240,6 +251,7 @@ Right-click to add this prophecy to your character.
 --------
 Note: ~price 9 chaos
 """,
+    # 12
     f"""Rarity: Rare
 Cataclysm Brow
 Necromancer Circlet
@@ -265,6 +277,7 @@ Reflects 10 Physical Damage to Melee Attackers
 Nearby Enemies have -9% to Cold Resistance
 +47 to maximum Mana (crafted)
 """,
+    # 13
     f"""Rarity: Rare
 Entropy Blow
 Crimson Jewel
@@ -277,6 +290,7 @@ Item Level: 84
 --------
 Place into an allocated Jewel Socket on the Passive Skill Tree. Right click to remove from the Socket.
 """,
+    # 14
     f"""Rarity: Divination Card
 A Mother's Parting Gift
 --------
@@ -291,6 +305,7 @@ Knowledge was her gift.
 --------
 Shift click to unstack.
 """,
+    # 15
     f"""Rarity: Unique
 Hands of the High Templar
 Crusader Gloves
@@ -321,6 +336,7 @@ The laws of the faith do not apply to its leader.
 --------
 Corrupted
 """,
+    # 16
     f"""Rarity: Rare
 Dread Knot
 Synthesised Ruby Ring

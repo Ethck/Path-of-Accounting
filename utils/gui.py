@@ -141,6 +141,64 @@ class Gui:
 
         self.last_task = self.root.after(delay, self.hide)
 
+
+    def show_base_result(self, base, influence, ilvl, price, currency):
+        """
+        Assemble a simple poe.ninja result when searching for the
+        worth of an item base, including it's influence and item level.
+        """
+        self.reset()
+
+        masterFrame = Frame(self.root, bg="#1f1f1f")
+        masterFrame.place(relwidth=1, relheight=1)
+
+        baseLabel = Label(self.root,
+            text="Base: %s" % base,
+            bg="#1f1f1f",
+            fg="#e6b800"
+        )
+        baseLabel.grid(column=0, row=0)
+
+        row = 1
+        if influence is not None:
+            row += 1
+
+            conversion = {
+                "elder": "Elder",
+                "shaper": "Shaper",
+                "redeemer": "Redeemer",
+                "crusader": "Crusader",
+                "warlord": "Warlord",
+                "hunter": "Hunter"
+            }
+
+            influenceLabel = Label(self.root,
+                text="Influence: %s" % conversion[influence],
+                bg="#1f1f1f",
+                fg="#e6b800"
+            )
+            influenceLabel.grid(column=0, row=row)
+
+        row += 1
+        itemLevelLabel = Label(self.root,
+            text="Item Level: %d" % ilvl,
+            bg="#1f1f1f",
+            fg="#e6b800"
+        )
+        itemLevelLabel.grid(column=0, row=row)
+
+        row += 1
+        priceLabel = Label(self.root,
+            text="Price: %d %s" % (price, currency),
+            bg="#1f1f1f",
+            fg="#e6b800"
+        )
+        priceLabel.grid(column=0, row=row)
+
+        self.show()
+        time.sleep(5)
+        self.hide()
+
     def show_not_enough_data(self):
         """
         Assemble a simple informative window which tells the user

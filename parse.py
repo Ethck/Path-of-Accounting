@@ -26,7 +26,7 @@ from utils.currency import (
     SCARABS,
     VIALS,
 )
-from utils.exceptions import InvalidAPIResponseException
+from utils.exceptions import InvalidAPIResponseException, NotFoundException
 from utils.input import Keyboard, get_clipboard
 from utils.trade import (
     exchange_currency,
@@ -491,7 +491,7 @@ def search_item(j, league):
         # If we have legitimately run out of stats...
         # Then this item can not be found.
         # TODO: Figure out why it can't find anything...
-        raise InvalidAPIResponseException
+        raise NotFoundException
 
     else:  # Any time we ignore stats.
         res = query_item(j, league)
@@ -993,6 +993,7 @@ def price_item(text):
                             average,
                             round(float(price[-1]), 2),
                         ]
+
                         priceInfo.add_price_info(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
                         priceInfo.create_at_cursor()
 
@@ -1014,6 +1015,7 @@ def price_item(text):
                         if config.USE_GUI:
                             priceInfo.add_price_info(price, price_vals, time, True)
                             priceInfo.create_at_cursor()
+
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
                         print("[!] Not enough data to confidently price this item.")
@@ -1024,7 +1026,6 @@ def price_item(text):
                 print("[!] Not enough data to confidently price this item.")
                 if config.USE_GUI:
                     noResult.create_at_cursor()
-
 
     except NotFoundException as e:
         print("[!] No results!")
@@ -1092,6 +1093,54 @@ from queue import Queue
 queue = Queue()
 
 
+def search_ninja_base(text):
+    info = parse_item_info(text)
+    influence = None
+    if any(i == True for i in info["influenced"].values()):
+        if info["influenced"]["shaper"]:
+            influence = "shaper"
+        elif info["influenced"]["elder"]:
+            influence = "elder"
+        elif info["influenced"]["crusader"]:
+            influence = "crusader"
+        elif info["influenced"]["warlord"]:
+            influence = "warlord"
+        elif info["influenced"]["redeemer"]:
+            influence = "redeemer"
+        elif info["influenced"]["hunter"]:
+            influence = "hunter"
+
+    ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
+
+    base = info["itype"] if info["itype"] != None else info["base"]
+
+    print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
+    result = None
+    try:
+        result = next(
+            item
+            for item in NINJA_BASES
+            if (
+                item["base"] == base
+                and (
+                    (influence == None and item["influence"] == None)
+                    or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+                )
+                and ilvl == item["ilvl"]
+            )
+        )
+    except StopIteration:
+        print("[!] Could not find the requested item.")
+        if config.USE_GUI:
+            gui.show_not_enough_data()
+
+    if result != None:
+        price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
+        currency = "ex" if result["exalt"] >= 1 else "chaos"
+        print(f"[$] Price: {price} {currency}")
+        if config.USE_GUI:
+            gui.show_base_result(base, influence, ilvl, price, currency)
+
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
@@ -1135,49 +1184,7 @@ def hotkey_handler_mainthread():
         wiki_lookup(text, info)
 
     elif hotkey == "alt+c":
-        info = parse_item_info(text)
-        influence = None
-        if any(i == True for i in info["influenced"].values()):
-            if info["influenced"]["shaper"]:
-                influence = "shaper"
-            elif info["influenced"]["elder"]:
-                influence = "elder"
-            elif info["influenced"]["crusader"]:
-                influence = "crusader"
-            elif info["influenced"]["warlord"]:
-                influence = "warlord"
-            elif info["influenced"]["redeemer"]:
-                influence = "redeemer"
-            elif info["influenced"]["hunter"]:
-                influence = "hunter"
-
-        ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
-
-        base = info["itype"] if info["itype"] != None else info["base"]
-
-        print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
-        result = None
-
-        try:
-            result = next(
-                item
-                for item in NINJA_BASES
-                if (
-                    item["base"] == base
-                    and (
-                        (influence == None and item["influence"] == None)
-                        or (influence != None and item["influence"] != None and influence == item["influence"].lower())
-                    )
-                    and ilvl == item["ilvl"]
-                )
-            )
-        except StopIteration:
-            print("[!] Could not find the requested item.")
-
-        if result != None:
-            price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
-            currency = "ex" if result["exalt"] >= 1 else "chaos"
-            print(f"[$] Price: {price} {currency}")
+        search_ninja_base(text)
 
     else:  # alt+d, ctrl+c
         price_item(text)

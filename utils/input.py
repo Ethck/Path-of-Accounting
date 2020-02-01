@@ -2,14 +2,16 @@ import time
 from queue import Queue
 from threading import Thread, Lock
 from tkinter import TclError
+
 import pyperclip
 
 is_keyboard_module_available = False
 try:
     # This will raise error in case user is not running as root
     import keyboard
-    keyboard.add_hotkey('x', lambda: print())
-    keyboard.remove_hotkey('x')
+
+    keyboard.add_hotkey("x", lambda: print())
+    keyboard.remove_hotkey("x")
     is_keyboard_module_available = True
 except Exception:
     is_keyboard_module_available = False
@@ -19,6 +21,7 @@ if not is_keyboard_module_available:
     try:
         # This will raise error if there is no display environment
         from pynput.keyboard import GlobalHotKeys, Controller, Key
+
         is_pyinput_module_available = True
     except Exception:
         is_pyinput_module_available = False
@@ -43,7 +46,6 @@ class ClipboardWatcher(Thread):
         self.lock = Lock()
         self.prev = get_clipboard()
     
-
     def run(self):
         while not self.stopping:
             
@@ -72,6 +74,7 @@ class HotkeyWatcher(Thread):
     """
     Watches for changes in hotkey queue and calls callbacks
     """
+
     def __init__(self, combination_to_function):
         super(HotkeyWatcher, self).__init__()
         self.daemon = True
