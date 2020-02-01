@@ -42,7 +42,7 @@ from utils.web import open_trade_site, wiki_lookup
 DEBUG = False
 
 
-def parse_item_info(text: str) -> Dict:
+def parse_item_info(text: str) -> Item:
     """
     Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
     """
@@ -69,27 +69,77 @@ def parse_item_info(text: str) -> Dict:
             last_line = item_list[-2][0]
         if last_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
             rarity = 'map'
-            ilevel = int(item_list[1][0][10:])
-            return Item(rarity=rarity, name=name, quality=quality, iLevel=ilevel, corrupted=corrupted)
+            tier = int(item_list[1][0][10:])
+            return Item(rarity=rarity, name=name, quality=quality, iLevel=tier, corrupted=corrupted)
         elif last_line == 'Right-click to add this prophecy to your character.':
             rarity = 'prophecy'
             return Item(rarity=rarity, name=name)
         elif last_line.startswith('Can be used in a personal Map Device.'):
-            rarity = 'Fragment' #and scarabs
+            rarity = 'fragment'  # and scarabs
             return Item(rarity=rarity, name=name)
+        elif last_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
+            rarity = 'metamorph'
+            return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
+
     elif rarity in ('normal', 'magic', 'rare', 'unique'):
-        stats = item_list[1] if quality==0 else item_list[1][-1:]
-        influence = []
-        if item_list[-1][-1].endswith('Item'):
-            for line in item_list[-1]:
-                influence.append(line.strip('Item'))
-        pass
+        base = name if rarity == 'normal' else item_list[0][2]
+        raw_sockets = ''
+        mirrored = False
+        ilevel = 0
+        mod_index = 0
+        anointed = False
+        for i, region in enumerate(item_list):
+            first_line = region[0]
+            if first_line.startswith('Requirements:'):
+                continue  # we ignore this for pricing
+            elif first_line.startswith('Sockets'):
+                raw_sockets = first_line.lstrip('Sockets: ')
+            elif first_line == 'Corrupted':
+                corrupted = True
+            elif first_line == 'Mirrored':
+                mirrored = True
+            elif first_line.startswith('Item Level'):
+                ilevel = first_line.lstrip('Item Level: ')
+                mod_index += i + 1  # Start of mod section
+            elif first_line.count(' ') == 1 and first_line.endswith('Item'):
+                influence = []
+                for line in item_list[-1]:
+                    influence.append(line.strip(' Item').lower())
+            elif first_line.startswith('Allocates'):
+                # get anoint
+                mod_index += 1
+                anointed = True
+
+        end_region_count = mirrored + corrupted + len(influence)
+        mod_count = (len(item_list) - end_region_count) - mod_index + anointed
+        mod_regions = region[mod_index:mod_index + mod_count]  # get the mod blocks
+        if rarity == 'normal':
+            for region in mod_regions:
+                if region[0].endswith('(implicit)'):
+                    continue  # get implicit mods
+                else:
+                    continue  # get enchantments
+        elif rarity in ('magic', 'rare'):
+            mod_length = len(mod_regions)
+            if mod_length == 3:
+                enchant, implicit, explicit = mod_regions
+            elif mod_length == 2:
+                if mod_regions[0][0].endswith('(implicit)'):
+                    implicit, explicit = mod_regions
+                else:
+                    enchant, explicit = mod_regions
+            else:
+                [enchant] = mod_regions
+        else:
+            pass  # TODO: deal with flavour text
+        stats = item_list[1] if quality == 0 else item_list[1][-1:]
+        return Item(rarity, name, base, quality, stats, raw_sockets, ilevel, [], corrupted, mirrored, influence)
     elif rarity in ('currency', 'divination card'):
         return Item(rarity=rarity, name=name)
     elif rarity == 'gem':
         level = [int(line.strip(' (Max)')[7:]) for line in item_list[1] if line.startswith('Level')][0]
         corrupted = item_list[-1] == 'Corrupted'
-        return Item(rarity=rarity, name=name, quality=quality, iLevel=level, corrupted = corrupted)
+        return Item(rarity=rarity, name=name, quality=quality, iLevel=level, corrupted=corrupted)
 
 
 #        iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
@@ -114,62 +164,10 @@ def parse_item_info(text: str) -> Dict:
 
 #        info["maps"] = map_mods
 
-        # Item Level
-        m = re.findall(r"Item Level: (\d+)", text)
-
-        if m:
-            info["ilvl"] = int(m[0])
-
-    elif metamorph:
-        info["itype"] = "Metamorph"
-        m = re.findall(r"Item Level: (\d+)", text)
-
-        if m:
-            info["ilvl"] = int(m[0])
-
-    else:
-        if info["rarity"] == "Magic" or info["rarity"] == "Normal" or info["rarity"] == "Rare":
-            info["base"] = info["itype"]
-            info["itype"] = None
-
-        if info["rarity"] == "Gem":
-            m = bool(re.search("Vaal", text, re.M))
-            no_vaal = bool(re.search("Cannot support Vaal skills", text, re.M))
-            a = bool(re.search("Awakened", text, re.M))
-            c = bool(re.search("^Corrupted", text, re.M))
-
-            lvl = re.findall(r"Level: (\d+)", text)[0]
-            if lvl is not None:
-                info["gem_level"] = lvl
-
-            if c:
-                info["corrupted"] = True
-            if m and not a and not no_vaal:
-                impurity = bool(re.search(r"Purity of \w+", text, re.M))
-                if impurity:
-                    info["itype"] = "Vaal Im" + info["name"][0].lower() + info["name"][1:]
-                else:
-                    info["itype"] = "Vaal " + info["name"]
-            else:
-                info["itype"] = info["name"]
-
-        # Sockets and Links
-        m = re.findall(r"Sockets:(.*)", text)
-
-        if m:
-            info["links"] = m[0].count("-") + 1
-
-        # Item Level
-        m = re.findall(r"Item Level: (\d+)", text)
-
-        if m:
-            info["ilvl"] = int(m[0])
 
         # Find all the affixes
         m = re.findall(r"Item Level: \d+[\r\n]+--------[\r\n]+(.+)((?:[\r\n]+.+)+)", text)
 
-        if DEBUG:
-            print("STATS:", m)
 
         if m:
             info["stats"] = []

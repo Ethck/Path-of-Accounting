@@ -20,6 +20,7 @@ class Item:
     # TODO: support map IIQ, IIR, pack size
     modifiers: [ItemModifier] = []
     corrupted: bool = False
+    mirrored: bool = False
 
     # TODO: handle influence types, as an enum?
     influence: [str] = []
