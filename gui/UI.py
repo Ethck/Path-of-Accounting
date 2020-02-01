@@ -121,6 +121,73 @@ class NoResult(GuiComponent):
         annotation = Label(self.frame, text=displayText, bg="#0d0d0d", fg="#e6b800")
         annotation.grid(column=0, row=2)
 
+class ShowBaseResult(GuiComponent):
+    def __init__(self):
+        super().__init__()
+        self.have_timeout = True
+        self.base = None
+        self.influence = None
+        self.ilvl = None
+        self.price = None
+        self.currency = None
+    def add_base_info(self, base, influence, ilvl, price, currency):
+        self.base = base
+        self.influence = influence
+        self.ilvl = ilvl
+        self.price = price
+        self.currency = currency
+
+    def add_components(self):
+        """
+        Assemble a simple poe.ninja result when searching for the
+        worth of an item base, including it's influence and item level.
+        """
+
+        masterFrame = Frame(self.frame, bg="#1f1f1f")
+        masterFrame.place(relwidth=1, relheight=1)
+
+        baseLabel = Label(self.frame,
+            text="Base: %s" % self.base,
+            bg="#1f1f1f",
+            fg="#e6b800"
+        )
+        baseLabel.grid(column=0, row=0)
+
+        row = 1
+        if self.influence is not None:
+            row += 1
+
+            conversion = {
+                "elder": "Elder",
+                "shaper": "Shaper",
+                "redeemer": "Redeemer",
+                "crusader": "Crusader",
+                "warlord": "Warlord",
+                "hunter": "Hunter"
+            }
+
+            influenceLabel = Label(self.frame,
+                text="Influence: %s" % conversion[self.influence],
+                bg="#1f1f1f",
+                fg="#e6b800"
+            )
+            influenceLabel.grid(column=0, row=row)
+
+        row += 1
+        itemLevelLabel = Label(self.frame,
+            text="Item Level: %d" % self.ilvl,
+            bg="#1f1f1f",
+            fg="#e6b800"
+        )
+        itemLevelLabel.grid(column=0, row=row)
+
+        row += 1
+        priceLabel = Label(self.frame,
+            text="Price: %d %s" % (self.price, self.currency),
+            bg="#1f1f1f",
+            fg="#e6b800"
+        )
+        priceLabel.grid(column=0, row=row)
 
 class SelectSearchingMods(GuiRunningComponent):
     def __init__(self):
@@ -193,3 +260,4 @@ class SelectSearchingMods(GuiRunningComponent):
 priceInfo = PriceInfo()
 noResult = NoResult()
 selectSearch = SelectSearchingMods()
+showBaseResults = ShowBaseResult()

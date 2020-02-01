@@ -38,7 +38,7 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-from gui.UI import priceInfo, noResult, selectSearch
+from gui.UI import priceInfo, noResult, selectSearch, showBaseResults
 from gui.guiComponent import check_timeout_gui, destroy_gui, init_ui
 import webbrowser
 
@@ -1105,14 +1105,15 @@ def search_ninja_base(text):
     except StopIteration:
         print("[!] Could not find the requested item.")
         if config.USE_GUI:
-            gui.show_not_enough_data()
+            noResult.create_at_cursor()
 
     if result != None:
         price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
         currency = "ex" if result["exalt"] >= 1 else "chaos"
         print(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
-            gui.show_base_result(base, influence, ilvl, price, currency)
+            showBaseResults.add_base_info(base, influence, ilvl, price, currency)
+            showBaseResults.create_at_cursor()
 
 
 def watch_keyboard(keyboard, use_hotkeys):
