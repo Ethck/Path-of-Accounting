@@ -13,7 +13,8 @@ from utils.exceptions import InvalidAPIResponseException
 
 
 mod_list = []
-
+mod_list_dict_id = {}
+mod_list_dict_text = {}
 
 def exchange_currency(query: dict, league: str) -> dict:
     """
@@ -90,6 +91,26 @@ def get_leagues() -> Tuple[str, ...]:
     """
     leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
     return tuple(x["id"] for x in leagues["result"])
+
+
+def get_item_modifiers_by_text() -> dict:
+    global mod_list_dict_text
+    if mod_list_dict_text:
+        return mod_list_dict_text
+    else:
+        item_modifiers = get_item_modifiers()
+        mod_list_dict_text = {item_modifiers[i]["id"]: i for i in range(len(item_modifiers))}
+        return mod_list_dict_text
+
+
+def get_item_modifiers_by_id() -> dict:
+    global mod_list_dict_id
+    if mod_list_dict_id:
+        return mod_list_dict_id
+    else:
+        item_modifiers = get_item_modifiers()
+        mod_list_dict_id = {item_modifiers[i]["id"]: i for i in range(len(item_modifiers))}
+        return mod_list_dict_id
 
 
 def get_item_modifiers() -> Tuple[ItemModifier, ...]:
