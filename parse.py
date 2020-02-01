@@ -110,18 +110,17 @@ def parse_item_info(text: str) -> Item:
         elif first_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
             rarity = 'metamorph'
             return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
-        elif first_line.startswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
+        elif first_line.endswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
             pass  # TODO: handle flasks
 
     end_region_count = mirrored + corrupted + (len(influence)>0)
 
-    flavoured = False
+    flavoured = True
     if rarity == 'unique':
         region = len(item_list)[-(end_region_count+1):-end_region_count]
-        is_flavour_region = True;
         for line in region:
             if re.search('\d', line):
-                is_flavour_region = False;
+                flavoured = False;
 
     end_region_count += flavoured
     mod_count = (len(item_list) - end_region_count) - mod_index + anointed
