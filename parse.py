@@ -1066,33 +1066,6 @@ def price_item(text):
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
         print(exception)
 
-
-def watch_keyboard(keyboard, use_hotkeys):
-    if use_hotkeys:
-        # Use the "f5" key to go to hideout
-        keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
-
-        # Use the alt+d key as an alternative to ctrl+c
-        keyboard.add_hotkey("<alt>+d", lambda: hotkey_handler(keyboard, "alt+d"))
-
-        # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey("<alt>+w", lambda: hotkey_handler(keyboard, "alt+w"))
-
-        # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey("<alt>+t", lambda: hotkey_handler(keyboard, "alt+t"))
-
-        # poe.ninja base check
-        keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
-
-    # Fetch the item's approximate price
-    print("[*] Watching clipboard (Ctrl+C to stop)...")
-    keyboard.clipboard_callback = lambda _: hotkey_handler(keyboard, "clipboard")
-    keyboard.start()
-
-from queue import Queue
-queue = Queue()
-
-
 def search_ninja_base(text):
     info = parse_item_info(text)
     influence = None
@@ -1141,19 +1114,37 @@ def search_ninja_base(text):
         if config.USE_GUI:
             gui.show_base_result(base, influence, ilvl, price, currency)
 
+
+def watch_keyboard(keyboard, use_hotkeys):
+    if use_hotkeys:
+        # Use the "f5" key to go to hideout
+        keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
+
+        # Use the alt+d key as an alternative to ctrl+c
+        keyboard.add_hotkey("<alt>+d", lambda: hotkey_handler(keyboard, "alt+d"))
+
+        # Open item in the Path of Exile Wiki
+        keyboard.add_hotkey("<alt>+w", lambda: hotkey_handler(keyboard, "alt+w"))
+
+        # Open item search in pathofexile.com/trade
+        keyboard.add_hotkey("<alt>+t", lambda: hotkey_handler(keyboard, "alt+t"))
+
+        # poe.ninja base check
+        keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
+
+    # Fetch the item's approximate price
+    print("[*] Watching clipboard (Ctrl+C to stop)...")
+    keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
+    keyboard.start()
+
+
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
         keyboard.press_and_release("ctrl+c")
         time.sleep(0.1)
-    queue.put(hotkey)
-
-
-def hotkey_handler_mainthread():
-    if queue.empty():
-        return
-    hotkey = queue.get()
     text = get_clipboard()
+
     if hotkey == "alt+t":
         info = parse_item_info(text)
         j = build_json_official(
@@ -1214,11 +1205,13 @@ if __name__ == "__main__":
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
+
         if config.USE_GUI:
             init_ui()
         try:
             while True:
-                hotkey_handler_mainthread()
+                keyboard.poll()
+                
                 if config.USE_GUI:
                     check_timeout_gui()
         except KeyboardInterrupt:

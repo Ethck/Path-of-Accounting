@@ -1,6 +1,5 @@
 import time
-from queue import Queue
-from threading import Thread, Lock
+from queue import Queue, Empty
 from tkinter import TclError
 
 import pyperclip
@@ -31,56 +30,40 @@ def get_clipboard():
     return pyperclip.paste()
 
 
-class ClipboardWatcher(Thread):
+class ClipboardWatcher():
     """
-    Watches for changes in clipboard and calls callback.
+    Watches for changes in clipboard and calls callback
     """
 
-    def __init__(self, callback, should_process, pause=0.3):
-        super(ClipboardWatcher, self).__init__()
-        self.daemon = True
-        self.callback = callback
+    def __init__(self, combination_to_function, should_process):
         self.should_process = should_process
-        self.pause = pause
-        self.stopping = False
-        self.lock = Lock()
         self.prev = get_clipboard()
-    
-    def run(self):
-        while not self.stopping:
-            
-            try:
-                self.lock.acquire()
-                try:
-                    text = get_clipboard()
+        self.combination_to_function = combination_to_function
 
-                    if text != self.prev and self.should_process():
-                        self.callback(text)
+    def poll(self):
+        try:
+            text = get_clipboard()
 
-                    self.prev = text
-                finally:
-                    self.lock.release()
-                time.sleep(self.pause)
-            except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
-                continue
-            except KeyboardInterrupt:
-                break
+            if text != self.prev and self.should_process() and "clipboard" in self.combination_to_function:
+                self.combination_to_function["clipboard"]()
 
-    def stop(self):
-        self.stopping = True
+            self.prev = text
+        except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
+            pass
 
 
-class HotkeyWatcher(Thread):
+class HotkeyWatcher():
     """
-    Watches for changes in hotkey queue and calls callbacks
+    Watches for changes in hotkey queue and calls callback
     """
 
     def __init__(self, combination_to_function):
-        super(HotkeyWatcher, self).__init__()
-        self.daemon = True
-        self.combination_to_function = combination_to_function
-        self.stopping = False
         self.queue = Queue()
+        self.combination_to_function = combination_to_function
+        self.processed = False
+
+    def is_processing(self):
+        return not self.processed
 
     def is_empty(self):
         return self.queue.unfinished_tasks == 0 and self.queue.qsize() == 0
@@ -89,21 +72,20 @@ class HotkeyWatcher(Thread):
         if self.is_empty():
             self.queue.put(hotkey)
 
-    def run(self):
-        while not self.stopping:
-            try:
-                hotkey = self.queue.get()
-                self.combination_to_function[hotkey]()
-            except KeyboardInterrupt:
-                break
-            except Exception as e:
-                # Do not fail
-                print("Unexpected exception occurred while handling hotkey: " + str(e))
+    def poll(self):
+        self.processed = False
 
-            self.queue.task_done()
+        try:
+            hotkey = self.queue.get_nowait()
+            self.processed = True
+            self.combination_to_function[hotkey]()
+        except Empty:
+            return
+        except Exception as e:
+            # Do not fail
+            print("Unexpected exception occurred while handling hotkey: " + str(e))
 
-    def stop(self):
-        self.stopping = True
+        self.queue.task_done()
 
 
 class Keyboard:
@@ -113,7 +95,6 @@ class Keyboard:
         self.combination_to_function = {}
         self.hotkey_watcher = None
         self.clipboard_watcher = None
-        self.clipboard_callback = None
 
         if is_pyinput_module_available:
             self.controller = Controller()
@@ -125,7 +106,7 @@ class Keyboard:
     def start(self):
         # Create hotkey watcher with all our hotkey callbacks
         self.hotkey_watcher = HotkeyWatcher(self.combination_to_function)
-        self.clipboard_watcher = ClipboardWatcher(self.clipboard_callback, self.hotkey_watcher.is_empty)
+        self.clipboard_watcher = ClipboardWatcher(self.combination_to_function, self.hotkey_watcher.is_processing)
         combination_to_queue = {}
 
         def to_watcher(watcher, hotkey):
@@ -133,7 +114,8 @@ class Keyboard:
 
         # Convert hotkey callbacks to proxy everything to hotkey watcher
         for h in self.combination_to_function:
-            combination_to_queue[h] = to_watcher(self.hotkey_watcher, h)
+            if h != "clipboard":
+                combination_to_queue[h] = to_watcher(self.hotkey_watcher, h)
 
         if is_keyboard_module_available:
             for h in combination_to_queue:
@@ -143,13 +125,9 @@ class Keyboard:
             self.listener.daemon = True
             self.listener.start()
 
-        if is_keyboard_module_available or is_pyinput_module_available:
-            self.hotkey_watcher.start()
-
-        self.clipboard_watcher.start()
-
-    def wait(self):
-        self.clipboard_watcher.join()
+    def poll(self):
+        self.hotkey_watcher.poll()
+        self.clipboard_watcher.poll()
 
     def write(self, string):
         if is_keyboard_module_available:
@@ -158,8 +136,6 @@ class Keyboard:
             self.controller.type(string)
 
     def press_and_release(self, key):
-        if key == "ctrl+c":
-            self.clipboard_watcher.lock.acquire()
         if is_keyboard_module_available:
             keyboard.press_and_release(key)
         elif is_pyinput_module_available:
@@ -187,8 +163,3 @@ class Keyboard:
             elif len(keys) == 1:
                 safe_press(self.controller, keys[0])
                 safe_press(self.controller, keys[0], False)
-        if key == "ctrl+c":
-            try:
-                self.clipboard_watcher.prev = get_clipboard()
-            finally:
-                self.clipboard_watcher.lock.release()
