@@ -61,31 +61,13 @@ def parse_item_info(text: str) -> Item:
             quality = int(line[line.find('+')+1:-13])
             break
 
+    ilevel = 0
     corrupted = False
-    if rarity in ('normal', 'magic', 'rare', 'unique') and len(item_list[0]) == 2:
-        last_line = item_list[-1][0]
-        if last_line.lower() == 'corrupted':
-            corrupted = True
-            last_line = item_list[-2][0]
-        if last_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
-            rarity = 'map'
-            tier = int(item_list[1][0][10:])
-            return Item(rarity=rarity, name=name, quality=quality, iLevel=tier, corrupted=corrupted)
-        elif last_line == 'Right-click to add this prophecy to your character.':
-            rarity = 'prophecy'
-            return Item(rarity=rarity, name=name)
-        elif last_line.startswith('Can be used in a personal Map Device.'):
-            rarity = 'fragment'  # and scarabs
-            return Item(rarity=rarity, name=name)
-        elif last_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
-            rarity = 'metamorph'
-            return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
 
-    elif rarity in ('normal', 'magic', 'rare', 'unique'):
-        base = name if rarity == 'normal' else item_list[0][2]
+    if rarity in ('normal', 'magic', 'rare', 'unique'):
+        base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
         raw_sockets = ''
         mirrored = False
-        ilevel = 0
         mod_index = 0
         anointed = False
         for i, region in enumerate(item_list):
@@ -109,6 +91,22 @@ def parse_item_info(text: str) -> Item:
                 # get anoint
                 mod_index += 1
                 anointed = True
+            elif first_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
+                rarity = 'map'
+                tier = int(item_list[1][0][10:])
+                corrupted = True if item_list[-1][0] == 'corrupted' else False
+                return Item(rarity=rarity, name=name, quality=quality, iLevel=tier, corrupted=corrupted)
+            elif first_line == 'Right-click to add this prophecy to your character.':
+                rarity = 'prophecy'
+                return Item(rarity=rarity, name=name)
+            elif first_line.startswith('Can be used in a personal Map Device.'):
+                rarity = 'fragment'  # and scarabs
+                return Item(rarity=rarity, name=name)
+            elif first_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
+                rarity = 'metamorph'
+                return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
+            elif first_line.startswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
+                pass  # TODO: handle flasks
 
         end_region_count = mirrored + corrupted + len(influence)
         mod_count = (len(item_list) - end_region_count) - mod_index + anointed
@@ -129,7 +127,7 @@ def parse_item_info(text: str) -> Item:
                 else:
                     enchant, explicit = mod_regions
             else:
-                [enchant] = mod_regions
+                [explicit] = mod_regions
         else:
             pass  # TODO: deal with flavour text
         stats = item_list[1] if quality == 0 else item_list[1][-1:]
