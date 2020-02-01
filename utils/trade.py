@@ -12,6 +12,9 @@ from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
 
+mod_list = []
+
+
 def exchange_currency(query: dict, league: str) -> dict:
     """
     :param query: A JSON query to send to the currency trade api
@@ -93,9 +96,14 @@ def get_item_modifiers() -> Tuple[ItemModifier, ...]:
     """
     Get all valid Item Modifiers (affixes) from the PoE API
     """
-    json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-    items = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
-    return items
+    global mod_list
+    if mod_list:
+        return mod_list
+    else:
+        json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
+        items = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
+        mod_list = items
+        return items
 
 
 def find_latest_update():
