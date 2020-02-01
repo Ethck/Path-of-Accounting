@@ -73,15 +73,13 @@ if os.name == "nt" and STASHTAB_SCROLLING:
     def mouse_callback(ncode, wparam, lparam):
         if ncode < 0:
             return windll.user32.CallNextHookEx(scroll.keyboard_hook, ncode, wparam, lparam)
-        if wparam == win32con.WM_MOUSEWHEEL:
+        if scroll.ctrl_pressed and wparam == win32con.WM_MOUSEWHEEL:
             data = MSLLHOOKSTRUCT.from_address(lparam)
             a = ctypes.c_short(data.mouseData >> 16).value
             if a > 0: # up
-                if scroll.ctrl_pressed:
                     keyboard.press_and_release("left")
                     return 1
             elif a < 0: # down
-                if scroll.ctrl_pressed:
                     keyboard.press_and_release("right")
                     return 1 
         return windll.user32.CallNextHookEx(scroll.keyboard_hook, ncode, wparam, lparam)
