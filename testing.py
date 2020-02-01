@@ -28,6 +28,7 @@ class TestItemLookup(unittest.TestCase):
     @patch('screeninfo.get_monitors', mock_get_monitors)
     @patch('time.sleep', lambda s: s)
     @patch('utils.config.USE_GUI', True)
+    @patch('os.name', "Mock")
     def test_lookups(self):
         # Required to do the gui creation step in tests. We need to
         # create it here, after we patch our python modules.
@@ -189,6 +190,7 @@ class TestItemLookup(unittest.TestCase):
     @patch('screeninfo.get_monitors', mock_get_monitors)
     @patch('time.sleep', lambda s: s)
     @patch('utils.config.USE_GUI', True)
+    @patch('os.name', "Mock")
     def test_base_lookups(self):
         # Required to do the gui creation step in tests. We need to
         # create it here, after we patch our python modules.

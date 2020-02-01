@@ -1,5 +1,5 @@
 import os
-from tkinter import *
+import tkinter
 import screeninfo
 import time
 import traceback
@@ -53,7 +53,7 @@ def windowRefocus(name):
 
 
 def init_ui():
-    tk = Tk().withdraw()
+    tk = tkinter.Tk().withdraw()
 
 components = []
 
@@ -86,7 +86,7 @@ class GuiComponent:
 
     
     def prepare_window(self):
-        frame = Toplevel()
+        frame = tkinter.Toplevel()
         frame.overrideredirect(True)
         frame.option_add("*Font", "courier 12")
         frame.withdraw()

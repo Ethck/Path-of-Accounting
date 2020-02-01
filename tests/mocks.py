@@ -129,6 +129,18 @@ class TkMockObject:
     def mainloop(self, *args, **kwargs):
         pass
 
+    def winfo_id(self):
+        return 0
+
+    def resizable(self, x, y):
+        pass
+
+    def bind(self, t, f):
+        pass
+
+    def destroy(self):
+        pass
+
 # Mock up Tkinter classes
 class TkMock(TkMockObject):
     def __init__(self, *args, **kwargs):
