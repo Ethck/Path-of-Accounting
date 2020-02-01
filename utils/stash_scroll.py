@@ -1,4 +1,3 @@
-# WARNING: DO NOT RUN THIS IN A DEBUGGER
 # WARNING: Might trigger some anti-virus software (but we are open source so what?)
 
 
@@ -13,6 +12,7 @@ if os.name == "nt" and STASHTAB_SCROLLING:
     from ctypes import *
     from ctypes.wintypes import DWORD, WPARAM, LPARAM, ULONG, POINT
     from multiprocessing import Process
+    from win32gui import GetWindowText, GetForegroundWindow
     from utils.input import Keyboard
 
 
@@ -57,13 +57,13 @@ if os.name == "nt" and STASHTAB_SCROLLING:
     def keyboard_callback(ncode, wparam, lparam):
         if ncode < 0:
             return windll.user32.CallNextHookEx(scroll.keyboard_hook, ncode, wparam, lparam)
-        
-        key = KBDLLHOOKSTRUCT.from_address(lparam)
-        if key.vkCode == win32con.VK_LCONTROL:
-            if wparam == win32con.WM_KEYDOWN:
-                scroll.ctrl_pressed = True
-            elif wparam == win32con.WM_KEYUP:
-                scroll.ctrl_pressed = False
+        if GetWindowText(GetForegroundWindow()) == "Path of Exile":
+            key = KBDLLHOOKSTRUCT.from_address(lparam)
+            if key.vkCode == win32con.VK_LCONTROL:
+                if wparam == win32con.WM_KEYDOWN:
+                    scroll.ctrl_pressed = True
+                elif wparam == win32con.WM_KEYUP:
+                    scroll.ctrl_pressed = False
         return windll.user32.CallNextHookEx(scroll.keyboard_hook, ncode, wparam, lparam)
 
 
@@ -73,7 +73,7 @@ if os.name == "nt" and STASHTAB_SCROLLING:
     def mouse_callback(ncode, wparam, lparam):
         if ncode < 0:
             return windll.user32.CallNextHookEx(scroll.keyboard_hook, ncode, wparam, lparam)
-        if scroll.ctrl_pressed and wparam == win32con.WM_MOUSEWHEEL:
+        if scroll.ctrl_pressed and GetWindowText(GetForegroundWindow()) == "Path of Exile" and wparam == win32con.WM_MOUSEWHEEL:
             data = MSLLHOOKSTRUCT.from_address(lparam)
             a = ctypes.c_short(data.mouseData >> 16).value
             if a > 0: # up
