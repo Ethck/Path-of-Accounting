@@ -1,6 +1,7 @@
 import io
 import sys
 import unittest
+from unittest.mock import patch
 import requests_mock
 import json
 from collections import OrderedDict
@@ -11,14 +12,27 @@ import parse
 from utils import config
 from tests.mocks import *
 from tests.sampleItems import items
+from gui.guiComponent import destroy_gui, init_ui
 
 LOOKUP_URL = "https://www.pathofexile.com/api/trade/search/Metamorph"
 EXCHANGE_URL = "https://www.pathofexile.com/api/trade/exchange/Metamorph"
 
+
 class TestItemLookup(unittest.TestCase):
+
+    @patch('tkinter.Tk', TkMock)
+    @patch('tkinter.Toplevel', ToplevelMock)
+    @patch('tkinter.Frame', FrameMock)
+    @patch('tkinter.Label', LabelMock)
+    @patch('tkinter.Button', ButtonMock)
+    @patch('screeninfo.get_monitors', mock_get_monitors)
+    @patch('time.sleep', lambda s: s)
+    @patch('utils.config.USE_GUI', True)
     def test_lookups(self):
-        # Don't use gui during tests
-        config.USE_GUI = False
+        # Required to do the gui creation step in tests. We need to
+        # create it here, after we patch our python modules.
+        init_ui()
+      
         # Mockups of response data from pathofexile.com/trade
         expected = [
             # (mocked up json response, expected condition, search url)
@@ -165,9 +179,20 @@ class TestItemLookup(unittest.TestCase):
                         )
                     expectedStr = ("%s, " % Fore.WHITE).join(priceList)
                     self.assertTrue(expectedStr in out.getvalue())
-
+        destroy_gui()
+        
+    @patch('tkinter.Tk', TkMock)
+    @patch('tkinter.Toplevel', ToplevelMock)
+    @patch('tkinter.Frame', FrameMock)
+    @patch('tkinter.Label', LabelMock)
+    @patch('tkinter.Button', ButtonMock)
+    @patch('screeninfo.get_monitors', mock_get_monitors)
+    @patch('time.sleep', lambda s: s)
+    @patch('utils.config.USE_GUI', True)
     def test_base_lookups(self):
-        config.USE_GUI = False
+        # Required to do the gui creation step in tests. We need to
+        # create it here, after we patch our python modules.
+        init_ui()
 
         # Mock json data for poe.ninja bases
         data = {
@@ -277,7 +302,8 @@ class TestItemLookup(unittest.TestCase):
             sys.stdout = sys.__stdout__
 
             self.assertTrue(expected[0](out.getvalue()))
-
+        destroy_gui()
+        
 if __name__ == "__main__":
     init(autoreset=True) # Colorama
     unittest.main(failfast=True)

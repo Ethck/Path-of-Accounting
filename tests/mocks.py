@@ -61,3 +61,101 @@ def makeItemInfo(item):
         },
     )
     return (info, data)
+
+class TkMockObject:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def grid(self, *args, **kwargs):
+        pass
+
+    def place(self, *args, **kwargs):
+        pass
+
+    def withdraw(self, *args, **kwargs):
+        pass
+
+    def update(self, *args, **kwargs):
+        pass
+
+    def wm_attributes(self, *args, **kwargs):
+        pass
+
+    def show(self, *args, **kwargs):
+        pass
+
+    def hide(self, *args, **kwargs):
+        pass
+
+    def winfo_children(self):
+        return []
+
+    def winfo_pointerx(self):
+        return 0
+
+    def winfo_pointery(self):
+        return 0
+
+    def winfo_x(self):
+        return 0
+
+    def winfo_y(self):
+        return 0
+
+    def winfo_width(self):
+        return 200
+
+    def winfo_height(self):
+        return 200
+
+    def geometry(self, geo):
+        pass
+
+    def deiconify(self):
+        pass
+
+    def overrideredirect(self, *args, **kwargs):
+        pass
+
+    def option_add(self, *args, **kwargs):
+        pass
+
+    def after(self, *args, **kwargs):
+        pass
+
+    def quit(self, *args, **kwargs):
+        pass
+
+    def mainloop(self, *args, **kwargs):
+        pass
+
+# Mock up Tkinter classes
+class TkMock(TkMockObject):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+class LabelMock(TkMockObject):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+class ButtonMock(TkMockObject):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+class ToplevelMock(TkMockObject):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+class FrameMock(TkMockObject):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+class MonitorMock:
+    height = 200
+    width = 200
+    x = 0
+    y = 0
+
+def mock_get_monitors():
+    return [MonitorMock()]
+
