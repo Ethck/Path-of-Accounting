@@ -38,7 +38,7 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-
+from utils.stash_scroll import start_stash_scroll, stop_stash_scroll
 DEBUG = False
 
 
@@ -1182,6 +1182,8 @@ if __name__ == "__main__":
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
 
+        start_stash_scroll()
+        
         try:
             if config.USE_GUI:
                 from utils.gui import Gui
@@ -1192,7 +1194,8 @@ if __name__ == "__main__":
                 keyboard.wait()
         except KeyboardInterrupt:
             pass
-
+        
+        stop_stash_scroll()
         print(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!

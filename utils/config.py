@@ -16,3 +16,5 @@ VERSION = config["GENERAL"]["version"]
 RELEASE_URL = config["GENERAL"]["releaseURL"]
 
 MIN_RESULTS = 10
+
+STASHTAB_SCROLLING = True if config["GENERAL"]["stashtabMacro"] == "yes" else False
