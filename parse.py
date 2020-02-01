@@ -113,16 +113,27 @@ def parse_item_info(text: str) -> Item:
         elif first_line.startswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
             pass  # TODO: handle flasks
 
-    end_region_count = mirrored + corrupted + len(influence)
+    end_region_count = mirrored + corrupted + (len(influence)>0)
+
+    flavoured = False
+    if rarity == 'unique':
+        region = len(item_list)[-(end_region_count+1):-end_region_count]
+        is_flavour_region = True;
+        for line in region:
+            if re.search('\d', line):
+                is_flavour_region = False;
+
+    end_region_count += flavoured
     mod_count = (len(item_list) - end_region_count) - mod_index + anointed
     mod_regions = region[mod_index:mod_index + mod_count]  # get the mod blocks
+
     if rarity == 'normal':
         for region in mod_regions:
             if region[0].endswith('(implicit)'):
                 continue  # get implicit mods
             else:
                 continue  # get enchantments
-    elif rarity in ('magic', 'rare'):
+    else:
         mod_length = len(mod_regions)
         if mod_length == 3:
             enchant, implicit, explicit = mod_regions
@@ -133,8 +144,6 @@ def parse_item_info(text: str) -> Item:
                 enchant, explicit = mod_regions
         else:
             [explicit] = mod_regions
-    else:
-        pass  # TODO: deal with flavour text
     stats = item_list[1] if quality == 0 else item_list[1][-1:]
     return Item(rarity, name, base, quality, stats, raw_sockets, ilevel, [], corrupted, mirrored, influence)
 
