@@ -11,6 +11,7 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
+from models.Item import Item
 from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_GUI, USE_HOTKEYS
 from utils.currency import (
     CATALYSTS,
@@ -45,101 +46,74 @@ def parse_item_info(text: str) -> Dict:
     """
     Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
     """
-    # Find out if this is a path of exile item
-    m = re.findall(r"^Rarity: (\w+)\r?\n(.+?)\r?\n(.+?)\r?\n", text)
+    # TODO: test if poe item
+    # TODO: synthesis items
+    # TODO: blight maps
+    item_list = text.split('--------')
+    for i, region in enumerate(item_list):
+        item_list[i] = region.strip().splitlines()
 
-    if not m:  # Different check
-        m = re.findall(r"^Rarity: (.*)\n(.*)", text)
-        if not m:
-            return {}
-        else:
-            info = {"name": m[0][1], "rarity": m[0][0], "itype": m[0][0]}
-    else:
+    rarity = item_list[0][0][8:].lower()
+    name = item_list[0][1].strip('<<set:MS>><<set:M>><<set:S>>')
+    quality = 0
+    for line in item_list[1]:
+        if line.startswith('Quality'):
+            quality = int(line[line.find('+')+1:-13])
+            break
 
-        # get some basic info
-        info = {"name": m[0][1], "rarity": m[0][0], "itype": m[0][2]}
+    corrupted = False
+    if rarity in ('normal', 'magic', 'rare', 'unique') and len(item_list[0]) == 2:
+        last_line = item_list[-1][0]
+        if last_line.lower() == 'corrupted':
+            corrupted = True
+            last_line = item_list[-2][0]
+        if last_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
+            rarity = 'map'
+            ilevel = int(item_list[1][0][10:])
+            return Item(rarity=rarity, name=name, quality=quality, iLevel=ilevel, corrupted=corrupted)
+        elif last_line == 'Right-click to add this prophecy to your character.':
+            rarity = 'prophecy'
+            return Item(rarity=rarity, name=name)
+        elif last_line.startswith('Can be used in a personal Map Device.'):
+            rarity = 'Fragment' #and scarabs
+            return Item(rarity=rarity, name=name)
+    elif rarity in ('normal', 'magic', 'rare', 'unique'):
+        stats = item_list[1] if quality==0 else item_list[1][-1:]
+        influence = []
+        if item_list[-1][-1].endswith('Item'):
+            for line in item_list[-1]:
+                influence.append(line.strip('Item'))
+        pass
+    elif rarity in ('currency', 'divination card'):
+        return Item(rarity=rarity, name=name)
+    elif rarity == 'gem':
+        level = [int(line.strip(' (Max)')[7:]) for line in item_list[1] if line.startswith('Level')][0]
+        corrupted = item_list[-1] == 'Corrupted'
+        return Item(rarity=rarity, name=name, quality=quality, iLevel=level, corrupted = corrupted)
 
-    unident = bool(re.search("Unidentified", text, re.M))
-    metamorph = bool(re.search("Tane", text, re.M))
-    prophecy = bool(re.search("Right-click to add this prophecy to your character.", text, re.M))
 
-    # Corruption status and influenced status
+#        iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
+#        if len(iiq_re) > 0:
+#            map_mods["iiq"] = iiq_re[0]
 
-    info["influenced"] = {}
-    info["influenced"]["shaper"] = bool(re.search(r"^Shaper Item", text, re.M))
-    info["influenced"]["elder"] = bool(re.search(r"^Elder Item", text, re.M))
-    info["influenced"]["crusader"] = bool(re.search("Crusader Item", text, re.M))
-    info["influenced"]["hunter"] = bool(re.search("Hunter Item", text, re.M))
-    info["influenced"]["redeemer"] = bool(re.search("Redeemer Item", text, re.M))
-    info["influenced"]["warlord"] = bool(re.search("Warlord Item", text, re.M))
-    info["corrupted"] = bool(re.search("^Corrupted$", text, re.M))
+#        pack_re = re.findall(r"Pack Size: \+(\d+)%", text)
+#        if len(pack_re) > 0:
+#            map_mods["pack"] = pack_re[0]
 
-    # Get Qual
-    m = re.findall(r"Quality: \+(\d+)%", text)
+#        iir_re = re.findall(r"Item Rarity: \+(\d+)%", text)
+#        if len(iir_re) > 0:
+#            map_mods["iir"] = iir_re[0]
 
-    info["quality"] = int(m[0]) if m else 0
+#        map_mods["blight"] = bool(re.search(r"Blighted", text, re.M))
+#        map_mods["shaper"] = bool(re.search("Area is influenced by The Shaper", text, re.M))
+#        map_mods["elder"] = bool(re.search("Area is influenced by The Elder", text, re.M))
+#        map_mods["enslaver"] = bool(re.search("Map is occupied by The Enslaver", text, re.M))
+#        map_mods["eradicator"] = bool(re.search("Map is occupied by The Eradicator", text, re.M))
+#        map_mods["constrictor"] = bool(re.search("Map is occupied by The Constrictor", text, re.M))
+#        map_mods["purifier"] = bool(re.search("Map is occupied by The Purifier", text, re.M))
 
-    if "Map" in info["name"] and "Map" not in info["itype"]:  # Seems to be all Superior maps...
-        if info["itype"] == "--------":
-            info["itype"] = info["name"]
+#        info["maps"] = map_mods
 
-    if "Synthesised" in info["itype"]:
-        info["itype"] = info["itype"].replace("Synthesised ", "")
-
-    if "<<set:MS>><<set:M>><<set:S>>" in info["name"]:  # For checking in chat items... For some reason this is added.
-        info["name"] = info["name"].replace("<<set:MS>><<set:M>><<set:S>>", "").strip()
-
-    # Oh, it's currency!
-    if info["rarity"] == "Currency":
-        info["itype"] = info.pop("rarity").rstrip()
-    elif info["rarity"] == "Divination Card":
-        info["rarity"] = info["rarity"].strip()
-        info["itype"] = info.pop("rarity")
-    elif info["rarity"] == "Normal" and "Scarab" in info["name"]:
-        info["itype"] = "Currency"
-    elif "Map" in info["itype"]:
-        if info["quality"] != 0:
-            info["itype"] = info["itype"].replace("Superior", "").strip()
-        map_mods = {}
-        map_mods["tier"] = re.findall(r"Map Tier: (\d+)", text)[0]
-
-        iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
-        if len(iiq_re) > 0:
-            map_mods["iiq"] = iiq_re[0]
-
-        pack_re = re.findall(r"Pack Size: \+(\d+)%", text)
-        if len(pack_re) > 0:
-            map_mods["pack"] = pack_re[0]
-
-        iir_re = re.findall(r"Item Rarity: \+(\d+)%", text)
-        if len(iir_re) > 0:
-            map_mods["iir"] = iir_re[0]
-
-        map_mods["blight"] = bool(re.search(r"Blighted", text, re.M))
-        map_mods["shaper"] = bool(re.search("Area is influenced by The Shaper", text, re.M))
-        map_mods["elder"] = bool(re.search("Area is influenced by The Elder", text, re.M))
-        map_mods["enslaver"] = bool(re.search("Map is occupied by The Enslaver", text, re.M))
-        map_mods["eradicator"] = bool(re.search("Map is occupied by The Eradicator", text, re.M))
-        map_mods["constrictor"] = bool(re.search("Map is occupied by The Constrictor", text, re.M))
-        map_mods["purifier"] = bool(re.search("Map is occupied by The Purifier", text, re.M))
-
-        info["maps"] = map_mods
-
-    elif info["itype"] == "--------" and unident:  # Unided
-        info["itype"] = info["name"]
-        if info["rarity"] == "Unique":
-            print(
-                "[!] "
-                + Fore.RED
-                + "Can't price "
-                + Fore.WHITE
-                + "this item because it is "
-                + Fore.YELLOW
-                + "unidentified"
-                + Fore.WHITE
-                + ". Please identify and try again."
-            )
-            return 0
         # Item Level
         m = re.findall(r"Item Level: (\d+)", text)
 
@@ -152,9 +126,6 @@ def parse_item_info(text: str) -> Dict:
 
         if m:
             info["ilvl"] = int(m[0])
-
-    elif info["rarity"] == "Normal" and prophecy:  # Prophecies
-        info["itype"] = "Prophecy"
 
     else:
         if info["rarity"] == "Magic" or info["rarity"] == "Normal" or info["rarity"] == "Rare":
