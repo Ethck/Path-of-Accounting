@@ -170,7 +170,7 @@ class Gui:
                 "hunter": "Hunter"
             }
 
-            influenceLabel = Label(self.root,
+            influenceLabel = tkinter.Label(self.root,
                 text="Influence: %s" % conversion[influence],
                 bg="#1f1f1f",
                 fg="#e6b800"
