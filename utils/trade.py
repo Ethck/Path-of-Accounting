@@ -12,6 +12,10 @@ from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
 
+mod_list = []
+mod_list_dict_id = {}
+mod_list_dict_text = {}
+
 def exchange_currency(query: dict, league: str) -> dict:
     """
     :param query: A JSON query to send to the currency trade api
@@ -89,13 +93,38 @@ def get_leagues() -> Tuple[str, ...]:
     return tuple(x["id"] for x in leagues["result"])
 
 
+def get_item_modifiers_by_text() -> dict:
+    global mod_list_dict_text
+    if mod_list_dict_text:
+        return mod_list_dict_text
+    else:
+        item_modifiers = get_item_modifiers()
+        mod_list_dict_text = {item_modifiers[i]["id"]: i for i in range(len(item_modifiers))}
+        return mod_list_dict_text
+
+
+def get_item_modifiers_by_id() -> dict:
+    global mod_list_dict_id
+    if mod_list_dict_id:
+        return mod_list_dict_id
+    else:
+        item_modifiers = get_item_modifiers()
+        mod_list_dict_id = {item_modifiers[i]["id"]: i for i in range(len(item_modifiers))}
+        return mod_list_dict_id
+
+
 def get_item_modifiers() -> Tuple[ItemModifier, ...]:
     """
     Get all valid Item Modifiers (affixes) from the PoE API
     """
-    json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-    items = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
-    return items
+    global mod_list
+    if mod_list:
+        return mod_list
+    else:
+        json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
+        items = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
+        mod_list = items
+        return items
 
 
 def find_latest_update():

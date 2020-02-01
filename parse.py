@@ -12,7 +12,8 @@ from colorama import Fore, deinit, init
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
 from models.Item import Item
-from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_GUI, USE_HOTKEYS
+from utils import config
+from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_HOTKEYS
 from utils.currency import (
     CATALYSTS,
     CURRENCY,
@@ -26,7 +27,7 @@ from utils.currency import (
     SCARABS,
     VIALS,
 )
-from utils.exceptions import InvalidAPIResponseException
+from utils.exceptions import InvalidAPIResponseException, NotFoundException
 from utils.input import Keyboard, get_clipboard
 from utils.trade import (
     exchange_currency,
@@ -462,7 +463,7 @@ def search_item(j, league):
         # If we have legitimately run out of stats...
         # Then this item can not be found.
         # TODO: Figure out why it can't find anything...
-        raise InvalidAPIResponseException
+        raise NotFoundException
 
     else:  # Any time we ignore stats.
         res = query_item(j, league)
@@ -899,7 +900,7 @@ def price_item(text):
 
                     # Print the pretty string, ignoring trailing comma
                     print(f"[$] Price: {print_string[:-2]}\n\n")
-                    if USE_GUI:
+                    if config.USE_GUI:
                         priceList = prices
                         # Get difference between current time and posted time in timedelta format
                         times = [
@@ -948,7 +949,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        if USE_GUI:
+                        if config.USE_GUI:
                             gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -965,19 +966,23 @@ def price_item(text):
                         price_vals = [[str(price_val) + price_curr]]
 
                         print("[!] Not enough data to confidently price this item.")
-                        if USE_GUI:
+                        if config.USE_GUI:
                             gui.show_price(price, price_vals, time, True)
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
                         print("[!] Not enough data to confidently price this item.")
-                        if USE_GUI:
+                        if config.USE_GUI:
                             gui.show_not_enough_data()
 
             elif trade_info is not None:
                 print("[!] No results!")
-                print("[!] Not enough data to confidently price this item.")
-                if USE_GUI:
+                if config.USE_GUI:
                     gui.show_not_enough_data()
+
+    except NotFoundException as e:
+        print("[!] No results!")
+        if config.USE_GUI:
+            gui.show_not_enough_data()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
@@ -1037,6 +1042,54 @@ def watch_keyboard(keyboard, use_hotkeys):
     keyboard.start()
 
 
+def search_ninja_base(text):
+    info = parse_item_info(text)
+    influence = None
+    if any(i == True for i in info["influenced"].values()):
+        if info["influenced"]["shaper"]:
+            influence = "shaper"
+        elif info["influenced"]["elder"]:
+            influence = "elder"
+        elif info["influenced"]["crusader"]:
+            influence = "crusader"
+        elif info["influenced"]["warlord"]:
+            influence = "warlord"
+        elif info["influenced"]["redeemer"]:
+            influence = "redeemer"
+        elif info["influenced"]["hunter"]:
+            influence = "hunter"
+
+    ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
+
+    base = info["itype"] if info["itype"] != None else info["base"]
+
+    print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
+    result = None
+    try:
+        result = next(
+            item
+            for item in NINJA_BASES
+            if (
+                item["base"] == base
+                and (
+                    (influence == None and item["influence"] == None)
+                    or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+                )
+                and ilvl == item["ilvl"]
+            )
+        )
+    except StopIteration:
+        print("[!] Could not find the requested item.")
+        if config.USE_GUI:
+            gui.show_not_enough_data()
+
+    if result != None:
+        price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
+        currency = "ex" if result["exalt"] >= 1 else "chaos"
+        print(f"[$] Price: {price} {currency}")
+        if config.USE_GUI:
+            gui.show_base_result(base, influence, ilvl, price, currency)
+
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
@@ -1074,48 +1127,7 @@ def hotkey_handler(keyboard, hotkey):
         wiki_lookup(text, info)
 
     elif hotkey == "alt+c":
-        info = parse_item_info(text)
-        influence = None
-        if any(i == True for i in info["influenced"].values()):
-            if info["influenced"]["shaper"]:
-                influence = "shaper"
-            elif info["influenced"]["elder"]:
-                influence = "elder"
-            elif info["influenced"]["crusader"]:
-                influence = "crusader"
-            elif info["influenced"]["warlord"]:
-                influence = "warlord"
-            elif info["influenced"]["redeemer"]:
-                influence = "redeemer"
-            elif info["influenced"]["hunter"]:
-                influence = "hunter"
-
-        ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
-
-        base = info["itype"] if info["itype"] != None else info["base"]
-
-        print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
-        result = None
-        try:
-            result = next(
-                item
-                for item in NINJA_BASES
-                if (
-                    item["base"] == base
-                    and (
-                        (influence == None and item["influence"] == None)
-                        or (influence != None and item["influence"] != None and influence == item["influence"].lower())
-                    )
-                    and ilvl == item["ilvl"]
-                )
-            )
-        except StopIteration:
-            print("[!] Could not find the requested item.")
-
-        if result != None:
-            price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
-            currency = "ex" if result["exalt"] >= 1 else "chaos"
-            print(f"[$] Price: {price} {currency}")
+        search_ninja_base(text)
 
     else:  # alt+d, ctrl+c
         price_item(text)
@@ -1123,6 +1135,12 @@ def hotkey_handler(keyboard, hotkey):
 
 # This is necessary to do Unit Testing, needs to be GLOBAL
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = get_item_modifiers()
+
+def create_gui():
+    global gui
+    from utils.gui import Gui
+    gui = Gui()
+    gui.wait()
 
 if __name__ == "__main__":
     find_latest_update()
@@ -1147,11 +1165,8 @@ if __name__ == "__main__":
         watch_keyboard(keyboard, USE_HOTKEYS)
 
         try:
-            if USE_GUI:
-                from utils.gui import Gui
-
-                gui = Gui()
-                gui.wait()
+            if config.USE_GUI:
+                create_gui()
             else:
                 keyboard.wait()
         except KeyboardInterrupt:
@@ -1161,3 +1176,4 @@ if __name__ == "__main__":
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
+
