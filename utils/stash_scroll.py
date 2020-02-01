@@ -19,7 +19,6 @@ if os.name == "nt" and STASHTAB_SCROLLING:
     class PoEScrollStash():
         def __init__(self):
             super(PoEScrollStash, self).__init__()
-            self.daemon = True
             self.enabled = False
             self.keyboard_hook = None
             self.mouse_hook = None
