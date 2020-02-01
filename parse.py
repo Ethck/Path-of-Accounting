@@ -63,81 +63,82 @@ def parse_item_info(text: str) -> Item:
 
     ilevel = 0
     corrupted = False
+    base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
+    raw_sockets = ''
+    mirrored = False
+    mod_index = 0
+    anointed = False
 
-    if rarity in ('normal', 'magic', 'rare', 'unique'):
-        base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
-        raw_sockets = ''
-        mirrored = False
-        mod_index = 0
-        anointed = False
-        for i, region in enumerate(item_list):
-            first_line = region[0]
-            if first_line.startswith('Requirements:'):
-                continue  # we ignore this for pricing
-            elif first_line.startswith('Sockets'):
-                raw_sockets = first_line.lstrip('Sockets: ')
-            elif first_line == 'Corrupted':
-                corrupted = True
-            elif first_line == 'Mirrored':
-                mirrored = True
-            elif first_line.startswith('Item Level'):
-                ilevel = first_line.lstrip('Item Level: ')
-                mod_index += i + 1  # Start of mod section
-            elif first_line.count(' ') == 1 and first_line.endswith('Item'):
-                influence = []
-                for line in item_list[-1]:
-                    influence.append(line.strip(' Item').lower())
-            elif first_line.startswith('Allocates'):
-                # get anoint
-                mod_index += 1
-                anointed = True
-            elif first_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
-                rarity = 'map'
-                tier = int(item_list[1][0][10:])
-                corrupted = True if item_list[-1][0] == 'corrupted' else False
-                return Item(rarity=rarity, name=name, quality=quality, iLevel=tier, corrupted=corrupted)
-            elif first_line == 'Right-click to add this prophecy to your character.':
-                rarity = 'prophecy'
-                return Item(rarity=rarity, name=name)
-            elif first_line.startswith('Can be used in a personal Map Device.'):
-                rarity = 'fragment'  # and scarabs
-                return Item(rarity=rarity, name=name)
-            elif first_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
-                rarity = 'metamorph'
-                return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
-            elif first_line.startswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
-                pass  # TODO: handle flasks
+    for i, region in enumerate(item_list):
+        first_line = region[0]
+        if first_line.startswith('Requirements:'):
+            continue  # we ignore this for pricing
+        elif rarity in ('currency', 'divination card'):
+            return Item(rarity=rarity, name=name)
+        elif rarity == 'gem':
+            level = [int(line.strip(' (Max)')[7:]) for line in item_list[1] if line.startswith('Level')][0]
+            corrupted = item_list[-1] == 'Corrupted'
+            return Item(rarity=rarity, name=name, quality=quality, iLevel=level, corrupted=corrupted)
+        elif first_line.startswith('Sockets'):
+            raw_sockets = first_line.lstrip('Sockets: ')
+        elif first_line == 'Corrupted':
+            corrupted = True
+        elif first_line == 'Mirrored':
+            mirrored = True
+        elif first_line.startswith('Item Level'):
+            ilevel = first_line.lstrip('Item Level: ')
+            mod_index += i + 1  # Start of mod section
+        elif first_line.count(' ') == 1 and first_line.endswith('Item'):
+            influence = []
+            for line in item_list[-1]:
+                influence.append(line.strip(' Item').lower())
+        elif first_line.startswith('Allocates'):
+            # get anoint
+            mod_index += 1
+            anointed = True
+        elif first_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
+            rarity = 'map'
+            tier = int(item_list[1][0][10:])
+            corrupted = True if item_list[-1][0] == 'corrupted' else False
+            return Item(rarity=rarity, name=name, quality=quality, iLevel=tier, corrupted=corrupted)
+        elif first_line == 'Right-click to add this prophecy to your character.':
+            rarity = 'prophecy'
+            return Item(rarity=rarity, name=name)
+        elif first_line.startswith('Can be used in a personal Map Device.'):
+            rarity = 'fragment'  # and scarabs
+            return Item(rarity=rarity, name=name)
+        elif first_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
+            rarity = 'metamorph'
+            return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
+        elif first_line.startswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
+            pass  # TODO: handle flasks
 
-        end_region_count = mirrored + corrupted + len(influence)
-        mod_count = (len(item_list) - end_region_count) - mod_index + anointed
-        mod_regions = region[mod_index:mod_index + mod_count]  # get the mod blocks
-        if rarity == 'normal':
-            for region in mod_regions:
-                if region[0].endswith('(implicit)'):
-                    continue  # get implicit mods
-                else:
-                    continue  # get enchantments
-        elif rarity in ('magic', 'rare'):
-            mod_length = len(mod_regions)
-            if mod_length == 3:
-                enchant, implicit, explicit = mod_regions
-            elif mod_length == 2:
-                if mod_regions[0][0].endswith('(implicit)'):
-                    implicit, explicit = mod_regions
-                else:
-                    enchant, explicit = mod_regions
+    end_region_count = mirrored + corrupted + len(influence)
+    mod_count = (len(item_list) - end_region_count) - mod_index + anointed
+    mod_regions = region[mod_index:mod_index + mod_count]  # get the mod blocks
+    if rarity == 'normal':
+        for region in mod_regions:
+            if region[0].endswith('(implicit)'):
+                continue  # get implicit mods
             else:
-                [explicit] = mod_regions
+                continue  # get enchantments
+    elif rarity in ('magic', 'rare'):
+        mod_length = len(mod_regions)
+        if mod_length == 3:
+            enchant, implicit, explicit = mod_regions
+        elif mod_length == 2:
+            if mod_regions[0][0].endswith('(implicit)'):
+                implicit, explicit = mod_regions
+            else:
+                enchant, explicit = mod_regions
         else:
-            pass  # TODO: deal with flavour text
-        stats = item_list[1] if quality == 0 else item_list[1][-1:]
-        return Item(rarity, name, base, quality, stats, raw_sockets, ilevel, [], corrupted, mirrored, influence)
-    elif rarity in ('currency', 'divination card'):
-        return Item(rarity=rarity, name=name)
-    elif rarity == 'gem':
-        level = [int(line.strip(' (Max)')[7:]) for line in item_list[1] if line.startswith('Level')][0]
-        corrupted = item_list[-1] == 'Corrupted'
-        return Item(rarity=rarity, name=name, quality=quality, iLevel=level, corrupted=corrupted)
+            [explicit] = mod_regions
+    else:
+        pass  # TODO: deal with flavour text
+    stats = item_list[1] if quality == 0 else item_list[1][-1:]
+    return Item(rarity, name, base, quality, stats, raw_sockets, ilevel, [], corrupted, mirrored, influence)
+
+
 
 
 #        iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
