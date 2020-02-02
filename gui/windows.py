@@ -1,5 +1,6 @@
 
-from gui.gui import DisplayWindow, ActiveWindow
+from gui.gui import DisplayWindow, ActiveWindow, init_gui
+from utils.config import USE_GUI, TIMEOUT_GUI
 
 import tkinter
 import re
@@ -222,10 +223,10 @@ class AdvancedSearch(ActiveWindow):
 
 
 
-
-
-priceInformation = PriceInformation()
-advancedSearch = AdvancedSearch()
+if USE_GUI:
+    init_gui()
+    priceInformation = PriceInformation()
+    advancedSearch = AdvancedSearch()
 
 
 if __name__ == "__main__":

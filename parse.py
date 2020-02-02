@@ -38,8 +38,8 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-from gui.gui import check_timeout_gui, destroy_gui, init_ui
-from gui.windows import priceInformation, advancedSearch
+from gui.gui import check_timeout_gui, destroy_gui
+from gui.windows import PriceInformation, priceInformation, advancedSearch
 import webbrowser
 
 DEBUG = False
@@ -1190,7 +1190,9 @@ def hotkey_handler(keyboard, hotkey):
 # This is necessary to do Unit Testing, needs to be GLOBAL
 ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = get_item_modifiers()
 
+
 if __name__ == "__main__":
+
     find_latest_update()
 
     init(autoreset=True)  # Colorama
@@ -1212,8 +1214,6 @@ if __name__ == "__main__":
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
 
-        if config.USE_GUI:
-            init_ui()
         try:
             while True:
                 keyboard.poll()
@@ -1228,4 +1228,3 @@ if __name__ == "__main__":
         destroy_gui()
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
-

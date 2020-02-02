@@ -9,7 +9,7 @@ if os.name == "nt":
     import win32com.client
     import win32gui
 
-#from utils.config import USE_GUI, TIMEOUT_GUI
+from utils.config import USE_GUI, TIMEOUT_GUI
 
 def windowToFront(root):
     # This is necessary for displaying the GUI window above active window(s) on the Windows OS
@@ -39,7 +39,7 @@ def get_foreground_window():
     return 0
 
 
-def init_ui():
+def init_gui():
     tk = tkinter.Tk().withdraw()
 
 components = []
@@ -82,7 +82,7 @@ class DisplayWindow:
 
     def should_close(self):
         self.elapsed = time.time() - self.opened
-        if self.elapsed >= int(3):
+        if self.elapsed >= int(TIMEOUT_GUI):
             elapsed = 0
             self.close()
 
