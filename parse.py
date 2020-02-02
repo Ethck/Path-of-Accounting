@@ -34,6 +34,7 @@ from utils.trade import (
     fetch,
     find_latest_update,
     get_item_modifiers,
+    get_item_modifiers_by_text,
     get_leagues,
     get_ninja_bases,
     query_item,
@@ -50,6 +51,9 @@ def parse_item_info(text: str) -> Item:
     # TODO: test if poe item
     # TODO: synthesis items
     # TODO: blight maps
+    # TODO: stats
+    all_mods = get_item_modifiers_by_text()
+
     item_list = text.split('--------')
     for i, region in enumerate(item_list):
         item_list[i] = region.strip().splitlines()
@@ -63,12 +67,12 @@ def parse_item_info(text: str) -> Item:
             break
 
     ilevel = 0
+    modifiers = []
     corrupted = False
     base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
     raw_sockets = ''
     mirrored = False
     mod_index = 0
-    anointed = False
 
     for i, region in enumerate(item_list):
         first_line = region[0]
@@ -94,9 +98,7 @@ def parse_item_info(text: str) -> Item:
             for line in item_list[-1]:
                 influence.append(line.strip(' Item').lower())
         elif first_line.startswith('Allocates'):
-            # get anoint
-            mod_index += 1
-            anointed = True
+            continue # TODO: anoint
         elif first_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
             rarity = 'map'
             tier = int(item_list[1][0][10:])
@@ -113,39 +115,33 @@ def parse_item_info(text: str) -> Item:
             return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
         elif first_line.endswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
             pass  # TODO: handle flasks
-
-    end_region_count = mirrored + corrupted + (len(influence)>0)
-
-    flavoured = True
-    if rarity == 'unique':
-        region = len(item_list)[-(end_region_count+1):-end_region_count]
-        for line in region:
-            if re.search('\d', line):
-                flavoured = False;
-
-    end_region_count += flavoured
-    mod_count = (len(item_list) - end_region_count) - mod_index + anointed
-    mod_regions = region[mod_index:mod_index + mod_count]  # get the mod blocks
-
-    if rarity == 'normal':
-        for region in mod_regions:
-            if region[0].endswith('(implicit)'):
-                continue  # get implicit mods
-            else:
-                continue  # get enchantments
-    else:
-        mod_length = len(mod_regions)
-        if mod_length == 3:
-            enchant, implicit, explicit = mod_regions
-        elif mod_length == 2:
-            if mod_regions[0][0].endswith('(implicit)'):
-                implicit, explicit = mod_regions
-            else:
-                enchant, explicit = mod_regions
         else:
-            [explicit] = mod_regions
-    stats = item_list[1] if quality == 0 else item_list[1][-1:]
-    return Item(rarity, name, base, quality, stats, raw_sockets, ilevel, [], corrupted, mirrored, influence)
+            for line in region: # todo: remove numbers from mods and store as values
+                item_type = ItemModifierType.IMPLICIT
+                if line.endswith('(implicit)'):
+                    item_type = ItemModifierType.IMPLICIT
+                    line = line.lstrip(' (implicit)')
+                    mod = all_mods.get((line, item_type))  # get a mod
+                    if mod is not None:
+                        modifiers.append(mod)
+                elif line.endswith(' (crafted)'):
+                    item_type = ItemModifierType.CRAFTED
+                    line = line.lstrip(' (implicit)')
+                    mod = all_mods.get((line, item_type))  # get a mod
+                    if mod is not None:
+                        modifiers.append(mod)
+                else:
+                    item_type = ItemModifierType.ENCHANT
+                    mod = all_mods.get((line, item_type))  # get a mod
+                    if mod is not None:
+                        modifiers.append(mod)
+                    else:
+                        item_type = ItemModifierType.EXPLICIT
+                        mod = all_mods.get((line, item_type))  # get a mod
+                        if mod is not None:
+                            modifiers.append(mod)
+
+    return Item(rarity, name, base, quality, [], raw_sockets, ilevel, modifiers, corrupted, mirrored, influence)
 
 
 

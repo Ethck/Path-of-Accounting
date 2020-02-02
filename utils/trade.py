@@ -16,6 +16,7 @@ mod_list = []
 mod_list_dict_id = {}
 mod_list_dict_text = {}
 
+
 def exchange_currency(query: dict, league: str) -> dict:
     """
     :param query: A JSON query to send to the currency trade api
@@ -99,7 +100,7 @@ def get_item_modifiers_by_text() -> dict:
         return mod_list_dict_text
     else:
         item_modifiers = get_item_modifiers()
-        mod_list_dict_text = {item_modifiers[i]["id"]: i for i in range(len(item_modifiers))}
+        mod_list_dict_text = {(item_modifiers[i].text, item_modifiers[i].type): item_modifiers[i] for i in range(len(item_modifiers))}
         return mod_list_dict_text
 
 
@@ -109,7 +110,7 @@ def get_item_modifiers_by_id() -> dict:
         return mod_list_dict_id
     else:
         item_modifiers = get_item_modifiers()
-        mod_list_dict_id = {item_modifiers[i]["id"]: i for i in range(len(item_modifiers))}
+        mod_list_dict_id = {item_modifiers[i].id: item_modifiers[i] for i in range(len(item_modifiers))}
         return mod_list_dict_id
 
 

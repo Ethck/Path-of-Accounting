@@ -18,7 +18,7 @@ class Item:
     iLevel: int = 0
 
     # TODO: support map IIQ, IIR, pack size
-    modifiers: [ItemModifier] = []
+    modifiers: [(ItemModifier, str)] = []
     corrupted: bool = False
     mirrored: bool = False
 
