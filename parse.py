@@ -38,13 +38,12 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-from gui.UI import priceInfo, noResult, selectSearch, showBaseResults
-from gui.guiComponent import check_timeout_gui, destroy_gui, init_ui
+from gui.gui import check_timeout_gui, destroy_gui, init_ui
+from gui.windows import priceInformation, advancedSearch
 import webbrowser
 
 DEBUG = False
 
-ADV_SEARCH_TEST = False
 
 def parse_item_info(text: str) -> Dict:
     """
@@ -877,14 +876,13 @@ def price_item(text):
 
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
                 
+                """
                 #TODO This needs to be its own hotkey, I will change this when Df010 is done with his item class
-                if config.USE_GUI and ADV_SEARCH_TEST:
-                    selectSearch.add_info(info)
-                    selectSearch.create_at_cursor()
-                    selectSearch.run()
-                    if selectSearch.searched:
-                        info = selectSearch.info
-                        selectSearch.searched = False
+                if config.USE_GUI:
+                    advancedSearch.add_item_info(info)
+                    advancedSearch.create_at_cursor()
+                    advancedSearch.run()
+                """
                 
 
                 json = build_json_official(
@@ -907,13 +905,16 @@ def price_item(text):
                         )
                     },
                 )
+                
+                """
                 if config.USE_GUI:
-                    if selectSearch.openTrade:
-                        j = query_item(json, LEAGUE)
-                        selectSearch.openTrade = False
-                        selectSearch.searched = False
-                        url = f"https://www.pathofexile.com/trade/search/{LEAGUE}/" + j["id"]
-                        webbrowser.open(url)
+                if selectSearch.openTrade:
+                    j = query_item(json, LEAGUE)
+                    selectSearch.openTrade = False
+                    selectSearch.searched = False
+                    url = f"https://www.pathofexile.com/trade/search/{LEAGUE}/" + j["id"]
+                    webbrowser.open(url)
+                """
             if json != None:
                 trade_info = search_item(json, LEAGUE)
 
@@ -994,8 +995,8 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        priceInfo.add_price_info(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
-                        priceInfo.create_at_cursor()
+                        priceInformation.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
+                        priceInformation.create_at_cursor()
 
                 else:
                     price = trade_info[0]["listing"]["price"]
@@ -1013,24 +1014,27 @@ def price_item(text):
 
                         print("[!] Not enough data to confidently price this item.")
                         if config.USE_GUI:
-                            priceInfo.add_price_info(price, price_vals, time, True)
-                            priceInfo.create_at_cursor()
+                            priceInformation.show_price(price, price_vals, time, True)
+                            priceInformation.create_at_cursor()
 
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
                         print("[!] Not enough data to confidently price this item.")
                         if config.USE_GUI:
-                            noResult.create_at_cursor()
+                            priceInformation.show_not_enought_data()
+                            priceInformation.create_at_cursor()
             elif trade_info is not None:
                 print("[!] No results!")
                 print("[!] Not enough data to confidently price this item.")
                 if config.USE_GUI:
-                    noResult.create_at_cursor()
+                    priceInformation.show_not_enought_data()
+                    priceInformation.create_at_cursor()
 
     except NotFoundException as e:
         print("[!] No results!")
         if config.USE_GUI:
-            noResult.create_at_cursor()
+            priceInformation.show_not_enought_data()
+            priceInformation.create_at_cursor()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
@@ -1105,15 +1109,16 @@ def search_ninja_base(text):
     except StopIteration:
         print("[!] Could not find the requested item.")
         if config.USE_GUI:
-            noResult.create_at_cursor()
+            priceInformation.show_not_enought_data()
+            priceInformation.create_at_cursor()
 
     if result != None:
         price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
         currency = "ex" if result["exalt"] >= 1 else "chaos"
         print(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
-            showBaseResults.add_base_info(base, influence, ilvl, price, currency)
-            showBaseResults.create_at_cursor()
+            priceInformation.add_base_info(base, influence, ilvl, price, currency)
+            priceInformation.create_at_cursor()
 
 
 def watch_keyboard(keyboard, use_hotkeys):
