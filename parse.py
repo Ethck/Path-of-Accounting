@@ -73,9 +73,8 @@ def parse_item_info(text: str) -> Item:
     base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
     raw_sockets = ''
     mirrored = False
-    mod_index = 0
 
-    for i, region in enumerate(item_list):
+    for region in item_list:
         first_line = region[0]
         if first_line.startswith('Requirements:'):
             continue  # we ignore this for pricing
@@ -93,7 +92,6 @@ def parse_item_info(text: str) -> Item:
             mirrored = True
         elif first_line.startswith('Item Level'):
             ilevel = first_line.lstrip('Item Level: ')
-            mod_index += i + 1  # Start of mod section
         elif first_line.count(' ') == 1 and first_line.endswith('Item'):
             influence = []
             for line in item_list[-1]:
