@@ -58,7 +58,7 @@ class DisplayWindow:
     
     def prepare_window(self):
         frame = tkinter.Toplevel()
-        #frame.wm_attributes("-topmost", 1)
+        frame.wm_attributes("-topmost", 1)
         frame.overrideredirect(True)
         frame.option_add("*Font", "courier 12")
         frame.withdraw()
