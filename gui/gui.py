@@ -49,6 +49,7 @@ class DisplayWindow:
         self.elapsed = 0 # Used to see how long the window was open
         self.created = False
         self.prev = None # The Active foreground window before this one
+        self.window_id = 0
         components.append(self)
     
     def prepare_window(self):
@@ -65,15 +66,16 @@ class DisplayWindow:
         self.frame.update()
 
     def close(self, event = None):
+        self.frame.update_idletasks()
+        self.frame.update()
+        if self.window_id == get_foreground_window():
+            set_foreground_window(self.prev)
         self.frame.withdraw()
         if self.created:
             for child in self.frame.winfo_children():
                 child.destroy()
             self.frame.withdraw()
-            self.frame.update_idletasks()
-            self.frame.update()
             self.created = False
-            #set_foreground_window(self.prev)
 
     def should_close(self):
         self.elapsed = time.time() - self.opened
@@ -81,14 +83,13 @@ class DisplayWindow:
             elapsed = 0
             self.close()
 
-
     def add_callbacks(self):
         pass
 
     def create(self, x_cord, y_cord):
         if self.created:
             return
-        #close_all_windows()
+        close_all_windows()
         self.prev = get_foreground_window()
         self.created = True
         self.finalize(x_cord, y_cord)
@@ -96,7 +97,7 @@ class DisplayWindow:
     def create_at_cursor(self):
         if self.created:
             return
-        #close_all_windows()
+        close_all_windows()
         self.prev = get_foreground_window()
         self.created = True
         self.frame.update()
@@ -139,9 +140,11 @@ class DisplayWindow:
         self.frame.deiconify()
         self.frame.geometry(f"+{x_cord}+{y_cord}")
         self.frame.resizable(False, False)
+        self.has_focus = True
         self.frame.update()
         self.add_callbacks()
         self.opened = time.time()
+        self.window_id = get_foreground_window()
 
 class ActiveWindow(DisplayWindow):
     def close(self, event = None):
