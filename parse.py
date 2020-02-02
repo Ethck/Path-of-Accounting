@@ -49,9 +49,10 @@ def parse_item_info(text: str) -> Item:
     Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
     """
     # TODO: test if poe item
-    # TODO: synthesis items
-    # TODO: blight maps
+    # TODO: synthesis items -> Item class
+    # TODO: blight maps -> Item class
     # TODO: stats
+    # TODO: handle veiled items (not veiled mods, these are handled) e.g. Veiled Prefix
     all_mods = get_item_modifiers_by_text()
 
     item_list = text.split('--------')
@@ -98,7 +99,10 @@ def parse_item_info(text: str) -> Item:
             for line in item_list[-1]:
                 influence.append(line.strip(' Item').lower())
         elif first_line.startswith('Allocates'):
-            continue # TODO: anoint
+            for line in region:
+                mod_value = line.lstrip('Allocates ')
+                mod = all_mods.get(('Allocates #', ItemModifierType.ENCHANT))
+                modifiers.append((mod, mod_value))
         elif first_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
             rarity = 'map'
             tier = int(item_list[1][0][10:])
@@ -116,34 +120,35 @@ def parse_item_info(text: str) -> Item:
         elif first_line.endswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
             pass  # TODO: handle flasks
         else:
-            for line in region: # todo: remove numbers from mods and store as values
-                item_type = ItemModifierType.IMPLICIT
-                if line.endswith('(implicit)'):
+            for line in region:
+                mod_value = ','.join(re.findall(r'\d+', line))
+                mod_text = re.sub(r'\d+', '#', line)
+                if mod_text.endswith('(implicit)'):
                     item_type = ItemModifierType.IMPLICIT
-                    line = line.lstrip(' (implicit)')
-                    mod = all_mods.get((line, item_type))  # get a mod
+                    mod_text = mod_text.rstrip(' (implicit)')
+                    mod = all_mods.get((mod_text, item_type))  # get a mod
                     if mod is not None:
-                        modifiers.append(mod)
-                elif line.endswith(' (crafted)'):
+                        modifiers.append((mod, mod_value))
+                elif mod_text.endswith(' (crafted)'):
                     item_type = ItemModifierType.CRAFTED
-                    line = line.lstrip(' (implicit)')
-                    mod = all_mods.get((line, item_type))  # get a mod
+                    mod_text = mod_text.rstrip(' (crafted)')
+                    mod = all_mods.get((mod_text, item_type))  # get a mod
                     if mod is not None:
-                        modifiers.append(mod)
+                        modifiers.append((mod, mod_value))
                 else:
                     item_type = ItemModifierType.ENCHANT
-                    mod = all_mods.get((line, item_type))  # get a mod
+                    if not mod_value:  # trigger X on kill\hit mods
+                        mod_text = '#% chance to '+mod_text
+                    mod = all_mods.get((mod_text, item_type))  # get a mod
                     if mod is not None:
-                        modifiers.append(mod)
+                        modifiers.append((mod, mod_value))
                     else:
                         item_type = ItemModifierType.EXPLICIT
-                        mod = all_mods.get((line, item_type))  # get a mod
+                        mod = all_mods.get((mod_text, item_type))  # get a mod
                         if mod is not None:
-                            modifiers.append(mod)
+                            modifiers.append((mod, mod_value))
 
     return Item(rarity, name, base, quality, [], raw_sockets, ilevel, modifiers, corrupted, mirrored, influence)
-
-
 
 
 #        iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
@@ -167,34 +172,6 @@ def parse_item_info(text: str) -> Item:
 #        map_mods["purifier"] = bool(re.search("Map is occupied by The Purifier", text, re.M))
 
 #        info["maps"] = map_mods
-
-
-        # Find all the affixes
-        m = re.findall(r"Item Level: \d+[\r\n]+--------[\r\n]+(.+)((?:[\r\n]+.+)+)", text)
-
-
-        if m:
-            info["stats"] = []
-            info["stats"].append(m[0][0])
-            info["stats"].extend(m[0][1].split("\n"))
-
-            # Clean up the leftover stuff / Make it useable data
-            if info["stats"][1] == "" and info["stats"][2] == "--------":  # Implicits and enchantments.
-                del info["stats"][1:3]
-            elif "--------" in info["stats"]:
-                pass  # It might have implicits, annointments, and/or enchantments.
-            else:
-                info["stats"] = info["stats"][:-1]
-
-            if "" in info["stats"]:
-                info["stats"].remove("")
-
-            info["stats"] = [stat.strip() for stat in info["stats"]]
-
-    if DEBUG:  # DEBUG
-        print("COMPLETE INFO: ", info)
-
-    return info
 
 
 def build_json_official(
