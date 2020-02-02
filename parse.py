@@ -39,7 +39,7 @@ from utils.trade import (
 )
 from utils.web import open_trade_site, wiki_lookup
 from gui.gui import check_timeout_gui, destroy_gui
-from gui.windows import PriceInformation, priceInformation, advancedSearch
+from gui.windows import priceInformation, advancedSearch
 import webbrowser
 
 DEBUG = False
@@ -1021,19 +1021,19 @@ def price_item(text):
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
                         print("[!] Not enough data to confidently price this item.")
                         if config.USE_GUI:
-                            priceInformation.show_not_enought_data()
+                            priceInformation.show_not_enough_data()
                             priceInformation.create_at_cursor()
             elif trade_info is not None:
                 print("[!] No results!")
                 print("[!] Not enough data to confidently price this item.")
                 if config.USE_GUI:
-                    priceInformation.show_not_enought_data()
+                    priceInformation.show_not_enough_data()
                     priceInformation.create_at_cursor()
 
     except NotFoundException as e:
         print("[!] No results!")
         if config.USE_GUI:
-            priceInformation.show_not_enought_data()
+            priceInformation.show_not_enough_data()
             priceInformation.create_at_cursor()
 
     except InvalidAPIResponseException as e:
@@ -1109,7 +1109,7 @@ def search_ninja_base(text):
     except StopIteration:
         print("[!] Could not find the requested item.")
         if config.USE_GUI:
-            priceInformation.show_not_enought_data()
+            priceInformation.show_not_enough_data()
             priceInformation.create_at_cursor()
 
     if result != None:
