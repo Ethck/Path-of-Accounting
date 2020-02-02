@@ -12,7 +12,8 @@ import parse
 from utils import config
 from tests.mocks import *
 from tests.sampleItems import items
-from gui.guiComponent import destroy_gui, init_ui
+from gui.gui import destroy_gui
+from gui.windows import init_gui
 
 LOOKUP_URL = "https://www.pathofexile.com/api/trade/search/Metamorph"
 EXCHANGE_URL = "https://www.pathofexile.com/api/trade/exchange/Metamorph"
@@ -32,7 +33,7 @@ class TestItemLookup(unittest.TestCase):
     def test_lookups(self):
         # Required to do the gui creation step in tests. We need to
         # create it here, after we patch our python modules.
-        init_ui()
+        init_gui()
       
         # Mockups of response data from pathofexile.com/trade
         expected = [
@@ -194,7 +195,7 @@ class TestItemLookup(unittest.TestCase):
     def test_base_lookups(self):
         # Required to do the gui creation step in tests. We need to
         # create it here, after we patch our python modules.
-        init_ui()
+        init_gui()
 
         # Mock json data for poe.ninja bases
         data = {

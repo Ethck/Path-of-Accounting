@@ -39,7 +39,7 @@ from utils.trade import (
 )
 from utils.web import open_trade_site, wiki_lookup
 from gui.gui import check_timeout_gui, destroy_gui
-from gui.windows import priceInformation, advancedSearch
+from gui.windows import priceInformation, advancedSearch, init_gui
 import webbrowser
 
 DEBUG = False
@@ -1117,7 +1117,7 @@ def search_ninja_base(text):
         currency = "ex" if result["exalt"] >= 1 else "chaos"
         print(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
-            priceInformation.add_base_info(base, influence, ilvl, price, currency)
+            priceInformation.show_base_result(base, influence, ilvl, price, currency)
             priceInformation.create_at_cursor()
 
 
@@ -1213,6 +1213,9 @@ if __name__ == "__main__":
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
+
+        if config.USE_GUI:
+            init_gui()
 
         try:
             while True:

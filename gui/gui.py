@@ -38,10 +38,6 @@ def get_foreground_window():
         return win32gui.GetForegroundWindow()
     return 0
 
-
-def init_gui():
-    tk = tkinter.Tk().withdraw()
-
 components = []
 
 
@@ -53,7 +49,6 @@ class DisplayWindow:
         self.elapsed = 0 # Used to see how long the window was open
         self.created = False
         self.prev = None # The Active foreground window before this one
-        self.prepare_window()
         components.append(self)
     
     def prepare_window(self):
