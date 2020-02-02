@@ -1,8 +1,10 @@
-import tkinter
-import re
-from functools import partial
 
 from gui.gui import DisplayWindow, ActiveWindow
+
+import tkinter
+import re
+import time
+from functools import partial
 
 class PriceInformation(DisplayWindow):
 
@@ -224,3 +226,12 @@ class AdvancedSearch(ActiveWindow):
 
 priceInformation = PriceInformation()
 advancedSearch = AdvancedSearch()
+
+
+if __name__ == "__main__":
+    init_ui()
+    test = PriceInformation()
+    test.show_not_enough_data()
+    test.create_at_cursor()
+    time.sleep(2)
+    #test.close()
