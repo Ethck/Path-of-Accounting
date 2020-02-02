@@ -283,5 +283,5 @@ def start_stash_scroll():
         p.start()
 def stop_stash_scroll():
     if os.name == "nt" and STASHTAB_SCROLLING:
-        keyboard.disable_hook()
+        kb_macro.disable_hook()
         p.terminate()
