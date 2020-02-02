@@ -1231,3 +1231,4 @@ if __name__ == "__main__":
         destroy_gui()
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
+        

@@ -66,7 +66,6 @@ class DisplayWindow:
         self.frame.update()
 
     def close(self, event = None):
-        self.frame.update_idletasks()
         self.frame.update()
         if self.window_id == get_foreground_window():
             set_foreground_window(self.prev)
@@ -75,6 +74,7 @@ class DisplayWindow:
             for child in self.frame.winfo_children():
                 child.destroy()
             self.frame.withdraw()
+            self.frame.destory()
             self.created = False
 
     def should_close(self):
@@ -179,16 +179,4 @@ def check_timeout_gui():
 def destroy_gui():
     for x in components:
         x.destory()
-
-
-if __name__ == "__main__":
-    init_ui()
-    test = DisplayWindow()
-
-    tkinter.Frame(test.frame, bg="#1f1f1f").place(relwidth=1, relheight=1)
-
-    tkinter.Label(test.frame, text="   ", bg="#0d0d0d").grid(column=0, row=0, columnspan=3, sticky="w" + "e")
-
-    test.create_at_cursor()
-    time.sleep(2)
-    #test.close()
+        
