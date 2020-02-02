@@ -5,6 +5,19 @@ from tkinter import TclError
 
 import pyperclip
 
+import os
+from utils.config import STASHTAB_SCROLLING
+if os.name == "nt" and STASHTAB_SCROLLING:
+    import win32con
+    import ctypes
+    import atexit
+    import sys
+    from ctypes import *
+    from ctypes.wintypes import DWORD, WPARAM, LPARAM, ULONG, POINT
+    from multiprocessing import Process
+    from win32gui import GetWindowText, GetForegroundWindow
+
+
 is_keyboard_module_available = False
 try:
     # This will raise error in case user is not running as root
@@ -112,6 +125,12 @@ class Keyboard:
         self.clipboard_watcher = None
         self.clipboard_callback = None
 
+        # For Stashtab Scrolling
+        self.enabled = False
+        self.keyboard_hook = None
+        self.mouse_hook = None
+        self.ctrl_pressed = False
+
         if is_pyinput_module_available:
             self.controller = Controller()
             self.listener = None
@@ -182,3 +201,87 @@ class Keyboard:
             elif len(keys) == 1:
                 safe_press(self.controller, keys[0])
                 safe_press(self.controller, keys[0], False)
+
+    
+    def enable_hook(self, keyboard_callback, mouse_callback):
+        if self.enabled:
+            return
+        self.enabled = True
+        self.keyboard_hook = windll.user32.SetWindowsHookExA(win32con.WH_KEYBOARD_LL, keyboard_callback, windll.kernel32.GetModuleHandleW(None),0)
+        self.mouse_hook = windll.user32.SetWindowsHookExA(win32con.WH_MOUSE_LL, mouse_callback, windll.kernel32.GetModuleHandleW(None),0)
+        atexit.register(windll.user32.UnhookWindowsHookEx, self.keyboard_hook)
+        atexit.register(windll.user32.UnhookWindowsHookEx, self.mouse_hook)
+    def disable_hook(self):
+        if not self.enabled:
+            return
+        self.enabled = False
+        windll.user32.UnhookWindowsHookEx(self.keyboard_hook)
+        windll.user32.UnhookWindowsHookEx(self.mouse_hook)
+        self.keyboard_hook = None
+        self.mouse_hook = None
+    def run_stash_macro(self):
+        while self.enabled:
+            try:
+                msg = ctypes.wintypes.MSG()
+                windll.user32.GetMessageA(byref(msg), 0, 0, 0)
+                windll.user32.TranslateMessage(msg)
+                windll.user32.DispatchMessageA(msg)
+            except:
+                pass
+        disable()
+
+
+if os.name == "nt" and STASHTAB_SCROLLING:
+
+    class KBDLLHOOKSTRUCT(Structure): _fields_=[('vkCode',DWORD),('scanCode',DWORD),('flags',DWORD),('time',DWORD),('dwExtraInfo',ULONG)]
+    kb_macro = Keyboard()
+    def keyboard_callback(ncode, wparam, lparam):
+        if ncode < 0:
+            return windll.user32.CallNextHookEx(kb_macro.keyboard_hook, ncode, wparam, lparam)
+        if GetWindowText(GetForegroundWindow()) == "Path of Exile":
+            key = KBDLLHOOKSTRUCT.from_address(lparam)
+            if key.vkCode == win32con.VK_LCONTROL:
+                if wparam == win32con.WM_KEYDOWN:
+                    kb_macro.ctrl_pressed = True
+                elif wparam == win32con.WM_KEYUP:
+                    kb_macro.ctrl_pressed = False
+        return windll.user32.CallNextHookEx(kb_macro.keyboard_hook, ncode, wparam, lparam)
+
+
+
+    class MSLLHOOKSTRUCT(Structure): _fields_=[('pt',POINT),('mouseData',DWORD),('flags',DWORD),('time',DWORD),('dwExtraInfo',ULONG)]
+
+    def mouse_callback(ncode, wparam, lparam):
+        if ncode < 0:
+            return windll.user32.CallNextHookEx(kb_macro.keyboard_hook, ncode, wparam, lparam)
+        if kb_macro.ctrl_pressed and GetWindowText(GetForegroundWindow()) == "Path of Exile" and wparam == win32con.WM_MOUSEWHEEL:
+            data = MSLLHOOKSTRUCT.from_address(lparam)
+            a = ctypes.c_short(data.mouseData >> 16).value
+            if a > 0: # up
+                    kb_macro.press_and_release("left")
+                    return 1
+            elif a < 0: # down
+                    kb_macro.press_and_release("right")
+                    return 1 
+        return windll.user32.CallNextHookEx(kb_macro.keyboard_hook, ncode, wparam, lparam)
+
+
+    def setup():
+        #                               (this, ncode, wparam, lparam)
+        c_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, WPARAM, LPARAM)
+        kc = c_func(keyboard_callback)
+        mc = c_func(mouse_callback)
+        kb_macro.enable_hook(kc,mc)
+        kb_macro.run_stash_macro()
+
+    
+    p = Process(target=setup, args=())
+
+def start_stash_scroll():
+    if os.name == "nt" and STASHTAB_SCROLLING:
+        p.daemon = True
+        p.start()
+def stop_stash_scroll():
+    if os.name == "nt" and STASHTAB_SCROLLING:
+        keyboard.disable_hook()
+        p.terminate()

@@ -27,7 +27,7 @@ from utils.currency import (
     VIALS,
 )
 from utils.exceptions import InvalidAPIResponseException, NotFoundException
-from utils.input import Keyboard, get_clipboard
+from utils.input import Keyboard, get_clipboard, start_stash_scroll, stop_stash_scroll
 from utils.trade import (
     exchange_currency,
     fetch,
@@ -38,7 +38,7 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-from utils.stash_scroll import start_stash_scroll, stop_stash_scroll
+
 DEBUG = False
 
 
