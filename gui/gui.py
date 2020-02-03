@@ -34,10 +34,6 @@ def check_timeout_gui():
     for x in components:
         x.should_close()
 
-def destroy_gui():
-    for x in components:
-        x.destroy()
-
 class DisplayWindow:
     def __init__(self):
         self.frame = None
@@ -56,19 +52,13 @@ class DisplayWindow:
         frame.withdraw()
         self.frame = frame
 
-    def destroy(self, event = None):
-        self.frame.withdraw()
-        self.frame.destroy()
-        self.frame.update()
 
     def close(self, event = None):
         if self.created:
-            self.frame.update()
             if self.window_id == get_foreground_window():
                 set_foreground_window(self.prev)
             self.frame.withdraw()
-            for child in self.frame.winfo_children():
-                child.destroy()
+            self.frame.destroy()
             self.created = False
 
     def should_close(self):
@@ -80,12 +70,21 @@ class DisplayWindow:
     def add_callbacks(self):
         pass
 
+    def add_components(self):
+        pass
+
     def create(self, x_cord, y_cord):
+        close_all_windows()
+        self.prepare_window()
+        self.add_components()
         self.prev = get_foreground_window()
         self.created = True
         self.finalize(x_cord, y_cord)
 
     def create_at_cursor(self):
+        close_all_windows()
+        self.prepare_window()
+        self.add_components()
         self.prev = get_foreground_window()
         self.created = True
         self.frame.update()
@@ -137,13 +136,12 @@ class DisplayWindow:
 class ActiveWindow(DisplayWindow):
     def close(self, event = None):
         if self.created:
-            for child in self.frame.winfo_children():
-                child.destroy()
             self.frame.unbind('<Escape>')
             self.frame.unbind('<FocusOut>')
             self.frame.quit()
             self.frame.update()
             self.frame.withdraw()
+            self.frame.destroy()
             self.created = False
             set_foreground_window(self.prev)
 

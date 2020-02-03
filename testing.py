@@ -12,7 +12,7 @@ import parse
 from utils import config
 from tests.mocks import *
 from tests.sampleItems import items
-from gui.gui import destroy_gui
+from gui.gui import close_all_windows
 from gui.windows import init_gui
 
 LOOKUP_URL = "https://www.pathofexile.com/api/trade/search/Metamorph"
@@ -181,7 +181,7 @@ class TestItemLookup(unittest.TestCase):
                         )
                     expectedStr = ("%s, " % Fore.WHITE).join(priceList)
                     self.assertTrue(expectedStr in out.getvalue())
-        destroy_gui()
+        close_all_windows()
         
     @patch('tkinter.Tk', TkMock)
     @patch('tkinter.Toplevel', ToplevelMock)
@@ -305,7 +305,7 @@ class TestItemLookup(unittest.TestCase):
             sys.stdout = sys.__stdout__
 
             self.assertTrue(expected[0](out.getvalue()))
-        destroy_gui()
+        close_all_windows()
         
 if __name__ == "__main__":
     init(autoreset=True) # Colorama

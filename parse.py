@@ -38,8 +38,8 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-from gui.gui import check_timeout_gui, destroy_gui
-from gui.windows import priceInformation, init_gui
+from gui.gui import check_timeout_gui, close_all_windows
+from gui.windows import priceInformation, notEnoughInformation, baseResults, init_gui
 import webbrowser
 
 DEBUG = False
@@ -978,7 +978,7 @@ def price_item(text):
                             round(float(price[-1]), 2),
                         ]
 
-                        priceInformation.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
+                        priceInformation.add_price_information(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
                         priceInformation.create_at_cursor()
 
                 else:
@@ -997,27 +997,24 @@ def price_item(text):
 
                         print("[!] Not enough data to confidently price this item.")
                         if config.USE_GUI:
-                            priceInformation.show_price(price, price_vals, time, True)
+                            priceInformation.add_price_information(price, price_vals, time, True)
                             priceInformation.create_at_cursor()
 
                     else:
                         print(f"[$] Price: {Fore.YELLOW}None \n\n")
                         print("[!] Not enough data to confidently price this item.")
                         if config.USE_GUI:
-                            priceInformation.show_not_enough_data()
-                            priceInformation.create_at_cursor()
+                            notEnoughInformation.create_at_cursor()
             elif trade_info is not None:
                 print("[!] No results!")
                 print("[!] Not enough data to confidently price this item.")
                 if config.USE_GUI:
-                    priceInformation.show_not_enough_data()
-                    priceInformation.create_at_cursor()
+                    notEnoughInformation.create_at_cursor()
 
     except NotFoundException as e:
         print("[!] No results!")
         if config.USE_GUI:
-            priceInformation.show_not_enough_data()
-            priceInformation.create_at_cursor()
+            notEnoughInformation.create_at_cursor()
 
     except InvalidAPIResponseException as e:
         print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
@@ -1092,16 +1089,15 @@ def search_ninja_base(text):
     except StopIteration:
         print("[!] Could not find the requested item.")
         if config.USE_GUI:
-            priceInformation.show_not_enough_data()
-            priceInformation.create_at_cursor()
+            notEnoughInformation.create_at_cursor()
 
     if result != None:
         price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
         currency = "ex" if result["exalt"] >= 1 else "chaos"
         print(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
-            priceInformation.show_base_result(base, influence, ilvl, price, currency)
-            priceInformation.create_at_cursor()
+            baseResults.add_base_result(base, influence, ilvl, price, currency)
+            baseResults.create_at_cursor()
 
 
 def watch_keyboard(keyboard, use_hotkeys):
@@ -1211,7 +1207,7 @@ if __name__ == "__main__":
 
         print(f"[!] Exiting, user requested termination.")
 
-        destroy_gui()
+        close_all_windows()
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
         
