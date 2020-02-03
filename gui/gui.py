@@ -87,6 +87,7 @@ class DisplayWindow:
         self.prepare_window()
         self.add_components()
         self.created = True
+        self.frame.deiconify()
         self.frame.update()
         m_x = self.frame.winfo_pointerx()
         m_y = self.frame.winfo_pointery()
