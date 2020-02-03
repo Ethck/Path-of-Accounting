@@ -145,6 +145,8 @@ class Gui:
         Assemble a simple poe.ninja result when searching for the
         worth of an item base, including it's influence and item level.
         """
+
+        self.hide(False)
         self.reset()
 
         masterFrame = tkinter.Frame(self.root, bg="#1f1f1f")
@@ -194,8 +196,7 @@ class Gui:
         priceLabel.grid(column=0, row=row)
 
         self.show()
-        time.sleep(5)
-        self.hide()
+        self.schedule_hide()
 
     def show_not_enough_data(self):
         """
@@ -204,6 +205,7 @@ class Gui:
         item.
         """
 
+        self.hide(False)
         self.reset()
 
         # Setting up Master Frame, only currently used for background color due to grid format.
@@ -218,8 +220,7 @@ class Gui:
         annotation.grid(column=0, row=2)
 
         self.show()
-        time.sleep(5)
-        self.hide()
+        self.schedule_hide()
 
     def show_price(self, price, price_vals, avg_times, not_enough=False):
         """
