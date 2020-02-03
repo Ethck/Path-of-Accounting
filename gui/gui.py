@@ -11,28 +11,14 @@ if os.name == "nt":
 
 from utils.config import USE_GUI, TIMEOUT_GUI
 
-def windowToFront(root):
-    # This is necessary for displaying the GUI window above active window(s) on the Windows OS
-    if os.name == "nt":
-        # In order to prevent SetForegroundWindow from erroring, we must satisfy the requirements
-        # listed here:
-        # https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
-        # We satisfy this by internally sending the alt character so that Windows believes we are
-        # an active window.
-        # We need this pythoncom call for win32com use in a thread.
-        pythoncom.CoInitialize()
-        shell = win32com.client.Dispatch("WScript.Shell")
-        shell.SendKeys("%")
-        try:
-            win32gui.SetForegroundWindow(root.winfo_id())
-        except Exception as e:
-            pass
-
 
 def set_foreground_window(wid):
     if os.name == "nt":
         win32gui.ShowWindow(wid, 5)
-        win32gui.SetForegroundWindow(wid)
+        try: # this might fail if im switching windows a lot, should be safe to ignore it (instead of crashing the program)
+            win32gui.SetForegroundWindow(wid)
+        except Exception as e:
+            pass
 def get_foreground_window():
     if os.name == "nt":
         return win32gui.GetForegroundWindow()
@@ -74,7 +60,6 @@ class DisplayWindow:
             for child in self.frame.winfo_children():
                 child.destroy()
             self.frame.withdraw()
-            self.frame.destory()
             self.created = False
 
     def should_close(self):
@@ -136,7 +121,7 @@ class DisplayWindow:
         self.finalize(m_x,m_y)
 
     def finalize(self, x_cord, y_cord):
-        windowToFront(self.frame)
+        set_foreground_window(self.frame)
         self.frame.deiconify()
         self.frame.geometry(f"+{x_cord}+{y_cord}")
         self.frame.resizable(False, False)
