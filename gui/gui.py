@@ -75,17 +75,17 @@ class DisplayWindow:
 
     def create(self, x_cord, y_cord):
         close_all_windows()
+        self.prev = get_foreground_window()
         self.prepare_window()
         self.add_components()
-        self.prev = get_foreground_window()
         self.created = True
         self.finalize(x_cord, y_cord)
 
     def create_at_cursor(self):
         close_all_windows()
+        self.prev = get_foreground_window()
         self.prepare_window()
         self.add_components()
-        self.prev = get_foreground_window()
         self.created = True
         self.frame.update()
         m_x = self.frame.winfo_pointerx()
