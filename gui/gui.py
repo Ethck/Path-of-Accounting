@@ -26,7 +26,17 @@ def get_foreground_window():
 
 components = []
 
+def close_all_windows():
+    for x in components:
+        x.close()
 
+def check_timeout_gui():
+    for x in components:
+        x.should_close()
+
+def destroy_gui():
+    for x in components:
+        x.destory()
 
 class DisplayWindow:
     def __init__(self):
@@ -52,11 +62,11 @@ class DisplayWindow:
         self.frame.update()
 
     def close(self, event = None):
-        self.frame.update()
-        if self.window_id == get_foreground_window():
-            set_foreground_window(self.prev)
-        self.frame.withdraw()
         if self.created:
+            self.frame.update()
+            if self.window_id == get_foreground_window():
+                set_foreground_window(self.prev)
+            self.frame.withdraw()
             for child in self.frame.winfo_children():
                 child.destroy()
             self.frame.withdraw()
@@ -72,17 +82,11 @@ class DisplayWindow:
         pass
 
     def create(self, x_cord, y_cord):
-        if self.created:
-            return
-        close_all_windows()
         self.prev = get_foreground_window()
         self.created = True
         self.finalize(x_cord, y_cord)
 
     def create_at_cursor(self):
-        if self.created:
-            return
-        close_all_windows()
         self.prev = get_foreground_window()
         self.created = True
         self.frame.update()
@@ -121,7 +125,7 @@ class DisplayWindow:
         self.finalize(m_x,m_y)
 
     def finalize(self, x_cord, y_cord):
-        set_foreground_window(self.frame)
+        set_foreground_window(self.window_id)
         self.frame.deiconify()
         self.frame.geometry(f"+{x_cord}+{y_cord}")
         self.frame.resizable(False, False)
@@ -150,18 +154,4 @@ class ActiveWindow(DisplayWindow):
     def add_callbacks(self):
         self.frame.bind('<Escape>', self.close)
         self.frame.bind("<FocusOut>", self.close)
-
-
-
-def close_all_windows():
-    for x in components:
-        x.close()
-
-def check_timeout_gui():
-    for x in components:
-        x.should_close()
-
-def destroy_gui():
-    for x in components:
-        x.destory()
         

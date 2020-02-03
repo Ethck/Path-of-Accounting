@@ -39,7 +39,7 @@ from utils.trade import (
 )
 from utils.web import open_trade_site, wiki_lookup
 from gui.gui import check_timeout_gui, destroy_gui
-from gui.windows import priceInformation, advancedSearch, init_gui
+from gui.windows import priceInformation, init_gui
 import webbrowser
 
 DEBUG = False
@@ -876,14 +876,6 @@ def price_item(text):
 
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
                 
-                """
-                #TODO This needs to be its own hotkey, I will change this when Df010 is done with his item class
-                if config.USE_GUI:
-                    advancedSearch.add_item_info(info)
-                    advancedSearch.create_at_cursor()
-                    advancedSearch.run()
-                """
-                
 
                 json = build_json_official(
                     **{
@@ -906,15 +898,6 @@ def price_item(text):
                     },
                 )
                 
-                """
-                if config.USE_GUI:
-                if selectSearch.openTrade:
-                    j = query_item(json, LEAGUE)
-                    selectSearch.openTrade = False
-                    selectSearch.searched = False
-                    url = f"https://www.pathofexile.com/trade/search/{LEAGUE}/" + j["id"]
-                    webbrowser.open(url)
-                """
             if json != None:
                 trade_info = search_item(json, LEAGUE)
 

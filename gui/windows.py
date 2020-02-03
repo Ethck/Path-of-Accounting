@@ -1,5 +1,5 @@
 
-from gui.gui import DisplayWindow, ActiveWindow
+from gui.gui import DisplayWindow, ActiveWindow, close_all_windows
 from utils.config import USE_GUI, TIMEOUT_GUI
 
 import tkinter
@@ -14,7 +14,7 @@ class PriceInformation(DisplayWindow):
         Assemble a simple poe.ninja result when searching for the
         worth of an item base, including it's influence and item level.
         """
-
+        close_all_windows()
         masterFrame = tkinter.Frame(self.frame, bg="#1f1f1f")
         masterFrame.place(relwidth=1, relheight=1)
 
@@ -67,7 +67,7 @@ class PriceInformation(DisplayWindow):
         that we were unable to confidently price the current clipboard
         item.
         """
-
+        close_all_windows()
         # Setting up Master Frame, only currently used for background color due to grid format.
         masterFrame = tkinter.Frame(self.frame, bg="#1f1f1f")
         masterFrame.place(relwidth=1, relheight=1)
@@ -84,7 +84,7 @@ class PriceInformation(DisplayWindow):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
-
+        close_all_windows()
         # Setting up Master Frame, only currently used for background color due to grid format.
         masterFrame = tkinter.Frame(self.frame, bg="#1f1f1f")
         masterFrame.place(relwidth=1, relheight=1)
@@ -166,67 +166,11 @@ class PriceInformation(DisplayWindow):
             manualSearchLabel = tkinter.Label(self.frame, text=manualSearchText, bg="#0d0d0d", fg="#e6b800")
             manualSearchLabel.grid(column=0, row=rows_used + 5, columnspan=3)
 
-class AdvancedSearch(ActiveWindow):
-    def search(self, selected):
-        self.searched = True
-        print("You have selected:")
-        values = []
-        for key, value in selected.items():
-            if value.get():
-                values.append(key)
-                print(key)
-        print("                                            ")
-        #self.info["stats"] = values
-        self.close()
-    """
-    def open_trade(self):
-        print("You have selected:")
-        values = []
-        for key, value in self.selected.items():
-            if value.get():
-                values.append(key)
-                print(key)
-        print("                                            ")
-        self.info["stats"] = values
-        self.searched = True
-        self.openTrade = True
-        self.close()
-    """
-    def add_item_info(self, info):
-
-        def hasNumber(string):
-            return re.search('\d', string)
-        j = 2
-        selected = {}
-        for key, value in info.items():
-            if key == "stats":
-                for v in value:
-                    if v == "--------":
-                        continue
-                    if not hasNumber(v):
-                        continue
-                    selected[v] = tkinter.IntVar()
-
-                    cb = tkinter.Checkbutton(self.frame, text=v, variable=selected[v], bg="#1f1f1f", fg="#e6b800")
-                    cb.select()
-                    cb.grid(row=j, column=0, sticky="w")
-                    j = j+1
-                    #lambda: action(someNumber)
-        tkinter.Button(self.frame, text='Search', command=partial(self.search, selected), bg="#1f1f1f", fg="#e6b800").grid(row=j, column=0, sticky="W")
-        #create_button('Search', self.search, j, 0, "WE")
-        #create_button('Open on Trade', self.open_trade, j, 1, "WE")
-        tkinter.Button(self.frame, text='Close', command= self.close, bg="#1f1f1f", fg="#e6b800").grid(row=j, column=0, sticky="E")
-        #create_button('Close', self.stop, j, 2, "WE")
-
-
-
 
 priceInformation = PriceInformation()
-advancedSearch = AdvancedSearch()
 
 def init_gui():
     if USE_GUI:
         tk = tkinter.Tk().withdraw()
         priceInformation.prepare_window()
-        advancedSearch.prepare_window()
         
