@@ -1,6 +1,5 @@
 language: python
 
-
 jobs:
   include:
     - os: linux
