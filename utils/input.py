@@ -43,11 +43,9 @@ class ClipboardWatcher(Thread):
         self.should_process = should_process
         self.pause = pause
         self.stopping = False
-        # Clear the clipboard
-        pyperclip.copy("")
 
     def run(self):
-        prev = ""
+        prev = get_clipboard()
 
         while not self.stopping:
             try:
