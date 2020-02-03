@@ -36,7 +36,7 @@ def check_timeout_gui():
 
 def destroy_gui():
     for x in components:
-        x.destory()
+        x.destroy()
 
 class DisplayWindow:
     def __init__(self):
@@ -56,7 +56,7 @@ class DisplayWindow:
         frame.withdraw()
         self.frame = frame
 
-    def destory(self, event = None):
+    def destroy(self, event = None):
         self.frame.withdraw()
         self.frame.destroy()
         self.frame.update()
@@ -69,7 +69,6 @@ class DisplayWindow:
             self.frame.withdraw()
             for child in self.frame.winfo_children():
                 child.destroy()
-            self.frame.withdraw()
             self.created = False
 
     def should_close(self):
