@@ -75,7 +75,7 @@ class PriceInformation(DisplayWindow):
         """
         self.create_label_dark("", 0, 0, "WE", 4)
         self.create_label_dark("Prices", 0, 0, "E")
-        self.create_label_dark("   ", 1, 0, "WE")
+        self.create_label_dark(" ", 1, 0, "WE")
         self.create_label_dark("Time Listed", 2, 0, "E")
         self.create_label_dark("   Count", 3, 0, "E")
 
@@ -97,9 +97,10 @@ class PriceInformation(DisplayWindow):
                 self.create_label(count, 3, counter + 2, "E")
             counter += 1
 
-        self.create_label_dark("Low:" + str(self.price[0]) + " Avg:" + str(self.price[1]) + " High:" + str(self.price[2]), 
-        0, counter + 3, columnspan=4, sticky="WE")
-
+        self.create_label_dark("", 0, counter + 3, "WE", 4)
+        self.create_label_dark("Low:" + str(self.price[0]), 0, counter + 3, "W")
+        self.create_label_dark("Avg:" + str(self.price[1]), 2, counter + 3, "E")
+        self.create_label_dark("High:" + str(self.price[2]), 3, counter + 3, "E")
 
         if self.not_enough:
             self.create_label_dark("", 0, counter + 4, "WE", 4)
