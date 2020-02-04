@@ -978,16 +978,18 @@ def price_item(text):
                     if config.USE_GUI:
                         priceInformation.add_price_information(price, prices, avg_times, len(trade_info) < MIN_RESULTS)
                         priceInformation.create_at_cursor()
-                if len(trade_info) == 0:
-                    print(f"[$] Price: {Fore.YELLOW}None \n\n")
-                    if config.USE_GUI:
-                        notEnoughInformation.create_at_cursor()
 
-                if len(trade_info) < 2:
-                    print("[!] Not enough data to confidently price this item.")
-                    if config.USE_GUI:
-                        priceInformation.add_price_information(price, prices, avg_times, len(trade_info) < MIN_RESULTS)
-                        priceInformation.create_at_cursor()
+                elif len(trade_info) < 2:
+                    has_price = trade_info[0]["listing"]["price"]
+                    if has_price != None:
+                        print("[!] Not enough data to confidently price this item.")
+                        if config.USE_GUI:
+                            priceInformation.add_price_information(price, prices, avg_times, len(trade_info) < MIN_RESULTS)
+                            priceInformation.create_at_cursor()
+                    else:
+                        print(f"[$] Price: {Fore.YELLOW}None \n\n")
+                        if config.USE_GUI:
+                            notEnoughInformation.create_at_cursor()
             else:
                 print("[!] No results!")
                 if config.USE_GUI:

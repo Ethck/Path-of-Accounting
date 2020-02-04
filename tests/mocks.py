@@ -141,6 +141,9 @@ class TkMockObject:
     def destroy(self):
         pass
 
+    def config(self, *args, **kwargs):
+        pass
+
 # Mock up Tkinter classes
 class TkMock(TkMockObject):
     def __init__(self, *args, **kwargs):

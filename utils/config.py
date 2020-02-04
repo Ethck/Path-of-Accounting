@@ -7,14 +7,20 @@ USE_HOTKEYS = True if config["GENERAL"]["useHotKeys"] == "yes" else False
 
 LEAGUE = config["GENERAL"]["league"]
 
-USE_GUI = True if config["GENERAL"]["useGUI"] == "yes" else False
-
 PROJECT_URL = config["GENERAL"]["projectURL"]
 
 VERSION = config["GENERAL"]["version"]
 
 RELEASE_URL = config["GENERAL"]["releaseURL"]
 
-TIMEOUT_GUI = config["GENERAL"]["timeoutGUI"]
+
+USE_GUI = True if config["GUI"]["useGUI"] == "yes" else False
+TIMEOUT_GUI = config["GUI"]["timeout"]
+GUI_BG1 = config["GUI"]["backgroundColor"]
+GUI_BG2 = config["GUI"]["backgroundColor2"]
+GUI_FONT = config["GUI"]["font"]
+GUI_FONT_SIZE = config["GUI"]["fontSize"]
+GUI_FONT_COLOR = config["GUI"]["fontColor"]
+
 
 MIN_RESULTS = 10
