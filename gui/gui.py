@@ -42,8 +42,18 @@ class DisplayWindow:
         self.created = False
         self.prev = None # The Active foreground window before this one
         self.window_id = 0
+
+        self.bg_color = "#1f1f1f"
+        self.fg_color = "#e6b800"
+        self.bg_color_h = "#0d0d0d"
+
         components.append(self)
     
+    def create_label(self, text, column=0, row=0, sticky="E", columnspan=1):
+        tkinter.Label(self.frame, text=text, bg=self.bg_color, fg=self.fg_color).grid(column=column, row=row, sticky=sticky, columnspan=columnspan)
+    def create_label_dark(self,text,column=0, row=0, sticky="E", columnspan=1):
+        tkinter.Label(self.frame, text=text, bg=self.bg_color_h, fg=self.fg_color).grid(column=column, row=row, sticky=sticky, columnspan=columnspan)
+
     def prepare_window(self):
         frame = tkinter.Toplevel()
         frame.wm_attributes("-topmost", 1)
@@ -63,7 +73,7 @@ class DisplayWindow:
 
     def should_close(self):
         self.elapsed = time.time() - self.opened
-        if self.elapsed >= int(TIMEOUT_GUI):
+        if self.elapsed >= int(10):
             elapsed = 0
             self.close()
 

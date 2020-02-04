@@ -1,12 +1,10 @@
 
 from gui.gui import DisplayWindow, ActiveWindow, close_all_windows
-from utils.config import USE_GUI, TIMEOUT_GUI
+from utils.config import USE_GUI
 
 import tkinter
-import re
-import time
-from functools import partial
-
+import timeago
+import datetime
 
 class BaseResults(DisplayWindow):
     def __init__(self):
@@ -29,20 +27,12 @@ class BaseResults(DisplayWindow):
         Assemble a simple poe.ninja result when searching for the
         worth of an item base, including it's influence and item level.
         """
-        masterFrame = tkinter.Frame(self.frame, bg="#1f1f1f")
-        masterFrame.place(relwidth=1, relheight=1)
 
-        baseLabel = tkinter.Label(self.frame,
-            text="Base: %s" % self.base,
-            bg="#1f1f1f",
-            fg="#e6b800"
-        )
-        baseLabel.grid(column=0, row=0)
+        self.create_label_dark("Base: %s" % self.base, 0, 0, "WE")
 
-        row = 1
+        row = 0
         if self.influence is not None:
             row += 1
-
             conversion = {
                 "elder": "Elder",
                 "shaper": "Shaper",
@@ -51,46 +41,18 @@ class BaseResults(DisplayWindow):
                 "warlord": "Warlord",
                 "hunter": "Hunter"
             }
+            self.create_label_dark("Influence: %s" % conversion[self.influence], 0, row, "WE")
 
-            influenceLabel = tkinter.Label(self.frame,
-                text="Influence: %s" % conversion[self.influence],
-                bg="#1f1f1f",
-                fg="#e6b800"
-            )
-            influenceLabel.grid(column=0, row=row)
-
-        row += 1
-        itemLevelLabel = tkinter.Label(self.frame,
-            text="Item Level: %d" % self.ilvl,
-            bg="#1f1f1f",
-            fg="#e6b800"
-        )
-        itemLevelLabel.grid(column=0, row=row)
-
-        row += 1
-        priceLabel = tkinter.Label(self.frame,
-            text="Price: %d %s" % (self.price, self.currency),
-            bg="#1f1f1f",
-            fg="#e6b800"
-        )
-        priceLabel.grid(column=0, row=row)
+        self.create_label_dark("Item Level: %d" % self.ilvl, 0, row+1, "WE")
+        self.create_label_dark("Price: %d %s" % (self.price, self.currency), 0, row+2, "WE")
 
 class NotEnoughInformation(DisplayWindow):
     def __init__(self):
         super().__init__()
 
     def add_components(self):
-        masterFrame = tkinter.Frame(self.frame, bg="#1f1f1f")
-        masterFrame.place(relwidth=1, relheight=1)
-
-        headerLabel = tkinter.Label(self.frame, text="Not Enough Data", bg="#0d0d0d", fg="#e6b800")
-        headerLabel.grid(column=0, row=1, padx=5)
-
-        displayText = "Could not find enough data to confidently price this item."
-        annotation = tkinter.Label(self.frame, text=displayText, bg="#0d0d0d", fg="#e6b800")
-        annotation.grid(column=0, row=2)
-
-
+        self.create_label_dark("Not Enough Data", 0, 0, "WE")
+        self.create_label_dark("Could not find enough data to confidently price this item.", 0, 1, "WE")
 
 
 class PriceInformation(DisplayWindow):
@@ -111,86 +73,39 @@ class PriceInformation(DisplayWindow):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
-        # Setting up Master Frame, only currently used for background color due to grid format.
-        masterFrame = tkinter.Frame(self.frame, bg="#1f1f1f")
-        masterFrame.place(relwidth=1, relheight=1)
+        self.create_label_dark("", 0, 0, "WE", 4)
+        self.create_label_dark("Prices", 0, 0, "E")
+        self.create_label_dark("   ", 1, 0, "WE")
+        self.create_label_dark("Time Listed", 2, 0, "E")
+        self.create_label_dark("   Count", 3, 0, "E")
 
-        spacerLabel = tkinter.Label(self.frame, text="   ", bg="#0d0d0d")
-        spacerLabel.grid(column=0, row=0, columnspan=3, sticky="w" + "e")
+        counter = 0
+        for price, count in self.price_vals.items():
+            date = datetime.datetime.now()
+            now = datetime.datetime.now() + datetime.timedelta(days=self.avg_times[counter][0], seconds=self.avg_times[counter][1])
+            time = timeago.format(date, now)
 
-        # Setting up header row of labels.
-        bglabel = tkinter.Label(self.frame, bg="#0d0d0d").grid(column=0, row=1, columnspan=3, sticky="w" + "e")
-        headerLabel = tkinter.Label(self.frame, text="Listed Price:", bg="#0d0d0d", fg="#e6b800").grid(column=0, row=1, padx=5)
-        headerLabel2 = tkinter.Label(self.frame, text="Avg. Time Listed:", bg="#0d0d0d", fg="#e6b800").grid(
-            column=2, row=1, padx=5
-        )
-        headerLabel3 = tkinter.Label(self.frame, text="   ", bg="#0d0d0d", fg="#e6b800").grid(column=1, row=1, sticky="w" + "e")
-
-        rows_used = len(self.price_vals)
-
-        for row in range(rows_used):
-            days = self.avg_times[row][0]
-            if days > 0:
-                days = str(days) + " days, "
+            if counter % 2:
+                self.create_label_dark("", 0, counter + 2, "WE", 4)
+                self.create_label_dark(price, 0, counter + 2, "E")
+                self.create_label_dark(time, 2, counter + 2, "E")
+                self.create_label_dark(count, 3, counter + 2, "E")
             else:
-                days = None
+                self.create_label("", 0, counter + 2, "WE", 4)
+                self.create_label(price, 0, counter + 2, "E")
+                self.create_label(time, 2, counter + 2, "E")
+                self.create_label(count, 3, counter + 2, "E")
+            counter += 1
 
-            hours = None
-            if self.avg_times[row][1] > 3600:
-                hours = str(round(self.avg_times[row][1] / 3600, 2)) + " hours"
-            else:
-                hours = "< 1 hour"
+        self.create_label_dark("Low:" + str(self.price[0]) + " Avg:" + str(self.price[1]) + " High:" + str(self.price[2]), 
+        0, counter + 3, columnspan=4, sticky="WE")
 
-            if days is not None:
-                avg_time_text = days + hours
-            else:
-                avg_time_text = hours
-
-            # Alternates row color.
-            if row % 2 == 0:
-                # Needed here because other color is consistent with canvas color.
-                bgAltLabel = tkinter.Label(self.frame, bg="#1a1a1a").grid(column=0, row=2 + row, columnspan=3, sticky="w" + "e")
-                priceLabel = tkinter.Label(self.frame, text=self.price_vals[row], bg="#1a1a1a", fg="#e6b800").grid(
-                    column=0, row=2 + row, sticky="w", padx=5
-                )
-                avgTimeLabel = tkinter.Label(self.frame, text=avg_time_text, bg="#1a1a1a", fg="#e6b800").grid(
-                    column=2, row=2 + row, sticky="w", padx=5
-                )
-            else:
-                priceLabel = tkinter.Label(self.frame, text=self.price_vals[row], bg="#1f1f1f", fg="#e6b800").grid(
-                    column=0, row=2 + row, sticky="w", padx=5
-                )
-                avgTimeLabel = tkinter.Label(self.frame, text=avg_time_text, bg="#1f1f1f", fg="#e6b800").grid(
-                    column=2, row=2 + row, sticky="w", padx=5
-                )
-
-        footerbgLabel = tkinter.Label(self.frame, bg="#0d0d0d").grid(column=0, row=rows_used + 3, columnspan=3, sticky="w" + "e")
-
-        minPriceLabel = tkinter.Label(self.frame, text="Low: " + str(self.price[0]), bg="#0d0d0d", fg="#e6b800")
-        minPriceLabel.grid(column=0, row=rows_used + 3, padx=10)
-
-        avgPriceLabel = tkinter.Label(self.frame, text="Avg: " + str(self.price[1]), bg="#0d0d0d", fg="#e6b800")
-        avgPriceLabel.grid(column=1, row=rows_used + 3, padx=10)
-
-        maxPriceLabel = tkinter.Label(self.frame, text="High: " + str(self.price[2]), bg="#0d0d0d", fg="#e6b800")
-        maxPriceLabel.grid(column=2, row=rows_used + 3, padx=10)
-
-        extrabgLabel = None
-        extrabgLabel2 = None
-        notEnoughLabel = None
-        manualSearchLabel = None
 
         if self.not_enough:
-            extrabgLabel = tkinter.Label(self.frame, bg="#0d0d0d")
-            extrabgLabel.grid(column=0, row=rows_used + 4, columnspan=3, sticky="w" + "e")
-            notEnoughText = "Found limited search results"
-            notEnoughLabel = tkinter.Label(self.frame, text=notEnoughText, bg="#0d0d0d", fg="#e6b800")
-            notEnoughLabel.grid(column=0, row=rows_used + 4, columnspan=3)
-            extrabgLabel2 = tkinter.Label(self.frame, bg="#0d0d0d")
-            extrabgLabel2.grid(column=0, row=rows_used + 5, columnspan=3, sticky="w" + "e")
-            manualSearchText = "Use alt+t to search manually"
-            manualSearchLabel = tkinter.Label(self.frame, text=manualSearchText, bg="#0d0d0d", fg="#e6b800")
-            manualSearchLabel.grid(column=0, row=rows_used + 5, columnspan=3)
+            self.create_label_dark("", 0, counter + 4, "WE", 4)
+            self.create_label_dark("Found limited search results", 0, counter+4, "WE", 4)
+            self.create_label_dark("", 0, counter + 5, "WE", 4)
+            self.create_label_dark("Use alt+t to search manually", 0, counter+5, "WE", 4)
 
 
 priceInformation = PriceInformation()

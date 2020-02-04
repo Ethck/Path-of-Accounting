@@ -903,111 +903,93 @@ def price_item(text):
 
             # If results found
             if trade_info:
-                # If more than 1 result, assemble price list.
-                if len(trade_info) > 1:
-                    # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
-                    prev_account_name = ""
-                    # Modify data to usable status.
-                    prices = []
-                    for trade in trade_info:  # Stop price fixers
-                        if trade["listing"]["account"]["name"] != prev_account_name:
-                            prices.append(trade["listing"]["price"])
+                # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
+                prev_account_name = ""
+                # Modify data to usable status.
+                prices = []
+                for trade in trade_info:  # Stop price fixers
+                    if trade["listing"]["account"]["name"] != prev_account_name:
+                        prices.append(trade["listing"]["price"])
 
-                        prev_account_name = trade["listing"]["account"]["name"]
+                    prev_account_name = trade["listing"]["account"]["name"]
 
-                    prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
+                prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
 
-                    prices = {x: prices.count(x) for x in prices}
-                    print_string = ""
-                    total_count = 0
+                prices = {x: prices.count(x) for x in prices}
+                print_string = ""
+                total_count = 0
 
-                    # Make pretty strings.
-                    for price_dict in prices:
-                        pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
-                        print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
-                        total_count += prices[price_dict]
+                # Make pretty strings.
+                for price_dict in prices:
+                    pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
+                    print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
+                    total_count += prices[price_dict]
 
-                    # Print the pretty string, ignoring trailing comma
-                    print(f"[$] Price: {print_string[:-2]}\n\n")
-                    if config.USE_GUI:
-                        priceList = prices
-                        # Get difference between current time and posted time in timedelta format
-                        times = [
-                            (
-                                datetime.now(timezone.utc)
-                                - datetime.replace(
-                                    datetime.strptime(time["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
-                                    tzinfo=timezone.utc,
-                                )
-                            )
-                            for time in trade_info
-                        ]
-                        # Assign times to proper price values (for getting average later.)
-                        priceTimes = []
-                        total = 0
-                        for price in priceList:
-                            num = priceList[price]
-                            priceTimes.append(times[total : num + total])
-                            total += num
-
-                        avg_times = get_average_times(priceTimes)
-
-                        price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
-
-                        currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
-                        if "mir" in print_string:
-                            currency = "mirror"
-                        elif "exa" in print_string:
-                            currency = "exalt"
-                        elif "chaos" in print_string:
-                            currency = "chaos"
-                        elif "alch" in print_string:
-                            currency = "alchemy"
-
-                        price.sort()
-
-                        # Fastest method for calculating average as seen here:
-                        # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
-                        # TODO average between multiple currencies...
-                        L = [float(n) for n in price if n]
-                        average = str(round(sum(L) / float(len(L)) if L else "-", 2))
-
-                        price = [
-                            round(float(price[0]), 2),
-                            average,
-                            round(float(price[-1]), 2),
-                        ]
-
-                        priceInformation.add_price_information(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
-                        priceInformation.create_at_cursor()
-
-                else:
-                    price = trade_info[0]["listing"]["price"]
-                    if price != None:
-                        price_val = price["amount"]
-                        price_curr = price["currency"]
-                        price = f"{price_val} x {price_curr}"
-                        print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
-                        time = datetime.now(timezone.utc) - datetime.replace(
-                            datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                # Print the pretty string, ignoring trailing comma
+                print(f"[$] Price: {print_string[:-2]}\n\n")
+                priceList = prices
+                # Get difference between current time and posted time in timedelta format
+                times = [
+                    (
+                        datetime.now(timezone.utc)
+                        - datetime.replace(
+                            datetime.strptime(time["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
                             tzinfo=timezone.utc,
                         )
-                        time = [[time.days, time.seconds]]
-                        price_vals = [[str(price_val) + price_curr]]
+                    )
+                    for time in trade_info
+                ]
+                # Assign times to proper price values (for getting average later.)
+                priceTimes = []
+                total = 0
+                for price in priceList:
+                    num = priceList[price]
+                    priceTimes.append(times[total : num + total])
+                    total += num
 
-                        print("[!] Not enough data to confidently price this item.")
-                        if config.USE_GUI:
-                            priceInformation.add_price_information(price, price_vals, time, True)
-                            priceInformation.create_at_cursor()
+                avg_times = get_average_times(priceTimes)
 
-                    else:
-                        print(f"[$] Price: {Fore.YELLOW}None \n\n")
-                        print("[!] Not enough data to confidently price this item.")
-                        if config.USE_GUI:
-                            notEnoughInformation.create_at_cursor()
-            elif trade_info is not None:
+                price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+
+                currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
+                if "mir" in print_string:
+                    currency = "mirror"
+                elif "exa" in print_string:
+                    currency = "exalt"
+                elif "chaos" in print_string:
+                    currency = "chaos"
+                elif "alch" in print_string:
+                    currency = "alchemy"
+
+                price.sort()
+
+                # Fastest method for calculating average as seen here:
+                # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+                # TODO average between multiple currencies...
+                L = [float(n) for n in price if n]
+                average = str(round(sum(L) / float(len(L)) if L else "-", 2))
+
+                price = [
+                    round(float(price[0]), 2),
+                    average,
+                    round(float(price[-1]), 2),
+                ]
+                if len(trade_info) > 1:
+                    if config.USE_GUI:
+                        priceInformation.add_price_information(price, prices, avg_times, len(trade_info) < MIN_RESULTS)
+                        priceInformation.create_at_cursor()
+                if len(trade_info) == 0:
+                    print(f"[$] Price: {Fore.YELLOW}None \n\n")
+                    if config.USE_GUI:
+                        notEnoughInformation.create_at_cursor()
+
+                if len(trade_info) < 2:
+                    print("[!] Not enough data to confidently price this item.")
+                    if config.USE_GUI:
+                        priceInformation.add_price_information(price, prices, avg_times, len(trade_info) < MIN_RESULTS)
+                        priceInformation.create_at_cursor()
+            else:
                 print("[!] No results!")
-                print("[!] Not enough data to confidently price this item.")
                 if config.USE_GUI:
                     notEnoughInformation.create_at_cursor()
 
