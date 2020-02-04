@@ -134,7 +134,7 @@ class DisplayWindow:
         self.finalize(m_x,m_y)
 
     def finalize(self, x_cord, y_cord):
-        set_foreground_window(self.window_id)
+        self.window_id = get_foreground_window()
         self.frame.deiconify()
         self.frame.geometry(f"+{x_cord}+{y_cord}")
         self.frame.resizable(False, False)
@@ -142,7 +142,6 @@ class DisplayWindow:
         self.frame.update()
         self.add_callbacks()
         self.opened = time.time()
-        self.window_id = get_foreground_window()
 
 class ActiveWindow(DisplayWindow):
     def close(self, event = None):

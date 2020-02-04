@@ -74,10 +74,9 @@ class PriceInformation(DisplayWindow):
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
         self.create_label_dark("", 0, 0, "WE", 4)
-        self.create_label_dark("Prices", 0, 0, "E")
-        self.create_label_dark(" ", 1, 0, "WE")
-        self.create_label_dark("Time Listed", 2, 0, "E")
-        self.create_label_dark("   Count", 3, 0, "E")
+        self.create_label_dark("Prices  ", 0, 0, "E")
+        self.create_label_dark("Avg. Time Listed", 1, 0, "E", 2)
+        
 
         counter = 0
         for price, count in self.price_vals.items():
@@ -86,27 +85,25 @@ class PriceInformation(DisplayWindow):
             time = timeago.format(date, now)
 
             if counter % 2:
-                self.create_label_dark("", 0, counter + 2, "WE", 4)
-                self.create_label_dark(price, 0, counter + 2, "E")
-                self.create_label_dark(time, 2, counter + 2, "E")
-                self.create_label_dark(count, 3, counter + 2, "E")
+                self.create_label_dark("", 0, counter + 2, "WE", 3)
+                self.create_label_dark(price + "  ", 0, counter + 2, "E")
+                self.create_label_dark(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
             else:
-                self.create_label("", 0, counter + 2, "WE", 4)
-                self.create_label(price, 0, counter + 2, "E")
-                self.create_label(time, 2, counter + 2, "E")
-                self.create_label(count, 3, counter + 2, "E")
+                self.create_label("", 0, counter + 2, "WE", 3)
+                self.create_label(price + "  ", 0, counter + 2, "E")
+                self.create_label(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
             counter += 1
 
-        self.create_label_dark("", 0, counter + 3, "WE", 4)
+        self.create_label_dark("", 0, counter + 3, "WE", 3)
         self.create_label_dark("Low:" + str(self.price[0]), 0, counter + 3, "W")
-        self.create_label_dark("Avg:" + str(self.price[1]), 2, counter + 3, "E")
-        self.create_label_dark("High:" + str(self.price[2]), 3, counter + 3, "E")
+        self.create_label_dark("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
+        self.create_label_dark("High:" + str(self.price[2]), 2, counter + 3, "E")
 
         if self.not_enough:
-            self.create_label_dark("", 0, counter + 4, "WE", 4)
-            self.create_label_dark("Found limited search results", 0, counter+4, "WE", 4)
-            self.create_label_dark("", 0, counter + 5, "WE", 4)
-            self.create_label_dark("Use alt+t to search manually", 0, counter+5, "WE", 4)
+            self.create_label_dark("", 0, counter + 4, "WE", 3)
+            self.create_label_dark("Found limited search results", 0, counter+4, "WE", 3)
+            self.create_label_dark("", 0, counter + 5, "WE", 3)
+            self.create_label_dark("Use alt+t to search manually", 0, counter+5, "WE", 3)
 
 
 priceInformation = PriceInformation()
