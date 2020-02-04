@@ -73,7 +73,7 @@ class DisplayWindow:
 
     def should_close(self):
         self.elapsed = time.time() - self.opened
-        if self.elapsed >= int(10):
+        if self.elapsed >= int(TIMEOUT_GUI):
             elapsed = 0
             self.close()
 
