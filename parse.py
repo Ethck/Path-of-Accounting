@@ -1,4 +1,3 @@
-import timeit
 import logging
 import sys
 import re

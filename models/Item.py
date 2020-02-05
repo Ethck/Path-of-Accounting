@@ -1,6 +1,5 @@
 import logging
 import copy
-import timeit
 from attr import attrs
 from .item_modifier import ItemModifier
 from utils.trade import get_ninja_bases
