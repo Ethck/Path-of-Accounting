@@ -12,6 +12,7 @@ from models.item_modifier import ItemModifier
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
+NINJA_BASES = []
 
 mod_list = []
 mod_list_dict_id = {}
@@ -183,19 +184,22 @@ def get_ninja_bases():
 
     Returns list[dict]
     """
-    query = requests.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en")
-    tbases = query.json()
+    global NINJA_BASES
+    if not NINJA_BASES:
+        query = requests.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en")
+        tbases = query.json()
 
-    bases = [
-        {
-            "base": b["baseType"],
-            "ilvl": b["levelRequired"],
-            "influence": b["variant"],
-            "corrupted": b["corrupted"],
-            "exalt": b["exaltedValue"],
-            "chaos": b["chaosValue"],
-        }
-        for b in tbases["lines"]
-    ]
+        NINJA_BASES = [
+            {
+                "base": b["baseType"],
+                "ilvl": b["levelRequired"],
+                "influence": b["variant"],
+                "corrupted": b["corrupted"],
+                "exalt": b["exaltedValue"],
+                "chaos": b["chaosValue"],
+                "type": b["itemType"]
+            }
+            for b in tbases["lines"]
+        ]
 
-    return bases
+    return NINJA_BASES

@@ -1,3 +1,4 @@
+import timeit
 import logging
 import sys
 import re
@@ -897,7 +898,9 @@ def price_item(text):
     """
     try:
         item = parse_item_info(text)
-        logging.info("Object parsed: %s" % str(item.__class__.__name__))
+        item = item.deduce_specific_object()
+
+        logging.debug("Object type deduced: %s" % str(item.__class__.__name__))
         trade_info = None
         json = None
 
