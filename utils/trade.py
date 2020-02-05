@@ -1,7 +1,8 @@
+import logging
 import pathlib
 import zipfile
 from itertools import chain
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import requests
 from tqdm import tqdm
@@ -71,10 +72,10 @@ def fetch(q_res: dict, exchange: bool = False) -> List[dict]:  # JSON
 
             res = requests.get(url)
             if res.status_code != 200:
-                print(
+                logging.error(
                     f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
                     f'Message: {res.json().get("error", "unknown error")}'
-                    )
+                )
                 break
 
             # Return the results from our fetch (this has who to whisper, prices, and more!)
@@ -94,25 +95,21 @@ def get_leagues() -> Tuple[str, ...]:
     return tuple(x["id"] for x in leagues["result"])
 
 
-def get_item_modifiers_by_text() -> dict:
+def get_item_modifiers_by_text(element: Tuple) -> ItemModifier:
     global mod_list_dict_text
-    if mod_list_dict_text:
-        return mod_list_dict_text
-    else:
+    if len(mod_list_dict_text) == 0:
         item_modifiers = get_item_modifiers()
-        mod_list_dict_text = {(item_modifiers[i].text, item_modifiers[i].type): item_modifiers[i] for i in range(len(item_modifiers))}
-        return mod_list_dict_text
+        mod_list_dict_text = {(e.text, e.type): e for e in item_modifiers}
+    if element in mod_list_dict_text:
+        return mod_list_dict_text[element]
 
-
-def get_item_modifiers_by_id() -> dict:
+def get_item_modifiers_by_id(element: str) -> ItemModifier:
     global mod_list_dict_id
-    if mod_list_dict_id:
-        return mod_list_dict_id
-    else:
+    if len(mod_list_dict_id) == 0:
         item_modifiers = get_item_modifiers()
-        mod_list_dict_id = {item_modifiers[i].id: item_modifiers[i] for i in range(len(item_modifiers))}
-        return mod_list_dict_id
-
+        mod_list_dict_id = {e.id: e for e in item_modifiers}
+    if element in mod_list_dict_id:
+        return mod_list_dict_id[element]
 
 def get_item_modifiers() -> Tuple[ItemModifier, ...]:
     """
@@ -123,9 +120,9 @@ def get_item_modifiers() -> Tuple[ItemModifier, ...]:
         return mod_list
     else:
         json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-        items = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
-        mod_list = items
-        return items
+        mod_list = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
+        logging.info(f"[*] Loaded {len(mod_list)} item mods.")
+        return mod_list
 
 
 def find_latest_update():
@@ -139,7 +136,7 @@ def find_latest_update():
     local = VERSION
     # Check if the same
     if remote["tag_name"] != local:
-        print("[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)")
+        logging.info("[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)")
         # Keep going till user makes a valid choice
         choice_made = False
         while not choice_made:
@@ -164,12 +161,12 @@ def find_latest_update():
 
                 # This means data got lost somewhere...
                 if total_size != 0 and timer.n != total_size:
-                    print("[!] Error, something went wrong while downloading the file.")
+                    logging.error("[!] Error, something went wrong while downloading the file.")
                 else:
                     # Unzip it and tell the user where we unzipped it to.
                     with zipfile.ZipFile("Path-of-Accounting.zip", "r") as zip_file:
                         zip_file.extractall()
-                    print(f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting")
+                    logging.info(f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting")
 
                 # subprocess.Popen(f"{pathlib.Path().absolute()}\\Path\\ of\\Accounting\\parse.exe")
                 # sys.exit()
@@ -177,7 +174,7 @@ def find_latest_update():
             elif user_choice.lower() == "n":
                 choice_made = True
             else:
-                print("I did not understand your response. Please user either y or n.")
+                logging.error("I did not understand your response. Please user either y or n.")
 
 
 def get_ninja_bases():

@@ -1,3 +1,5 @@
+import logging
+import sys
 import re
 import time
 import traceback
@@ -11,7 +13,14 @@ from colorama import Fore, deinit, init
 # Local imports
 from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
-from models.Item import Item
+from models.Item import (
+    Item,
+    Map,
+    Prophecy,
+    Fragment,
+    Organ,
+    Flask,
+)
 from utils import config
 from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_HOTKEYS
 from utils.currency import (
@@ -35,29 +44,29 @@ from utils.trade import (
     find_latest_update,
     get_item_modifiers,
     get_item_modifiers_by_text,
+    get_item_modifiers_by_id,
     get_leagues,
     get_ninja_bases,
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
 
-DEBUG = False
-
-
 def parse_item_info(text: str) -> Item:
     """
     Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
     """
-    # TODO: test if poe item
+    # TODO: test if poe item (??)
     # TODO: synthesis items -> Item class
-    # TODO: blight maps -> Item class
     # TODO: stats
     # TODO: handle veiled items (not veiled mods, these are handled) e.g. Veiled Prefix
-    all_mods = get_item_modifiers_by_text()
 
     item_list = text.split('--------')
     for i, region in enumerate(item_list):
         item_list[i] = region.strip().splitlines()
+
+    # Remove the Note line; this is always located on the last line.
+    if item_list[-1][0].startswith("Note:"):
+        item_list = item_list[:-1]
 
     rarity = item_list[0][0][8:].lower()
     name = item_list[0][1].strip('<<set:MS>><<set:M>><<set:S>>')
@@ -67,12 +76,22 @@ def parse_item_info(text: str) -> Item:
             quality = int(line[line.find('+')+1:-13])
             break
 
+    influence = []
     ilevel = 0
     modifiers = []
     corrupted = False
-    base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
+    base = None
+    if len(item_list[0]) == 3:
+        base = item_list[0][2]
+    #base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
     raw_sockets = ''
     mirrored = False
+
+    iiq = None
+    iir = None
+    pack_size = None
+
+    item_class = Item
 
     for region in item_list:
         first_line = region[0]
@@ -83,7 +102,8 @@ def parse_item_info(text: str) -> Item:
         elif rarity == 'gem':
             level = [int(line.strip(' (Max)')[7:]) for line in item_list[1] if line.startswith('Level')][0]
             corrupted = item_list[-1] == 'Corrupted'
-            return Item(rarity=rarity, name=name, quality=quality, iLevel=level, corrupted=corrupted)
+            return Item(rarity=rarity, name=name, quality=quality,
+                        ilevel=level, corrupted=corrupted)
         elif first_line.startswith('Sockets'):
             raw_sockets = first_line.lstrip('Sockets: ')
         elif first_line == 'Corrupted':
@@ -93,61 +113,144 @@ def parse_item_info(text: str) -> Item:
         elif first_line.startswith('Item Level'):
             ilevel = first_line.lstrip('Item Level: ')
         elif first_line.count(' ') == 1 and first_line.endswith('Item'):
-            influence = []
             for line in item_list[-1]:
                 influence.append(line.strip(' Item').lower())
         elif first_line.startswith('Allocates'):
             for line in region:
                 mod_value = line.lstrip('Allocates ')
-                mod = all_mods.get(('Allocates #', ItemModifierType.ENCHANT))
+                element = ('Allocates #', ItemModifierType.ENCHANT)
+                mod = get_item_modifiers_by_text(element)
                 modifiers.append((mod, mod_value))
         elif first_line == "Travel to this Map by using it in a personal Map Device. Maps can only be used once.":
-            rarity = 'map'
             tier = int(item_list[1][0][10:])
-            corrupted = True if item_list[-1][0] == 'corrupted' else False
-            return Item(rarity=rarity, name=name, quality=quality, iLevel=tier, corrupted=corrupted)
+            corrupted = item_list[-1][0] == 'Corrupted'
+
+            augmented = [
+                e.replace(" (augmented)", "").replace('+', '').replace('%', '')
+                for e in item_list[1]
+            ]
+
+            # Parse out map-specific augmented fields.
+            for aug in augmented:
+                if aug.startswith("Item Quantity: "):
+                    iiq = int(aug.lstrip("Item Quantity: "))
+                elif aug.startswith("Item Rarity: "):
+                    iir = int(aug.lstrip("Item Rarity: "))
+                elif aug.startswith("Monster Pack Size: "):
+                    pack_size = int(aug.lstrip("Monster Pack Size: "))
+
+            item_class = Map
         elif first_line == 'Right-click to add this prophecy to your character.':
-            rarity = 'prophecy'
-            return Item(rarity=rarity, name=name)
+            return Prophecy(rarity=rarity, name=name)
         elif first_line.startswith('Can be used in a personal Map Device.'):
-            rarity = 'fragment'  # and scarabs
-            return Item(rarity=rarity, name=name)
+            return Fragment(rarity=rarity, name=name)
         elif first_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
-            rarity = 'metamorph'
-            return Item(rarity=rarity, name=name)  # TODO: metamorph mods and item level
+            return Organ(rarity=rarity, name=name)  # TODO: metamorph mods and item level
         elif first_line.endswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
-            pass  # TODO: handle flasks
-        else:
-            for line in region:
-                mod_value = ','.join(re.findall(r'\d+', line))
-                mod_text = re.sub(r'\d+', '#', line)
-                if mod_text.endswith('(implicit)'):
-                    item_type = ItemModifierType.IMPLICIT
-                    mod_text = mod_text.rstrip(' (implicit)')
-                    mod = all_mods.get((mod_text, item_type))  # get a mod
-                    if mod is not None:
-                        modifiers.append((mod, mod_value))
-                elif mod_text.endswith(' (crafted)'):
-                    item_type = ItemModifierType.CRAFTED
-                    mod_text = mod_text.rstrip(' (crafted)')
-                    mod = all_mods.get((mod_text, item_type))  # get a mod
-                    if mod is not None:
-                        modifiers.append((mod, mod_value))
+            item_class = Flask
+
+    for region in item_list:
+        for line in region:
+            # Match all mods containing (+|-)<number> or The Shaper,
+            # The Elder, etc. These should all be implicits.
+            matches = re.findall(r'([+-]|The )?(\d+|Shaper|Elder|Constrictor|Enslaver|Eradicator|Purifier)', line)
+
+            # First, glue together mods we find in case we encounter + or -
+            # Then, join them into a string separated by ','
+            mod_value = ','.join([''.join(m) for m in matches])
+            mod_text = re.sub(r'([+-]|The )?(\d+|Shaper|Elder|Constrictor|Enslaver|Eradicator|Purifier)', '#', line)
+
+            logging.debug("Parsing %s" % line)
+            if " (implicit)" in mod_text:
+                item_type = ItemModifierType.IMPLICIT
+                mod_text = mod_text[:-11]
+                logging.debug("Figuring out if '%s' is an implicit mod" % mod_text)
+                mod = get_item_modifiers_by_text((mod_text, item_type))
+                if mod is not None:
+                    logging.debug("Implicit matched")
+                    modifiers.append((mod, mod_value))
                 else:
-                    item_type = ItemModifierType.ENCHANT
-                    if not mod_value:  # trigger X on kill\hit mods
-                        mod_text = '#% chance to '+mod_text
-                    mod = all_mods.get((mod_text, item_type))  # get a mod
+                    logging.debug("No implicit match")
+            elif " (crafted)" in mod_text:
+                item_type = ItemModifierType.CRAFTED
+                logging.debug("Figuring out if '%s' is a crafted mod" % mod_text)
+                mod_text = mod_text[:-10]
+                logging.debug("Figuring out if '%s' is a crafted mod" % mod_text)
+                mod = get_item_modifiers_by_text((mod_text, item_type))
+                if mod is not None:
+                    logging.debug("Crafted matched")
+                    modifiers.append((mod, mod_value))
+                else:
+                    logging.debug("No crafted match")
+            else:
+                logging.debug("Figuring out if '%s' is an enchant" % str(mod_text))
+                # First, try to match an enchant mod
+                item_type = ItemModifierType.ENCHANT
+                if not mod_value:  # trigger X on kill\hit mods
+                    mod_text = '#% chance to ' + mod_text
+                mod = get_item_modifiers_by_text((mod_text, item_type))
+                if mod is not None:
+                    logging.debug("Enchant matched")
+                    modifiers.append((mod, mod_value))
+                # Else, if we're not on a map, try to match an explicit mod
+                elif item_class != Map:
+                    logging.debug("Figuring out of '%s' is an explicit" % str(mod_text))
+                    item_type = ItemModifierType.EXPLICIT
+                    mod = get_item_modifiers_by_text((mod_text, item_type))
                     if mod is not None:
+                        logging.debug("Explicit matched")
                         modifiers.append((mod, mod_value))
-                    else:
-                        item_type = ItemModifierType.EXPLICIT
-                        mod = all_mods.get((mod_text, item_type))  # get a mod
-                        if mod is not None:
+                    elif "reduced" in mod_text:
+                        # In the case where we have "reduced" inside of the
+                        # modifier, it could be a negative value of an
+                        # "increased" modifier. Therefore, since we found no
+                        # matches originally, we try again by replacing text.
+                        # If the "increased" version matches, we add a negative
+                        # sign in front of the mod_value.
+                        # Example: 18% reduced Required Attributes is really
+                        # #% increased Required Attributes with a mod_value
+                        # of -18.
+                        # This implementation addition fixes mods we could
+                        # not earlier find in these cases.
+                        altered = mod_text.replace("reduced", "increased")
+                        mod = get_item_modifiers_by_text((altered, item_type))
+                        if mod:
+                            logging.debug("Explicit matched, but was 'increased' instead of 'reduced', altering mod_value")
+                            mod_value = '-' + mod_value
                             modifiers.append((mod, mod_value))
+                        else:
+                            logging.debug("No explicit matched")
+                    else:
+                        logging.debug("No explicit matched")
 
-    return Item(rarity, name, base, quality, [], raw_sockets, ilevel, modifiers, corrupted, mirrored, influence)
+    def produce_map():
+        return Map(rarity=rarity, name=name, quality=quality,
+                   ilevel=tier, corrupted=corrupted, modifiers=modifiers,
+                   iiq=iiq, iir=iir, pack_size=pack_size)
 
+    def produce_flask():
+        return Flask(rarity=rarity, name=name, base=base, quality=quality,
+                     stats=[], raw_sockets=raw_sockets, ilevel=ilevel,
+                     modifiers=modifiers, corrupted=corrupted,
+                     mirrored=mirrored, influence=influence)
+
+    other_types = {
+        Map: produce_map,
+        Flask: produce_flask
+    }
+
+    if item_class in other_types:
+        f = other_types[item_class]
+        return f()
+
+    return Item(rarity=rarity, name=name, base=base, quality=quality,
+                stats=[], raw_sockets=raw_sockets, ilevel=ilevel,
+                modifiers=modifiers, corrupted=corrupted,
+                mirrored=mirrored, influence=influence)
+
+# We should not have to worry about influences for map mods, as
+# we now know they are provided as implicits and can be searched
+# via stats like an item is normally.
 
 #        iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
 #        if len(iiq_re) > 0:
@@ -328,8 +431,9 @@ def build_json_official(
 
     fetch_called = False
 
-    if DEBUG:
-        print(j)
+    # Log out query json, without stats
+    logging.debug(j)
+
     # Find every stat
     if stats:
         j["query"]["stats"] = [{}]
@@ -349,9 +453,7 @@ def build_json_official(
         # Turn life + resists into pseudo-mods
         j = create_pseudo_mods(j)
 
-    if DEBUG:
-        print("FULL Query:", j)
-
+    logging.debug("FULL Query:", j)
     return j
 
 
@@ -370,10 +472,11 @@ def search_item(j, league):
 
             # If we ignore more than half of the stats, it's not accurate
             if num_stats_ignored > (int(total_num_stats * 0.6)):
-                print(
+                logging.info(
                     f"[!] Take any values after this with a grain of salt. You should probably do a"
                     + Fore.RED
                     + " MANUAL search"
+                    + Fore.RESET
                 )
 
             # Make the actual request.
@@ -387,14 +490,15 @@ def search_item(j, league):
                     i = choose_bad_mod(j)
 
                     # Tell the user which mod we are deleting
-                    print(
+                    logging.info(
                         "[-] Removing the"
                         + Fore.CYAN
-                        + f" {stat_translate(i['id']).text} "
-                        + Fore.WHITE
-                        + "mod from the list due to"
+                        + f" {stat_translate(i['id']).text}"
+                        + Fore.RESET
+                        + " mod from the list due to "
                         + Fore.RED
-                        + " no results found."
+                        + "no results found."
+                        + Fore.RESET
                     )
 
                     # Remove bad mod.
@@ -402,25 +506,23 @@ def search_item(j, league):
                     num_stats_ignored += 1
                 else:  # Found a result!
                     results = fetch(res)
-
-                    if DEBUG:
-                        print("Found results!")
+                    logging.debug("Found results!")
 
                     if result_prices_are_none(results):
-                        if DEBUG:
-                            print("All resulting prices are none.")
+                        logging.debug("All resulting prices are none.")
                         # Choose a non-priority mod
                         i = choose_bad_mod(j)
 
                         # Tell the user which mod we are deleting
-                        print(
-                            "[-] Removing the"
+                        logging.info(
+                            "[-] Removing the "
                             + Fore.CYAN
-                            + f" {stat_translate(i['id']).text} "
-                            + Fore.WHITE
-                            + "mod from the list due to"
+                            + f"{stat_translate(i['id']).text}"
+                            + Fore.RESET
+                            + " mod from the list due to "
                             + Fore.RED
-                            + " no results found."
+                            + "no results found."
+                            + Fore.RESET
                         )
 
                         # Remove bad mod.
@@ -549,40 +651,50 @@ def create_pseudo_mods(j: Dict) -> Dict:
         j["query"]["stats"][0]["filters"].append(
             {"id": "pseudo.pseudo_total_elemental_resistance", "value": {"min": total_ele_resists, "max": 999},}
         )
-        print(
-            "[o] Combining the"
+        logging.info(
+            "[o] Combining the "
             + Fore.CYAN
-            + f" elemental resistance "
-            + Fore.WHITE
-            + "mods from the list into a pseudo-parameter"
+            + f"elemental resistance"
+            + Fore.RESET
+            + " mods from the list into a pseudo-parameter"
         )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_ele_resists}% total Elemental Resistance (pseudo)")
+        logging.info(
+            "[+] Pseudo-mod "
+            + Fore.GREEN
+            + f"+{total_ele_resists}% total Elemental Resistance (pseudo)"
+            + Fore.RESET
+        )
 
     if total_chaos_resist > 0:
         j["query"]["stats"][0]["filters"].append(
             {"id": "pseudo.pseudo_total_chaos_resistance", "value": {"min": total_chaos_resist, "max": 999},}
         )
-        print(
-            "[o] Combining the"
+        logging.info(
+            "[o] Combining the "
             + Fore.CYAN
-            + f" chaos resistance "
-            + Fore.WHITE
-            + "mods from the list into a pseudo-parameter"
+            + f"chaos resistance"
+            + Fore.RESET
+            + " mods from the list into a pseudo-parameter"
         )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)")
+        logging.info("[+] Pseudo-mod " + Fore.GREEN + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)")
 
     if total_life > 0:
         j["query"]["stats"][0]["filters"].append(
             {"id": "pseudo.pseudo_total_life", "value": {"min": total_life, "max": 999}}
         )
-        print(
-            "[o] Combining the"
+        logging.info(
+            "[o] Combining the "
             + Fore.CYAN
-            + f" maximum life "
-            + Fore.WHITE
-            + "mods from the list into a pseudo-parameter"
+            + f"maximum life"
+            + Fore.RESET
+            + " mods from the list into a pseudo-parameter"
         )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_life} to maximum Life (pseudo)")
+        logging.info(
+            "[+] Pseudo-mod "
+            + Fore.GREEN
+            + f"+{total_life} to maximum Life (pseudo)"
+            + Fore.RESET
+        )
 
     return j
 
@@ -624,7 +736,7 @@ def query_exchange(qcur):
     Return results of similar items.
     """
 
-    print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
+    logging.info(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
     IG_CURRENCY = [
         CURRENCY,
         OILS,
@@ -650,8 +762,7 @@ def query_exchange(qcur):
         def_json = {"exchange": {"have": [haveCurrency], "want": [selection], "status": {"option": "online"},}}
 
         res = exchange_currency(def_json, LEAGUE)
-        if DEBUG:
-            print(def_json)
+        logging.debug(def_json)
 
         if len(res["result"]) == 0:
             continue
@@ -698,8 +809,8 @@ def affix_equals(text, affix) -> Optional[int]:
     # At this point all numbers and other special characters have been minimized
     # So if the mod is the same, this catches it.
     if text == query:
-        print(
-            "[+] Found mod " + Fore.GREEN + f"{text[0:]}: {value}"
+        logging.info(
+            "[+] Found mod " + Fore.GREEN + f"{text[0:]}: {value}" + Fore.RESET
         )  # TODO: support "# to # damage to attacks" type mods and other similar
         return value
 
@@ -716,8 +827,7 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
     def get_mods_by_type(type: ItemModifierType) -> Iterable[ItemModifier]:
         return (x for x in ITEM_MODIFIERS if x.type == type)
 
-    if DEBUG:
-        print("AFFIX:", affix)
+    logging.debug("AFFIX:", affix)
 
     if re.search(r"\((pseudo|implicit|crafted)\)", affix):
         # Search for these special modifiers first
@@ -757,7 +867,7 @@ def stat_translate(jaffix: str) -> ItemModifier:
     Translate id to the equivalent stat.
     Returns the ItemModifier equivalent to requested id
     """
-    return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
+    return get_item_modifiers_by_id(jaffix)
 
 
 def get_average_times(priceList):
@@ -786,7 +896,8 @@ def price_item(text):
     No return.
     """
     try:
-        info = parse_item_info(text)
+        item = parse_item_info(text)
+        logging.info("Object parsed: %s" % str(item.__class__.__name__))
         trade_info = None
         json = None
 
@@ -794,17 +905,17 @@ def price_item(text):
             # Uniques, only search by corrupted status, links, and name.
 
             if info["itype"] == "Currency":
-                print(f'[-] Found currency {info["name"]} in clipboard')
+                logging.info(f'[-] Found currency {info["name"]} in clipboard')
                 trade_info = query_exchange(info["name"])
 
             elif info["itype"] == "Divination Card":
-                print(f'[-] Found Divination Card {info["name"]}')
+                logging.info(f'[-] Found Divination Card {info["name"]}')
                 trade_info = query_exchange(info["name"])
 
             else:
                 # Do intensive search.
                 if info["itype"] != info["name"] and info["itype"] != None:
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}", flush=True)
+                    logging.info(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}", flush=True)
                 else:
                     extra_strings = ""
                     if info["rarity"] == "Gem":
@@ -817,7 +928,7 @@ def price_item(text):
                     if info["quality"] != 0:
                         extra_strings += f"Quality: {info['quality']}+"
 
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
+                    logging.info(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
 
                 json = build_json_official(
                     **{
@@ -866,11 +977,11 @@ def price_item(text):
                     # Make pretty strings.
                     for price_dict in prices:
                         pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
-                        print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
+                        print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.RESET + ", "
                         total_count += prices[price_dict]
 
                     # Print the pretty string, ignoring trailing comma
-                    print(f"[$] Price: {print_string[:-2]}\n\n")
+                    logging.info(f"[$] Price: {print_string[:-2]}\n\n")
                     if config.USE_GUI:
                         priceList = prices
                         # Get difference between current time and posted time in timedelta format
@@ -928,7 +1039,7 @@ def price_item(text):
                         price_val = price["amount"]
                         price_curr = price["currency"]
                         price = f"{price_val} x {price_curr}"
-                        print(f"[$] Price: {Fore.YELLOW}{price} \n\n")
+                        logging.info(f"[$] Price: {Fore.YELLOW}{price}{Fore.RESET} \n\n")
                         time = datetime.now(timezone.utc) - datetime.replace(
                             datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
                             tzinfo=timezone.utc,
@@ -936,58 +1047,57 @@ def price_item(text):
                         time = [[time.days, time.seconds]]
                         price_vals = [[str(price_val) + price_curr]]
 
-                        print("[!] Not enough data to confidently price this item.")
+                        logging.info("[!] Not enough data to confidently price this item.")
                         if config.USE_GUI:
                             gui.show_price(price, price_vals, time, True)
                     else:
-                        print(f"[$] Price: {Fore.YELLOW}None \n\n")
-                        print("[!] Not enough data to confidently price this item.")
+                        logging.info(f"[$] Price: {Fore.YELLOW}None{Fore.RESET} \n\n")
+                        logging.info("[!] Not enough data to confidently price this item.")
                         if config.USE_GUI:
                             gui.show_not_enough_data()
 
             elif trade_info is not None:
-                print("[!] No results!")
+                logging.info("[!] No results!")
                 if config.USE_GUI:
                     gui.show_not_enough_data()
 
     except NotFoundException as e:
-        print("[!] No results!")
+        logging.info("[!] No results!")
         if config.USE_GUI:
             gui.show_not_enough_data()
 
     except InvalidAPIResponseException as e:
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
-        print(
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================={Fore.RESET}")
+        logging.info(
             f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
         )
-        print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-        print(f"{Fore.GREEN}Title:")
-        print("Failed to query item from trade API.")
-        print(f"{Fore.GREEN}Body:")
-        print("Macro failed to lookup item from POE trade API. Here is the item in question.")
-        print("====== ITEM DATA=====")
-        print(f"{text}")
-        print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+        logging.info(f"{Fore.GREEN}================== START ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.GREEN}Title:{Fore.RESET}")
+        logging.info("Failed to query item from trade API.")
+        logging.info(f"{Fore.GREEN}Body:{Fore.RESET}")
+        logging.info("Macro failed to lookup item from POE trade API. Here is the item in question.")
+        logging.info("====== ITEM DATA=====")
+        logging.info(f"{text}")
+        logging.info(f"{Fore.GREEN}================== END ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================={Fore.RESET}")
 
     except Exception as e:
         exception = traceback.format_exc()
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
-        print(
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================={Fore.RESET}")
+        logging.info(
             f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
         )
-        print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-        print(f"{Fore.GREEN}Title:")
-        print("Failed to query item from trade API.")
-        print(f"{Fore.GREEN}Body:")
-        print("Here is the item in question.")
-        print("====== ITEM DATA=====")
-        print(f"{text}")
-        print("====== TRACEBACK =====")
-        print(exception)
-        print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
-        print(exception)
+        logging.info(f"{Fore.GREEN}================== START ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.GREEN}Title:{Fore.RESET}")
+        logging.info("Failed to query item from trade API.")
+        logging.info(f"{Fore.GREEN}Body:{Fore.RESET}")
+        logging.info("Here is the item in question.")
+        logging.info("====== ITEM DATA=====")
+        logging.info(f"{text}")
+        logging.info("====== TRACEBACK =====")
+        logging.info(exception)
+        logging.info(f"{Fore.GREEN}================== END ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================={Fore.RESET}")
 
 
 def watch_keyboard(keyboard, use_hotkeys):
@@ -1008,7 +1118,7 @@ def watch_keyboard(keyboard, use_hotkeys):
         keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
 
     # Fetch the item's approximate price
-    print("[*] Watching clipboard (Ctrl+C to stop)...")
+    logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
     keyboard.clipboard_callback = lambda _: hotkey_handler(keyboard, "clipboard")
     keyboard.start()
 
@@ -1034,7 +1144,7 @@ def search_ninja_base(text):
 
     base = info["itype"] if info["itype"] != None else info["base"]
 
-    print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
+    logging.info(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
     result = None
     try:
         result = next(
@@ -1050,14 +1160,14 @@ def search_ninja_base(text):
             )
         )
     except StopIteration:
-        print("[!] Could not find the requested item.")
+        logging.error("[!] Could not find the requested item.")
         if config.USE_GUI:
             gui.show_not_enough_data()
 
     if result != None:
         price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
         currency = "ex" if result["exalt"] >= 1 else "chaos"
-        print(f"[$] Price: {price} {currency}")
+        logging.info(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
             gui.show_base_result(base, influence, ilvl, price, currency)
 
@@ -1103,10 +1213,6 @@ def hotkey_handler(keyboard, hotkey):
     else:  # alt+d, ctrl+c
         price_item(text)
 
-
-# This is necessary to do Unit Testing, needs to be GLOBAL
-ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = get_item_modifiers()
-
 def create_gui():
     global gui
     from utils.gui import Gui
@@ -1114,24 +1220,28 @@ def create_gui():
     gui.wait()
 
 if __name__ == "__main__":
+    loglevel = logging.INFO
+    if len(sys.argv) > 1 and sys.argv[1] in ("-d", "--debug"):
+        loglevel = logging.DEBUG
+    logging.basicConfig(format="%(message)s", level=loglevel)
+
     find_latest_update()
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff
-    print(f"[*] Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
 
     NINJA_BASES = get_ninja_bases()
-    print(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
+    logging.info(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
 
     # Inform user of choices
-    print(f"If you wish to change the selected league you may do so in settings.cfg.")
-    print(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
+    logging.info(f"If you wish to change the selected league you may do so in settings.cfg.")
+    logging.info(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}.")
 
     if LEAGUE not in valid_leagues:
-        print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
+        logging.error(f"Unable to locate {LEAGUE}, please check settings.cfg.")
     else:
-        print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
+        logging.info(f"All values will be from the {Fore.MAGENTA}{LEAGUE}{Fore.RESET} league")
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
 
@@ -1143,7 +1253,7 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
 
-        print(f"[!] Exiting, user requested termination.")
+        logging.info(f"[!] Exiting, user requested termination.")
 
         # Apparently things go bad if we don't call this, so here it is!
         deinit()  # Colorama
