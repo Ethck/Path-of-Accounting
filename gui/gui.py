@@ -9,7 +9,7 @@ if os.name == "nt":
     import win32com.client
     import win32gui
 
-from utils.config import USE_GUI, TIMEOUT_GUI, GUI_BG1, GUI_BG2, GUI_FONT, GUI_FONT_SIZE, GUI_FONT_COLOR
+from utils.config import USE_GUI, TIMEOUT_GUI, GUI_BG1, GUI_BG2, GUI_HEADER_COLOR, GUI_FONT, GUI_FONT_SIZE, GUI_FONT_COLOR
 
 
 def set_foreground_window(wid):
@@ -45,13 +45,18 @@ class DisplayWindow:
 
         components.append(self)
     
-    def create_label(self, text, column=0, row=0, sticky="E", columnspan=1):
+    def create_label_BG2(self, text, column=0, row=0, sticky="E", columnspan=1):
         l = tkinter.Label(self.frame, text=text, bg=GUI_BG2, fg=GUI_FONT_COLOR)
         l.grid(column=column, row=row, sticky=sticky, columnspan=columnspan)
         l.config(font=(GUI_FONT, GUI_FONT_SIZE))
 
-    def create_label_dark(self, text, column=0, row=0, sticky="E", columnspan=1):
+    def create_label_BG1(self, text, column=0, row=0, sticky="E", columnspan=1):
         l = tkinter.Label(self.frame, text=text, bg=GUI_BG1, fg=GUI_FONT_COLOR)
+        l.grid(column=column, row=row, sticky=sticky, columnspan=columnspan)
+        l.config(font=(GUI_FONT, GUI_FONT_SIZE))
+
+    def create_label_header(self, text, column=0, row=0, sticky="E", columnspan=1):
+        l = tkinter.Label(self.frame, text=text, bg=GUI_HEADER_COLOR, fg=GUI_FONT_COLOR)
         l.grid(column=column, row=row, sticky=sticky, columnspan=columnspan)
         l.config(font=(GUI_FONT, GUI_FONT_SIZE))
 

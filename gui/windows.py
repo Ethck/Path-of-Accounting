@@ -28,7 +28,7 @@ class BaseResults(DisplayWindow):
         worth of an item base, including it's influence and item level.
         """
 
-        self.create_label_dark("Base: %s" % self.base, 0, 0, "WE")
+        self.create_label_header("Base: %s" % self.base, 0, 0, "WE")
 
         row = 0
         if self.influence is not None:
@@ -41,18 +41,18 @@ class BaseResults(DisplayWindow):
                 "warlord": "Warlord",
                 "hunter": "Hunter"
             }
-            self.create_label_dark("Influence: %s" % conversion[self.influence], 0, row, "WE")
+            self.create_label_header("Influence: %s" % conversion[self.influence], 0, row, "WE")
 
-        self.create_label_dark("Item Level: %d" % self.ilvl, 0, row+1, "WE")
-        self.create_label_dark("Price: %d %s" % (self.price, self.currency), 0, row+2, "WE")
+        self.create_label_header("Item Level: %d" % self.ilvl, 0, row+1, "WE")
+        self.create_label_header("Price: %d %s" % (self.price, self.currency), 0, row+2, "WE")
 
 class NotEnoughInformation(DisplayWindow):
     def __init__(self):
         super().__init__()
 
     def add_components(self):
-        self.create_label_dark("Not Enough Data", 0, 0, "WE")
-        self.create_label_dark("Could not find enough data to confidently price this item.", 0, 1, "WE")
+        self.create_label_header("Not Enough Data", 0, 0, "WE")
+        self.create_label_header("Could not find enough data to confidently price this item.", 0, 1, "WE")
 
 
 class PriceInformation(DisplayWindow):
@@ -73,9 +73,9 @@ class PriceInformation(DisplayWindow):
         """
         Assemble the simple pricing window. Will overhaul this to get a better GUI in a future update.
         """
-        self.create_label_dark("", 0, 0, "WE", 4)
-        self.create_label_dark("Prices  ", 0, 0, "E")
-        self.create_label_dark("Avg. Time Listed", 1, 0, "E", 2)
+        self.create_label_header("", 0, 0, "WE", 4)
+        self.create_label_header("Prices  ", 0, 0, "E")
+        self.create_label_header("Avg. Time Listed", 1, 0, "E", 2)
         
 
         counter = 0
@@ -85,25 +85,25 @@ class PriceInformation(DisplayWindow):
             time = timeago.format(date, now)
 
             if counter % 2:
-                self.create_label_dark("", 0, counter + 2, "WE", 3)
-                self.create_label_dark(price + "  ", 0, counter + 2, "E")
-                self.create_label_dark(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
+                self.create_label_BG1("", 0, counter + 2, "WE", 3)
+                self.create_label_BG1(price + "  ", 0, counter + 2, "E")
+                self.create_label_BG1(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
             else:
-                self.create_label("", 0, counter + 2, "WE", 3)
-                self.create_label(price + "  ", 0, counter + 2, "E")
-                self.create_label(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
+                self.create_label_BG2("", 0, counter + 2, "WE", 3)
+                self.create_label_BG2(price + "  ", 0, counter + 2, "E")
+                self.create_label_BG2(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
             counter += 1
 
-        self.create_label_dark("", 0, counter + 3, "WE", 3)
-        self.create_label_dark("Low:" + str(self.price[0]), 0, counter + 3, "W")
-        self.create_label_dark("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
-        self.create_label_dark("High:" + str(self.price[2]), 2, counter + 3, "E")
+        self.create_label_header("", 0, counter + 3, "WE", 3)
+        self.create_label_header("Low:" + str(self.price[0]), 0, counter + 3, "W")
+        self.create_label_header("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
+        self.create_label_header("High:" + str(self.price[2]), 2, counter + 3, "E")
 
         if self.not_enough:
-            self.create_label_dark("", 0, counter + 4, "WE", 3)
-            self.create_label_dark("Found limited search results", 0, counter+4, "WE", 3)
-            self.create_label_dark("", 0, counter + 5, "WE", 3)
-            self.create_label_dark("Use alt+t to search manually", 0, counter+5, "WE", 3)
+            self.create_label_header("", 0, counter + 4, "WE", 3)
+            self.create_label_header("Found limited search results", 0, counter+4, "WE", 3)
+            self.create_label_header("", 0, counter + 5, "WE", 3)
+            self.create_label_header("Use alt+t to search manually", 0, counter+5, "WE", 3)
 
 
 priceInformation = PriceInformation()

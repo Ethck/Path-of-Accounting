@@ -21,6 +21,7 @@ GUI_BG2 = config["GUI"]["backgroundColor2"]
 GUI_FONT = config["GUI"]["font"]
 GUI_FONT_SIZE = config["GUI"]["fontSize"]
 GUI_FONT_COLOR = config["GUI"]["fontColor"]
+GUI_HEADER_COLOR = config["GUI"]["headerColor"]
 
 
 MIN_RESULTS = 10
