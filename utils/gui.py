@@ -30,7 +30,7 @@ def windowToFront(root):
         pythoncom.CoInitialize()
         shell = win32com.client.Dispatch("WScript.Shell")
         shell.SendKeys("%")
-        try: # Fails on mock test on windows
+        try: # this might fail if somebody is working in a diffrent window, should just be ignored in that case
             win32gui.SetForegroundWindow(root.winfo_id())
         except win32gui.error as e:
             pass
