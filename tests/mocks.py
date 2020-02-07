@@ -129,6 +129,9 @@ class TkMockObject:
     def mainloop(self, *args, **kwargs):
         pass
 
+    def winfo_id(self, *args, **kwargs):
+        pass
+
 # Mock up Tkinter classes
 class TkMock(TkMockObject):
     def __init__(self, *args, **kwargs):
