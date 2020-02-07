@@ -32,7 +32,7 @@ def windowToFront(root):
         shell.SendKeys("%")
         try: # Fails on mock test on windows
             win32gui.SetForegroundWindow(root.winfo_id())
-        except Exception as e:
+        except win32gui.error as e:
             pass
 
 
