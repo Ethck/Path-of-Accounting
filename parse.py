@@ -15,11 +15,15 @@ from enums.item_modifier_type import ItemModifierType
 from models.item_modifier import ItemModifier
 from models.Item import (
     Item,
+    Exchangeable,
     Map,
     Prophecy,
     Fragment,
     Organ,
     Flask,
+    Currency,
+    Card,
+    Gem,
 )
 from utils import config
 from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL, USE_HOTKEYS
@@ -55,7 +59,7 @@ def parse_item_info(text: str) -> Item:
     """
     Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
     """
-    # TODO: test if poe item (??)
+    # TODO: test if poe item
     # TODO: synthesis items -> Item class
     # TODO: stats
     # TODO: handle veiled items (not veiled mods, these are handled) e.g. Veiled Prefix
@@ -64,12 +68,13 @@ def parse_item_info(text: str) -> Item:
     for i, region in enumerate(item_list):
         item_list[i] = region.strip().splitlines()
 
-    # Remove the Note line; this is always located on the last line.
+    # Remove the Note region; this is always located on the last line.
     if item_list[-1][0].startswith("Note:"):
-        item_list = item_list[:-1]
+        del item_list[-1]
 
     rarity = item_list[0][0][8:].lower()
-    name = item_list[0][1].strip('<<set:MS>><<set:M>><<set:S>>')
+    name = re.sub(r'<<set:M?S?>>', '', item_list[0][1])
+
     quality = 0
     for line in item_list[1]:
         if line.startswith('Quality'):
@@ -93,17 +98,41 @@ def parse_item_info(text: str) -> Item:
 
     item_class = Item
 
+    # TODO: Maybe use this instead of if/elif massive branches?
+    special_types = {
+        'Right-click to add this prophecy to your character.': Prophecy,
+        'Can be used in a personal Map Device.': Fragment,
+        "Combine this with four other different samples in Tane's Laboratory.": Organ,
+        'Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.': Flask,
+        'Travel to this Map by using it in a personal Map Device. Maps can only be used once.': Map
+    }
+
+    # This will only be used to temporarily store organ modifiers in,
+    # because we need to sort them and count them to provide the proper
+    # values for them.
+    organ_modifiers = []
+
+    for region in item_list:
+        if region[0] in special_types:
+            item_class = special_types[region[0]]
+            break
+
     for region in item_list:
         first_line = region[0]
         if first_line.startswith('Requirements:'):
             continue  # we ignore this for pricing
-        elif rarity in ('currency', 'divination card'):
-            return Item(rarity=rarity, name=name)
+        elif rarity == 'currency':
+            return Currency(rarity=rarity, name=name)
+        elif rarity == 'divination card':
+            return Card(rarity=rarity, name=name)
         elif rarity == 'gem':
-            level = [int(line.strip(' (Max)')[7:]) for line in item_list[1] if line.startswith('Level')][0]
-            corrupted = item_list[-1] == 'Corrupted'
-            return Item(rarity=rarity, name=name, quality=quality,
-                        ilevel=level, corrupted=corrupted)
+            level = [
+                int(line.replace(' (Max)', '')[7:]) for line in item_list[1]
+                if line.startswith('Level')
+            ][0]
+            corrupted = item_list[-1] == ['Corrupted']
+            return Gem(rarity=rarity, name=name, quality=quality,
+                       ilevel=level, corrupted=corrupted)
         elif first_line.startswith('Sockets'):
             raw_sockets = first_line.lstrip('Sockets: ')
         elif first_line == 'Corrupted':
@@ -140,113 +169,146 @@ def parse_item_info(text: str) -> Item:
                     pack_size = int(aug.lstrip("Monster Pack Size: "))
 
             item_class = Map
+
         elif first_line == 'Right-click to add this prophecy to your character.':
             return Prophecy(rarity=rarity, name=name)
         elif first_line.startswith('Can be used in a personal Map Device.'):
             return Fragment(rarity=rarity, name=name)
         elif first_line.startswith("Combine this with four other different samples in Tane's Laboratory."):
-            return Organ(rarity=rarity, name=name)  # TODO: metamorph mods and item level
+            item_class = Organ
         elif first_line.endswith('Right click to drink. Can only hold charges while in belt. Refills as you kill monsters.'):
             item_class = Flask
+        else:
+            for line in region:
+                # Match all mods containing (+|-)<number> or The Shaper,
+                # The Elder, etc. These should all be implicits.
+                matches = re.findall(r'([+-]|The )?(\d+|Shaper|Elder|Constrictor|Enslaver|Eradicator|Purifier)', line)
 
-    for region in item_list:
-        for line in region:
-            # Match all mods containing (+|-)<number> or The Shaper,
-            # The Elder, etc. These should all be implicits.
-            matches = re.findall(r'([+-]|The )?(\d+|Shaper|Elder|Constrictor|Enslaver|Eradicator|Purifier)', line)
+                # First, glue together mods we find in case we encounter + or -
+                # Then, join them into a string separated by ','
+                mod_value = ','.join([''.join(m) for m in matches])
+                mod_text = re.sub(r'([+-]|The )?(\d+|Shaper|Elder|Constrictor|Enslaver|Eradicator|Purifier)', '#', line)
 
-            # First, glue together mods we find in case we encounter + or -
-            # Then, join them into a string separated by ','
-            mod_value = ','.join([''.join(m) for m in matches])
-            mod_text = re.sub(r'([+-]|The )?(\d+|Shaper|Elder|Constrictor|Enslaver|Eradicator|Purifier)', '#', line)
+                # If we were unable to substitute above, we have a mod without
+                # these qualities. Attempt to match the mod straight up.
+                if not mod_text:
+                    mod_text = line
 
-            logging.debug("Parsing %s" % line)
-            if " (implicit)" in mod_text:
-                item_type = ItemModifierType.IMPLICIT
-                mod_text = mod_text[:-11]
-                logging.debug("Figuring out if '%s' is an implicit mod" % mod_text)
-                mod = get_item_modifiers_by_text((mod_text, item_type))
-                if mod is not None:
-                    logging.debug("Implicit matched")
-                    modifiers.append((mod, mod_value))
-                else:
-                    logging.debug("No implicit match")
-            elif " (crafted)" in mod_text:
-                item_type = ItemModifierType.CRAFTED
-                logging.debug("Figuring out if '%s' is a crafted mod" % mod_text)
-                mod_text = mod_text[:-10]
-                logging.debug("Figuring out if '%s' is a crafted mod" % mod_text)
-                mod = get_item_modifiers_by_text((mod_text, item_type))
-                if mod is not None:
-                    logging.debug("Crafted matched")
-                    modifiers.append((mod, mod_value))
-                else:
-                    logging.debug("No crafted match")
-            else:
-                logging.debug("Figuring out if '%s' is an enchant" % str(mod_text))
-                # First, try to match an enchant mod
-                item_type = ItemModifierType.ENCHANT
-                if not mod_value:  # trigger X on kill\hit mods
-                    mod_text = '#% chance to ' + mod_text
-                mod = get_item_modifiers_by_text((mod_text, item_type))
-                if mod is not None:
-                    logging.debug("Enchant matched")
-                    modifiers.append((mod, mod_value))
-                # Else, if we're not on a map, try to match an explicit mod
-                elif item_class != Map:
-                    logging.debug("Figuring out of '%s' is an explicit" % str(mod_text))
-                    item_type = ItemModifierType.EXPLICIT
+                logging.debug("Parsing %s" % line)
+                if " (implicit)" in mod_text:
+                    item_type = ItemModifierType.IMPLICIT
+                    mod_text = mod_text[:-11]
+                    logging.debug("Figuring out if '%s' is an implicit mod" % mod_text)
                     mod = get_item_modifiers_by_text((mod_text, item_type))
                     if mod is not None:
-                        logging.debug("Explicit matched")
+                        logging.debug("Implicit matched")
                         modifiers.append((mod, mod_value))
-                    elif "reduced" in mod_text:
-                        # In the case where we have "reduced" inside of the
-                        # modifier, it could be a negative value of an
-                        # "increased" modifier. Therefore, since we found no
-                        # matches originally, we try again by replacing text.
-                        # If the "increased" version matches, we add a negative
-                        # sign in front of the mod_value.
-                        # Example: 18% reduced Required Attributes is really
-                        # #% increased Required Attributes with a mod_value
-                        # of -18.
-                        # This implementation addition fixes mods we could
-                        # not earlier find in these cases.
-                        altered = mod_text.replace("reduced", "increased")
-                        mod = get_item_modifiers_by_text((altered, item_type))
-                        if mod:
-                            logging.debug("Explicit matched, but was 'increased' instead of 'reduced', altering mod_value")
-                            mod_value = '-' + mod_value
+                    else:
+                        logging.debug("No implicit match")
+                elif " (crafted)" in mod_text:
+                    item_type = ItemModifierType.CRAFTED
+                    logging.debug("Figuring out if '%s' is a crafted mod" % mod_text)
+                    mod_text = mod_text[:-10]
+                    logging.debug("Figuring out if '%s' is a crafted mod" % mod_text)
+                    mod = get_item_modifiers_by_text((mod_text, item_type))
+                    if mod is not None:
+                        logging.debug("Crafted matched")
+                        modifiers.append((mod, mod_value))
+                    else:
+                        logging.debug("No crafted match")
+                else:
+                    logging.debug("Figuring out if '%s' is an enchant" % str(mod_text))
+                    # First, try to match an enchant mod
+                    item_type = ItemModifierType.ENCHANT
+                    if not mod_value: # trigger X on kill\hit mods
+                        mod_text = '#% chance to ' + mod_text
+                    mod = get_item_modifiers_by_text((mod_text, item_type))
+                    if mod is not None:
+                        logging.debug("Enchant matched")
+                        modifiers.append((mod, mod_value))
+                    # Else, if we're not on a map, try to match an explicit mod
+                    else:
+                        if not mod:
+                            raw_text = line
+                        logging.debug("Figuring out if '%s' is an explicit" % str(mod_text))
+                        item_type = ItemModifierType.EXPLICIT
+                        mod = get_item_modifiers_by_text((raw_text, item_type))
+
+                        if not mod:
+                            mod = get_item_modifiers_by_text((mod_text, item_type))
+
+                        # Try again with (Local) if the previous mod didn't match
+                        if mod is None:
+                            altered = mod_text + " (Local)"
+                            mod = get_item_modifiers_by_text((altered, item_type))
+
+                        if mod is not None:
+                            logging.debug("Explicit matched")
                             modifiers.append((mod, mod_value))
+                        elif 'reduced' in mod_text or 'increased' in mod_text:
+                            [orig] = [x for x in ('reduced', 'increased') if x in line]
+                            target = 'reduced' if orig == 'increased' else 'increased'
+
+                            # In the case where we have "reduced" inside of the
+                            # modifier, it could be a negative value of an
+                            # "increased" modifier. Therefore, since we found no
+                            # matches originally, we try again by replacing text.
+                            # If the "increased" version matches, we add a negative
+                            # sign in front of the mod_value.
+                            # Example: 18% reduced Required Attributes is really
+                            # #% increased Required Attributes with a mod_value
+                            # of -18.
+                            # This implementation addition fixes mods we could
+                            # not earlier find in these cases.
+                            altered = mod_text.replace(orig, target)
+                            mod = get_item_modifiers_by_text((altered, item_type))
+                            if mod:
+                                mod_value = '-' + mod_value
+                                modifiers.append((mod, mod_value))
+                            else:
+                                logging.debug("No explicit matched")
                         else:
                             logging.debug("No explicit matched")
-                    else:
-                        logging.debug("No explicit matched")
+
+                        # Metamorph Organ modifiers
+                        logging.debug("Modifier class: %s" % str(item_class))
+                        if item_class == Organ:
+                            logging.debug("Attempting to determine if '%s' is an organ modifier" % line)
+                            item_type = ItemModifierType.MONSTER
+                            text = line.lstrip(' ').rstrip(' ') + " (\u00d7#)"
+                            mod = get_item_modifiers_by_text((text, item_type))
+                            if mod:
+                                logging.debug("Adding %s to organ_modifiers" % str(mod))
+                                organ_modifiers.append(mod)
+
+    organ_mod_counts = dict()
+    if len(organ_modifiers) > 0:
+        for mod in organ_modifiers:
+            if mod in organ_mod_counts:
+                organ_mod_counts[mod] += 1
+            else:
+                organ_mod_counts[mod] = 1
+
+    for mod, mod_value in organ_mod_counts.items():
+        modifiers.append((mod, str(mod_value)))
 
     def produce_map():
-        return Map(rarity=rarity, name=name, quality=quality,
+        return Map(rarity=rarity, name=name, base=base, quality=quality,
                    ilevel=tier, corrupted=corrupted, modifiers=modifiers,
                    iiq=iiq, iir=iir, pack_size=pack_size)
 
-    def produce_flask():
-        return Flask(rarity=rarity, name=name, base=base, quality=quality,
-                     stats=[], raw_sockets=raw_sockets, ilevel=ilevel,
-                     modifiers=modifiers, corrupted=corrupted,
-                     mirrored=mirrored, influence=influence)
-
     other_types = {
-        Map: produce_map,
-        Flask: produce_flask
+        Map: produce_map
     }
 
     if item_class in other_types:
         f = other_types[item_class]
         return f()
 
-    return Item(rarity=rarity, name=name, base=base, quality=quality,
-                stats=[], raw_sockets=raw_sockets, ilevel=ilevel,
-                modifiers=modifiers, corrupted=corrupted,
-                mirrored=mirrored, influence=influence)
+    return item_class(rarity=rarity, name=name, base=base, quality=quality,
+                      stats=[], raw_sockets=raw_sockets, ilevel=ilevel,
+                      modifiers=modifiers, corrupted=corrupted,
+                      mirrored=mirrored, influence=influence)
 
 # We should not have to worry about influences for map mods, as
 # we now know they are provided as implicits and can be searched
@@ -274,7 +336,7 @@ def parse_item_info(text: str) -> Item:
 
 #        info["maps"] = map_mods
 
-
+'''
 def build_json_official(
     name: str = None,
     ilvl: int = None,
@@ -455,7 +517,7 @@ def build_json_official(
 
     logging.debug("FULL Query:", j)
     return j
-
+'''
 
 def search_item(j, league):
     """
@@ -898,11 +960,22 @@ def price_item(text):
     try:
         item = parse_item_info(text)
         item = item.deduce_specific_object()
+        item.sanitize_modifiers()
 
-        logging.debug("Object type deduced: %s" % str(item.__class__.__name__))
-        trade_info = None
-        json = None
+        json = item.get_json()
+        logging.debug("json query: %s" % str(json))
 
+        query_url = item.query_url("Metamorph")
+        response = requests.post(query_url, json=json)
+        logging.debug("json response: %s" % str(response.json()))
+
+        response_json = response.json()
+        fetched = fetch(response_json, isinstance(item, Exchangeable))
+        logging.debug("Fetched: %s" % str(fetched))
+
+        trade_info = fetched
+        logging.debug("Found %d items" % len(trade_info))
+        '''
         if info:
             # Uniques, only search by corrupted status, links, and name.
 
@@ -955,113 +1028,113 @@ def price_item(text):
 
             if json != None:
                 trade_info = search_item(json, LEAGUE)
+        '''
+        # If results found
+        if trade_info:
+            # If more than 1 result, assemble price list.
+            if len(trade_info) > 1:
+                # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
+                prev_account_name = ""
+                # Modify data to usable status.
+                prices = []
+                for trade in trade_info:  # Stop price fixers
+                    if trade["listing"]["account"]["name"] != prev_account_name:
+                        prices.append(trade["listing"]["price"])
 
-            # If results found
-            if trade_info:
-                # If more than 1 result, assemble price list.
-                if len(trade_info) > 1:
-                    # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
-                    prev_account_name = ""
-                    # Modify data to usable status.
-                    prices = []
-                    for trade in trade_info:  # Stop price fixers
-                        if trade["listing"]["account"]["name"] != prev_account_name:
-                            prices.append(trade["listing"]["price"])
+                    prev_account_name = trade["listing"]["account"]["name"]
 
-                        prev_account_name = trade["listing"]["account"]["name"]
+                prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
 
-                    prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
+                prices = {x: prices.count(x) for x in prices}
+                print_string = ""
+                total_count = 0
 
-                    prices = {x: prices.count(x) for x in prices}
-                    print_string = ""
-                    total_count = 0
+                # Make pretty strings.
+                for price_dict in prices:
+                    pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
+                    print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.RESET + ", "
+                    total_count += prices[price_dict]
 
-                    # Make pretty strings.
-                    for price_dict in prices:
-                        pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
-                        print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.RESET + ", "
-                        total_count += prices[price_dict]
-
-                    # Print the pretty string, ignoring trailing comma
-                    logging.info(f"[$] Price: {print_string[:-2]}\n\n")
-                    if config.USE_GUI:
-                        priceList = prices
-                        # Get difference between current time and posted time in timedelta format
-                        times = [
-                            (
-                                datetime.now(timezone.utc)
-                                - datetime.replace(
-                                    datetime.strptime(time["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
-                                    tzinfo=timezone.utc,
-                                )
-                            )
-                            for time in trade_info
-                        ]
-                        # Assign times to proper price values (for getting average later.)
-                        priceTimes = []
-                        total = 0
-                        for price in priceList:
-                            num = priceList[price]
-                            priceTimes.append(times[total : num + total])
-                            total += num
-
-                        avg_times = get_average_times(priceTimes)
-
-                        price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
-
-                        currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
-                        if "mir" in print_string:
-                            currency = "mirror"
-                        elif "exa" in print_string:
-                            currency = "exalt"
-                        elif "chaos" in print_string:
-                            currency = "chaos"
-                        elif "alch" in print_string:
-                            currency = "alchemy"
-
-                        price.sort()
-
-                        # Fastest method for calculating average as seen here:
-                        # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
-                        # TODO average between multiple currencies...
-                        L = [float(n) for n in price if n]
-                        average = str(round(sum(L) / float(len(L)) if L else "-", 2))
-
-                        price = [
-                            round(float(price[0]), 2),
-                            average,
-                            round(float(price[-1]), 2),
-                        ]
-
-                        if config.USE_GUI:
-                            gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
-                else:
-                    price = trade_info[0]["listing"]["price"]
-                    if price != None:
-                        price_val = price["amount"]
-                        price_curr = price["currency"]
-                        price = f"{price_val} x {price_curr}"
-                        logging.info(f"[$] Price: {Fore.YELLOW}{price}{Fore.RESET} \n\n")
-                        time = datetime.now(timezone.utc) - datetime.replace(
-                            datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
-                            tzinfo=timezone.utc,
-                        )
-                        time = [[time.days, time.seconds]]
-                        price_vals = [[str(price_val) + price_curr]]
-
-                        logging.info("[!] Not enough data to confidently price this item.")
-                        if config.USE_GUI:
-                            gui.show_price(price, price_vals, time, True)
-                    else:
-                        logging.info(f"[$] Price: {Fore.YELLOW}None{Fore.RESET} \n\n")
-                        logging.info("[!] Not enough data to confidently price this item.")
-                        if config.USE_GUI:
-                            gui.show_not_enough_data()
-
-            elif trade_info is not None:
-                logging.info("[!] No results!")
+                # Print the pretty string, ignoring trailing comma
+                logging.info(f"[$] Price: {print_string[:-2]}\n\n")
                 if config.USE_GUI:
-                    gui.show_not_enough_data()
+                    priceList = prices
+                    # Get difference between current time and posted time in timedelta format
+                    times = [
+                        (
+                            datetime.now(timezone.utc)
+                            - datetime.replace(
+                                datetime.strptime(time["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                                tzinfo=timezone.utc,
+                            )
+                        )
+                        for time in trade_info
+                    ]
+                    # Assign times to proper price values (for getting average later.)
+                    priceTimes = []
+                    total = 0
+                    for price in priceList:
+                        num = priceList[price]
+                        priceTimes.append(times[total : num + total])
+                        total += num
+
+                    avg_times = get_average_times(priceTimes)
+
+                    price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+
+                    currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
+                    if "mir" in print_string:
+                        currency = "mirror"
+                    elif "exa" in print_string:
+                        currency = "exalt"
+                    elif "chaos" in print_string:
+                        currency = "chaos"
+                    elif "alch" in print_string:
+                        currency = "alchemy"
+
+                    price.sort()
+
+                    # Fastest method for calculating average as seen here:
+                    # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+                    # TODO average between multiple currencies...
+                    L = [float(n) for n in price if n]
+                    average = str(round(sum(L) / float(len(L)) if L else "-", 2))
+
+                    price = [
+                        round(float(price[0]), 2),
+                        average,
+                        round(float(price[-1]), 2),
+                    ]
+
+                    if config.USE_GUI:
+                        gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
+            else:
+                price = trade_info[0]["listing"]["price"]
+                if price != None:
+                    price_val = price["amount"]
+                    price_curr = price["currency"]
+                    price = f"{price_val} x {price_curr}"
+                    logging.info(f"[$] Price: {Fore.YELLOW}{price}{Fore.RESET} \n\n")
+                    time = datetime.now(timezone.utc) - datetime.replace(
+                        datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                        tzinfo=timezone.utc,
+                    )
+                    time = [[time.days, time.seconds]]
+                    price_vals = [[str(price_val) + price_curr]]
+
+                    logging.info("[!] Not enough data to confidently price this item.")
+                    if config.USE_GUI:
+                        gui.show_price(price, price_vals, time, True)
+                else:
+                    logging.info(f"[$] Price: {Fore.YELLOW}None{Fore.RESET} \n\n")
+                    logging.info("[!] Not enough data to confidently price this item.")
+                    if config.USE_GUI:
+                        gui.show_not_enough_data()
+
+        elif trade_info is not None:
+            logging.info("[!] No results!")
+            if config.USE_GUI:
+                gui.show_not_enough_data()
 
     except NotFoundException as e:
         logging.info("[!] No results!")

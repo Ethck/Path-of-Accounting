@@ -12,12 +12,17 @@ from models.item_modifier import ItemModifier
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
-NINJA_BASES = []
+ninja_bases = []
 
 mod_list = []
 mod_list_dict_id = {}
 mod_list_dict_text = {}
 
+def search_url(league: str) -> str:
+    return f"https://www.pathofexile.com/api/trade/search/{league}"
+
+def exchange_url(league: str) -> str:
+    return f"https://www.pathofexile.com/api/trade/exchange/{league}"
 
 def exchange_currency(query: dict, league: str) -> dict:
     """
@@ -26,7 +31,7 @@ def exchange_currency(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(f"https://www.pathofexile.com/api/trade/exchange/{league}", json=query)
+    results = requests.post(exchange_url(league), json=query)
     return results.json()
 
 
@@ -37,7 +42,7 @@ def query_item(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(f"https://www.pathofexile.com/api/trade/search/{league}", json=query)
+    results = requests.post(search_url(league), json=query)
     return results.json()
 
 
@@ -184,12 +189,12 @@ def get_ninja_bases():
 
     Returns list[dict]
     """
-    global NINJA_BASES
-    if not NINJA_BASES:
+    global ninja_bases
+    if not ninja_bases:
         query = requests.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en")
         tbases = query.json()
 
-        NINJA_BASES = [
+        ninja_bases = [
             {
                 "base": b["baseType"],
                 "ilvl": b["levelRequired"],
@@ -202,4 +207,4 @@ def get_ninja_bases():
             for b in tbases["lines"]
         ]
 
-    return NINJA_BASES
+    return ninja_bases
