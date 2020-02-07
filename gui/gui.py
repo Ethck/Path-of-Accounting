@@ -15,10 +15,11 @@ from utils.config import USE_GUI, TIMEOUT_GUI, GUI_BG1, GUI_BG2, GUI_HEADER_COLO
 def set_foreground_window(wid):
     if os.name == "nt":
         win32gui.ShowWindow(wid, 5)
-        try: # this might fail if im switching windows a lot, should be safe to ignore it (instead of crashing the program)
+        try: # this might fail if somebody is working in a diffrent window, should just be ignored in that case
             win32gui.SetForegroundWindow(wid)
-        except Exception as e:
+        except win32gui.error as e:
             pass
+
 def get_foreground_window():
     if os.name == "nt":
         return win32gui.GetForegroundWindow()
