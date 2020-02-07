@@ -1181,6 +1181,7 @@ if __name__ == "__main__":
 
     if LEAGUE not in valid_leagues:
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
+        print(f"[!] Exiting, no valid league.")
     else:
         NINJA_BASES = get_ninja_bases(LEAGUE)
         print(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
@@ -1198,6 +1199,6 @@ if __name__ == "__main__":
 
         print(f"[!] Exiting, user requested termination.")
 
-        # Apparently things go bad if we don't call this, so here it is!
-        deinit()  # Colorama
+    # Apparently things go bad if we don't call this, so here it is!
+    deinit()  # Colorama
 
