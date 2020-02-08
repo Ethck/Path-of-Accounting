@@ -166,6 +166,7 @@ class Item:
             "Belt": Belt,
             "Shield": Shield,
             "Quiver": Quiver,
+            "Jewel": Jewel
         }
 
         global types
@@ -686,6 +687,9 @@ class Shield(Armor): pass
 
 @attrs(auto_attribs=True)
 class Quiver(Wearable): pass
+
+@attrs(auto_attribs=True)
+class Jewel(Searchable): pass
 
 @attrs(auto_attribs=True)
 class Weapon(Wearable):
