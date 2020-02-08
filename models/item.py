@@ -9,11 +9,15 @@ from enums.item_modifier_type import ItemModifierType
 from utils.trade import (
     get_ninja_bases,
     get_item_modifiers_by_text,
+    build_map_bases,
     search_url,
     exchange_url,
 )
 from utils.mods import create_pseudo_mods
-from utils.types import get_magic_type
+from utils.types import (
+    get_magic_type,
+    get_map_base,
+)
 
 # Synthesis uniques
 synthesis_uniques = dict()
@@ -446,6 +450,17 @@ class Map(Searchable):
     iiq: int = 0
     iir: int = 0
     pack_size: int = 0
+
+    def __attrs_post_init__(self):
+        super().__attrs_post_init__()
+        build_map_bases()
+
+        if self.rarity == "magic":
+            logging.debug("Extracting base for magic map out of: %s" % self.base)
+            base = get_map_base(self.base)
+            if base:
+                self.base = base
+                logging.debug("Map base found and extracted: %s" % self.base)
 
     def get_json(self) -> Dict:
         '''

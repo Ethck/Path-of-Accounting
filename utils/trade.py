@@ -11,9 +11,15 @@ from factories.item_modifier import build_from_json
 from models.item_modifier import ItemModifier
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
-from utils.types import add_magic_base
+from utils.types import (
+    add_magic_base,
+    add_map_base,
+)
 
 ninja_bases = []
+
+item_cache = []
+map_cache = set()
 
 mod_list = []
 mod_list_dict_id = {}
@@ -217,3 +223,33 @@ def get_ninja_bases():
             add_magic_base(e["base"], e["type"])
 
     return ninja_bases
+
+def get_items():
+    global item_cache
+    if not item_cache:
+        query = requests.get("https://www.pathofexile.com/api/trade/data/items")
+        items = query.json()
+        item_cache = items["result"]
+    return item_cache
+
+def get_maps():
+    global item_cache
+    global map_cache
+    if not map_cache:
+        get_items()
+        for item_type in item_cache:
+            if item_type["label"] != "Maps":
+                continue
+
+            for map_entry in item_type["entries"]:
+                map_base = map_entry["type"]
+                if map_base not in map_cache:
+                    map_cache.add(map_base)
+
+    return map_cache
+
+def build_map_bases():
+    global map_cache
+    get_maps()
+    for e in map_cache:
+        add_map_base(e)
