@@ -2,20 +2,50 @@ import logging
 import copy
 import re
 from attr import attrs
+from typing import Dict, List
+
 from .item_modifier import ItemModifier
 from enums.item_modifier_type import ItemModifierType
 from utils.trade import (
     get_ninja_bases,
     get_item_modifiers_by_text,
     search_url,
-    exchange_url
+    exchange_url,
 )
+from utils.mods import create_pseudo_mods
+
+# Synthesis uniques
+synthesis_uniques = dict()
 
 # A global type cache for Base -> Item derivative conversions
 types = dict()
 
-def set_modifiers(json_data, modifiers):
+def get_synthesis_uniques() -> Dict:
+    global synthesis_uniques
+    if len(synthesis_uniques) == 0:
+        synthesis_uniques = {
+            ("Bottled Faith", "Sulphur Flask"): Flask,
+            ("Maloney's Mechanism", "Ornate Quiver"): Quiver,
+            ("Circle of Anguish", "Ruby Ring"): Ring,
+            ("Circle of Fear", "Sapphire Ring"): Ring,
+            ("Circle of Guilt", "Iron Ring"): Ring,
+            ("Circle of Nostalgia", "Amethyst Ring"): Ring,
+            ("Circle of Regret", "Topaz Ring"): Ring,
+            ("Garb of the Ephemeral", "Savant's Robe"): BodyArmor,
+            ("Offering to the Serpent", "Legion Gloves"): Gloves,
+            ("March of the Legion", "Legion Boots"): Boots,
+            ("Mask of the Tribunal", "Magistrate Crown"): Helmet,
+            ("Storm's Gift", "Assassin's Mitts"): Gloves,
+            ("Perepiteia", "Ezomyte Spiked Shield"): Shield,
+            ("Hyrri's Truth", "Jade Amulet"): Amulet,
+            ("Nebulis", "Void Sceptre"): Weapon
+        }
+    return synthesis_uniques
+
+def set_modifiers(json_data: Dict, modifiers: List) -> Dict:
     '''
+    This function integrates a list of modifiers into a json query.
+
     :param json_data: Root json dictionary to set modifiers of
     :param modifiers: List of modifiers
     :return: Altered json dictionary
@@ -25,22 +55,17 @@ def set_modifiers(json_data, modifiers):
     # that we store separated by commas, like Adds # to # Physical Damage.
     mods = []
     for e in modifiers:
-        if ',' in e[1]:
-            value = re.sub(r',.*', '', e[1])
-            mods.append({ "id": e[0].id, "value": { "min": int(value) }})
-        else:
-            mods.append({ "id": e[0].id, "value": { "min": int(e[1]) }})
+        try:
+            if ',' in e[1]:
+                value = re.sub(r',.*', '', e[1])
+                mods.append({ "id": e[0].id, "value": { "min": float(value) }})
+            else:
+                mods.append({ "id": e[0].id, "value": { "min": float(e[1]) }})
+        except ValueError:
+            # If we cannot cast the mod value stored to a float, then
+            # we are not concerned with including that mod in the lookup.
+            pass
 
-    '''
-    mods = [
-        {
-            "id": e[0].id,
-            "value": {
-                "min": int(e[1]) if ',' not in e[1] else e[1]
-            }
-        } for e in modifiers
-    ]
-    '''
     json_data["query"]["stats"][0]["filters"] = mods
     return json_data
 
@@ -66,6 +91,8 @@ class Item:
     influence: [str] = []
 
     links: int = 0
+
+    synthesised: bool = False
 
     def __attrs_post_init__(self):
         if not self.base:
@@ -103,7 +130,7 @@ class Item:
 
     def deduce_specific_object(self):
         # If we're already a different object, turn this into a no-op method
-        if str(self.__class__.__name__) != "Item":
+        if self.__class__.__name__ != "Item":
             return self
 
         weapon_types = {
@@ -144,15 +171,39 @@ class Item:
                     types[item_base] = Weapon
                 elif item_type in other_types:
                     types[item_base] = other_types[item_type]
+            # Synthesis league-specific base; the only non-unique one.
+            types["Ornate Quiver"] = Quiver
 
+        cls = None
         if self.base in types:
             cls = types[self.base]
             logging.debug(
                 "Found base's type and converted the Item to %s" % cls.__class__.__name__
             )
+
+        if self.rarity == "unique":
+            name_and_base = (self.name, self.base.replace("Synthesised ", ''))
+            synthesis_uniques = get_synthesis_uniques()
+            if name_and_base in synthesis_uniques:
+                self.synthesised = True
+                self.base = self.base.replace("Synthesised ", '')
+                cls = synthesis_uniques[name_and_base]
+                logging.debug(
+                    "Found item to be a synthesis unique and "
+                    + "converted the Item to %s" % cls.__class__.__name__
+                )
+
+        if cls:
             kwargs = copy.copy(self.__dict__)
-            for k in ("r_sockets", "b_sockets", "g_sockets", "w_sockets", "a_sockets"):
-                del kwargs[k]
+            to_exclude = (
+                "r_sockets",
+                "b_sockets",
+                "g_sockets",
+                "w_sockets",
+                "a_sockets"
+            )
+            for attr in to_exclude:
+                del kwargs[attr]
             return cls(**kwargs)
 
         logging.error(
@@ -164,7 +215,7 @@ class Item:
     def get_pseudo_mods(self):
         raise NotImplementedError
 
-    def get_json(self):
+    def get_json(self) -> Dict:
         '''
         This method is the root of all json production for items. It only
         concerns itself with fields that the majority of subclasses use.
@@ -268,7 +319,7 @@ class Item:
 
 @attrs(auto_attribs=True)
 class Searchable(Item):
-    def query_url(self, league):
+    def query_url(self, league: str) -> str:
         '''
         :param league: Path of Exile league to format the query URL with
         :return: A formatted string of the PoE search trade API endpoint
@@ -284,7 +335,7 @@ class Exchangeable(Item):
         "Mirror of Kalandra": "mir",
     }
 
-    def get_json(self):
+    def get_json(self) -> Dict:
         base = self.base
         if base in self.convert:
             base = self.convert[self.base]
@@ -300,7 +351,7 @@ class Exchangeable(Item):
         }
         return data
 
-    def query_url(self, league):
+    def query_url(self, league: str) -> str:
         '''
         :param league: Path of Exile league to format the query URL with
         :return: A formatted string of the PoE exchange trade API endpoint
@@ -311,10 +362,13 @@ class Exchangeable(Item):
 class Wearable(Searchable):
     def get_json(self):
         data = super().get_json()
-        data["query"]["filters"]["misc_filters"]["filters"]["ilvl"] = {
-            "min": self.ilevel
-        }
-        return data
+        # For unique items, we don't really care about the item level spec.
+        if self.rarity != "unique":
+            data["query"]["filters"]["misc_filters"]["filters"]["ilvl"] = {
+                "min": self.ilevel
+            }
+
+        return create_pseudo_mods(data)
 
 @attrs(auto_attribs=True)
 class Currency(Exchangeable): pass
@@ -324,7 +378,7 @@ class Card(Searchable): pass
 
 @attrs(auto_attribs=True)
 class Gem(Searchable):
-    def get_json(self):
+    def get_json(self) -> Dict:
         data = super().get_json()
         data["query"]["filters"]["misc_filters"]["filters"]["gem_level"] = {
             "min": self.ilevel
@@ -344,26 +398,32 @@ class Map(Searchable):
     iir: int = 0
     pack_size: int = 0
 
-    def get_json(self):
+    def get_json(self) -> Dict:
         data = super().get_json()
 
         data["query"]["filters"]["map_filters"] = {
             "filters": {
-                "map_iiq": {
-                    "min": self.iiq
-                },
-                "map_iir": {
-                    "min": self.iir
-                },
-                "map_packsize": {
-                    "min": self.pack_size
-                },
                 "map_tier": {
                     "min": self.ilevel,
                     "max": self.ilevel
                 }
             }
         }
+
+        if self.iiq:
+            data["query"]["filters"]["map_filters"]["filters"]["map_iiq"] = {
+                "min": self.iiq
+            }
+
+        if self.iir:
+            data["query"]["filters"]["map_filters"]["filters"]["map_iir"] = {
+                "min": self.iir
+            }
+
+        if self.pack_size:
+            data["query"]["filters"]["map_filters"]["filters"]["map_packsize"] = {
+                "min": self.pack_size
+            }
 
         # If it's a blighted map, we'll include the blighted filter
         if self.base.startswith("Blighted"):
@@ -390,7 +450,7 @@ class Map(Searchable):
 
 @attrs(auto_attribs=True)
 class Prophecy(Searchable):
-    def get_json(self):
+    def get_json(self) -> Dict:
         data = super().get_json()
         data["query"]["name"] = self.base
         data["query"]["type"] = "Prophecy"
@@ -401,7 +461,7 @@ class Fragment(Searchable): pass
 
 @attrs(auto_attribs=True)
 class Organ(Searchable):
-    def get_json(self):
+    def get_json(self) -> Dict:
         '''
         In this subclass override, we carry over the stats produced by
         it's base, and produce a new JSON dictionary more specific to
@@ -477,7 +537,33 @@ class Flask(Searchable):
 class Accessory(Wearable): pass
 
 @attrs(auto_attribs=True)
-class Ring(Accessory): pass
+class Ring(Accessory):
+    def sanitize_modifiers(self):
+        # Some of the synthesised explicit mods are also standard enchanted
+        # mods. Fix them up if this ring is synthesised.
+        if self.synthesised:
+            convert = [
+                r'Herald of (Ash|Thunder) has #% reduced Mana Reservation',
+                r'#% to Cold Resistance while affected by Herald of Ice',
+            ]
+
+            for i in range(len(self.modifiers)):
+                for possible in convert:
+                    mod = self.modifiers[i]
+                    mod_text = mod[0].text
+                    mod_type = ItemModifierType.EXPLICIT
+                    logging.debug("Sanitizing %s" % str(mod))
+                    if re.search(possible, mod_text):
+                        sanitized_mod = get_item_modifiers_by_text(
+                            (mod_text, mod_type)
+                        )
+                        if sanitized_mod:
+                            self.modifiers[i] = (sanitized_mod, mod[1])
+                            logging.debug(
+                                "Altered mod to be explicit: %s" % str(self.modifiers[i])
+                            )
+                    else:
+                        logging.debug("No sanitization needed")
 
 @attrs(auto_attribs=True)
 class Amulet(Accessory): pass
@@ -507,14 +593,19 @@ class Armor(Wearable):
                 mod = self.modifiers[i]
                 mod_text = mod[0].text
                 mod_type = mod[0].type
-                print("Sanitizing %s" % str(mod))
+                logging.debug("Sanitizing %s" % str(mod))
                 if re.search(possible, mod_text):
                     altered = mod_text + " (Local)"
-                    sanitized_mod = get_item_modifiers_by_text((altered, mod_type))
-                    self.modifiers[i] = (sanitized_mod, mod[1])
-                    print("Altered mod to be local: %s" % str(self.modifiers[i]))
+                    sanitized_mod = get_item_modifiers_by_text(
+                        (altered, mod_type)
+                    )
+                    if sanitized_mod:
+                        self.modifiers[i] = (sanitized_mod, mod[1])
+                        logging.debug(
+                            "Altered mod to be local: %s" % str(self.modifiers[i])
+                        )
                 else:
-                    print("No sanitization needed")
+                    logging.debug("No sanitization needed")
 
 @attrs(auto_attribs=True)
 class Helmet(Armor): pass
@@ -556,12 +647,16 @@ class Weapon(Wearable):
                 mod = self.modifiers[i]
                 mod_text = mod[0].text
                 mod_type = mod[0].type
-                print("Sanitizing %s" % str(mod))
+                logging.debug("Sanitizing %s" % str(mod))
                 if re.search(possible, mod_text):
                     altered = mod_text + " (Local)"
-                    sanitized_mod = get_item_modifiers_by_text((altered, mod_type))
+                    sanitized_mod = get_item_modifiers_by_text(
+                        (altered, mod_type)
+                    )
                     self.modifiers[i] = (sanitized_mod, mod[1])
-                    print("Altered mod to be local: %s" % str(self.modifiers[i]))
+                    logging.debug(
+                        "Altered mod to be local: %s" % str(self.modifiers[i])
+                    )
                 else:
-                    print("No sanitization needed")
+                    logging.debug("No sanitization needed")
 
