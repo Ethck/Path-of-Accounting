@@ -27,9 +27,11 @@ def parse_item_info(text: str) -> Item:
     :param text: A Path of Exile's item clipboard content
     :return: An Item or Item subclass
     """
-    # TODO: test if poe item
+    # TODO: Determine as many ways as possible to raise InvalidItemError
+    # at the proper time.
     # TODO: synthesis items -> Item class: Mostly done, but have to deal with
-    # synthesis-item specific modifiers. See Ring.sanitize_modifiers
+    # synthesis-item specific modifiers. See Ring.sanitize_modifiers for an
+    # attempt that works on most Synthesis unique rings.
     # TODO: stats
     # TODO: handle veiled items (not veiled mods, these are handled) e.g. Veiled Prefix
 
@@ -45,6 +47,7 @@ def parse_item_info(text: str) -> Item:
         del item_list[-1]
 
     rarity = item_list[0][0][8:].lower()
+    # Remove <<set:S>>, <<set:M>>, and/or <<set:MS>> from the name.
     name = re.sub(r'<<set:M?S?>>', '', item_list[0][1])
 
     quality = 0
@@ -57,20 +60,22 @@ def parse_item_info(text: str) -> Item:
     ilevel = 0
     modifiers = []
     corrupted = False
+    mirrored = False
     base = None
     if len(item_list[0]) == 3:
         base = item_list[0][2]
-    #base = name if rarity == 'normal' and len(item_list[0]) == 2 else item_list[0][2]
     raw_sockets = ''
-    mirrored = False
 
+    # Map-only attributes
     iiq = None
     iir = None
     pack_size = None
 
-    item_class = Item
+    # This will only be used to temporarily store organ modifiers in,
+    # because we need to sort them and count them to provide the proper
+    # values for them.
+    organ_modifiers = []
 
-    # TODO: Maybe use this instead of if/elif massive branches?
     special_types = {
         'Right-click to add this prophecy to your character.': Prophecy,
         'Can be used in a personal Map Device.': Fragment,
@@ -79,10 +84,11 @@ def parse_item_info(text: str) -> Item:
         'Travel to this Map by using it in a personal Map Device. Maps can only be used once.': Map
     }
 
-    # This will only be used to temporarily store organ modifiers in,
-    # because we need to sort them and count them to provide the proper
-    # values for them.
-    organ_modifiers = []
+    # Default item_class is always just an Item. If we are dealing with a
+    # wearable item, this will be used to construct the first class,
+    # which Item.deduce_specific_object can then be used on to convert
+    # to specific types of items, or edge cases like Scarabs, etc.
+    item_class = Item
 
     # Iterate from the last region to the first. Figure out if a region
     # contains text for a special type of item. If we find that, we'll

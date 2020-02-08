@@ -1,19 +1,21 @@
 import logging
+import copy
 from colorama import Fore
 from typing import Dict
 
-def create_pseudo_mods(j: Dict) -> Dict:
+def create_pseudo_mods(json: Dict) -> Dict:
     """
     Combines life and resists into pseudo-mods
 
     Returns modified JSON #TODO change this to only modify the stats section of the JSON
     """
+    j = copy.copy(json)
+
     # Combine life and resists for pseudo-stats
     total_ele_resists = 0
     total_chaos_resist = 0
     total_life = 0
 
-    # TODO: Find a way to not hard-code
     # TODO: Support for attributes (including str->life), added phys to attacks, life regen
     solo_resist_ids = {
         "explicit.stat_3372524247",  # Explicit fire resist
@@ -70,29 +72,24 @@ def create_pseudo_mods(j: Dict) -> Dict:
 
     combined_filters = []
 
-    # Solo elemental resists
     for i in j["query"]["stats"][0]["filters"]:
         if i["id"] in possible_ids:
             if i["id"] in solo_resist_ids:
                 total_ele_resists += int(i["value"]["min"])
                 combined_filters.append(i)
 
-            # Dual elemental resists
             elif i["id"] in dual_resist_ids:
                 total_ele_resists += 2 * int(i["value"]["min"])
                 combined_filters.append(i)
 
-            # Triple elemental resists
             elif i["id"] in triple_resist_ids:
                 total_ele_resists += 3 * int(i["value"]["min"])
                 combined_filters.append(i)
 
-            # Solo chaos resists
             elif i["id"] in solo_chaos_resist_ids:
                 total_chaos_resist += int(i["value"]["min"])
                 combined_filters.append(i)
 
-            # Dual chaos resists
             elif i["id"] in dual_chaos_resist_ids:
                 total_chaos_resist += int(i["value"]["min"])
                 total_ele_resists += int(i["value"]["min"])
@@ -103,20 +100,17 @@ def create_pseudo_mods(j: Dict) -> Dict:
                 total_life += int(i["value"]["min"])
                 combined_filters.append(i)
 
-    # Round down to nearest 10 for combined stats (off by default)
-    do_round = False
-    if do_round:
-        total_ele_resists = total_ele_resists - (total_ele_resists % 10)
-        total_chaos_resist = total_chaos_resist - (total_chaos_resist % 10)
-        total_life = total_life - (total_life % 10)
-
     # Remove stats that have been combined into psudo-stats
-    j["query"]["stats"][0]["filters"] = [e for e in j["query"]["stats"][0]["filters"] if e not in combined_filters]
+    j["query"]["stats"][0]["filters"] = [
+        e for e in j["query"]["stats"][0]["filters"]
+        if e not in combined_filters
+    ]
 
     if total_ele_resists > 0:
-        j["query"]["stats"][0]["filters"].append(
-            {"id": "pseudo.pseudo_total_elemental_resistance", "value": {"min": total_ele_resists, "max": 999},}
-        )
+        j["query"]["stats"][0]["filters"].append({
+            "id": "pseudo.pseudo_total_elemental_resistance",
+            "value": { "min": total_ele_resists },
+        })
         logging.info(
             "[o] Combining the "
             + Fore.CYAN
@@ -134,7 +128,7 @@ def create_pseudo_mods(j: Dict) -> Dict:
     if total_chaos_resist > 0:
         j["query"]["stats"][0]["filters"].append({
             "id": "pseudo.pseudo_total_chaos_resistance",
-            "value": {"min": total_chaos_resist, "max": 999},
+            "value": { "min": total_chaos_resist },
         })
         logging.info(
             "[o] Combining the "
@@ -143,12 +137,16 @@ def create_pseudo_mods(j: Dict) -> Dict:
             + Fore.RESET
             + " mods from the list into a pseudo-parameter"
         )
-        logging.info("[+] Pseudo-mod " + Fore.GREEN + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)")
+        logging.info(
+            "[+] Pseudo-mod "
+            + Fore.GREEN
+            + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)"
+        )
 
     if total_life > 0:
         j["query"]["stats"][0]["filters"].append({
             "id": "pseudo.pseudo_total_life",
-            "value": {"min": total_life, "max": 999}
+            "value": { "min": total_life }
         })
         logging.info(
             "[o] Combining the "
@@ -166,4 +164,23 @@ def create_pseudo_mods(j: Dict) -> Dict:
 
     return j
 
+def relax_modifiers(json: Dict) -> Dict:
+    '''
+    This function relaxes the range of (min, max) values for a json
+    dictionary intended to be used via simple search. It does not
+    modify the given json dictionary in-place, but instead returns
+    a new modified copy of the original.
+
+    :param json: A json dictionary that has not yet been relaxed
+    :return: Relaxed json dictionary
+    '''
+    j = copy.copy(json)
+    for mod in j["query"]["stats"][0]["filters"]:
+        if mod["id"].startswith("explicit") or mod["id"].startswith("pseudo"):
+            value = mod["value"]["min"]
+            value_min = value * (1 - 10 * 0.01)
+            value_max = value * (1 + 10 * 0.01)
+            mod["value"]["min"] = round(value_min, 2)
+            mod["value"]["max"] = round(value_max, 2)
+    return j
 

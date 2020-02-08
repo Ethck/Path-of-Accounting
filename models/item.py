@@ -21,6 +21,9 @@ synthesis_uniques = dict()
 types = dict()
 
 def get_synthesis_uniques() -> Dict:
+    '''
+    :return: Conversion dictionary of synthesis unique -> Item subclass
+    '''
     global synthesis_uniques
     if len(synthesis_uniques) == 0:
         synthesis_uniques = {
@@ -129,6 +132,12 @@ class Item:
         pass
 
     def deduce_specific_object(self):
+        '''
+        This method's responsibility is to convert any unconverted Item
+        into it's specific subclass.
+
+        :return: Either the object itself or a subclassed object
+        '''
         # If we're already a different object, turn this into a no-op method
         if self.__class__.__name__ != "Item":
             return self
@@ -178,7 +187,7 @@ class Item:
         if self.base in types:
             cls = types[self.base]
             logging.debug(
-                "Found base's type and converted the Item to %s" % cls.__class__.__name__
+                "Found base's type and converted the Item to %s" % str(cls.__class__.__name__)
             )
 
         if self.rarity == "unique":
@@ -190,8 +199,22 @@ class Item:
                 cls = synthesis_uniques[name_and_base]
                 logging.debug(
                     "Found item to be a synthesis unique and "
-                    + "converted the Item to %s" % cls.__class__.__name__
+                    + "converted the Item to %s" % str(cls.__class__.__name__)
                 )
+
+        if not cls:
+            # Oil, Catalyst, Fossil, Resonator, and Incubator is taken
+            # care of by the Currency class, as they are of 'Currency' rarity
+            end = ' ' + self.base.split(' ')[-1]
+            possible_ends = {
+                " Scarab": Scarab,
+            }
+            if end in possible_ends:
+                cls = possible_ends[end]
+            elif "Essence of " in self.base:
+                cls = Essence
+            elif "Vial of " in self.base:
+                cls = Vial
 
         if cls:
             kwargs = copy.copy(self.__dict__)
@@ -299,6 +322,8 @@ class Item:
                 "option": "true"
             }
 
+        # TODO: Parse this out correctly in parse_item_info; this is an
+        # incomplete conditional at the moment.
         if self.veiled:
             data["query"]["filters"]["misc_filters"]["filters"]["veiled"] = {
                 "option": "true"
@@ -336,6 +361,9 @@ class Exchangeable(Item):
     }
 
     def get_json(self) -> Dict:
+        '''
+        :return: An exchange API JSON dictionary for this item
+        '''
         base = self.base
         if base in self.convert:
             base = self.convert[self.base]
@@ -360,7 +388,10 @@ class Exchangeable(Item):
 
 @attrs(auto_attribs=True)
 class Wearable(Searchable):
-    def get_json(self):
+    def get_json(self) -> Dict:
+        '''
+        :return: A JSON dictionary for this item, including it's item level
+        '''
         data = super().get_json()
         # For unique items, we don't really care about the item level spec.
         if self.rarity != "unique":
@@ -368,7 +399,7 @@ class Wearable(Searchable):
                 "min": self.ilevel
             }
 
-        return create_pseudo_mods(data)
+        return data
 
 @attrs(auto_attribs=True)
 class Currency(Exchangeable): pass
@@ -388,7 +419,7 @@ class Gem(Searchable):
         }
         return data
 
-# TODO: Implement this.
+# TODO: Make this work.
 @attrs(auto_attribs=True)
 class Beast(Searchable): pass
 
@@ -399,6 +430,11 @@ class Map(Searchable):
     pack_size: int = 0
 
     def get_json(self) -> Dict:
+        '''
+        
+
+        :return: Map-specific JSON dictionary
+        '''
         data = super().get_json()
 
         data["query"]["filters"]["map_filters"] = {
@@ -456,8 +492,19 @@ class Prophecy(Searchable):
         data["query"]["type"] = "Prophecy"
         return data
 
+# Oils, Catalysts, Fossils, Incubators, and Resonators are all
+# of currency rarity, and so they are taken care of by Currency.
 @attrs(auto_attribs=True)
 class Fragment(Searchable): pass
+
+@attrs(auto_attribs=True)
+class Essence(Searchable): pass
+
+@attrs(auto_attribs=True)
+class Scarab(Searchable): pass
+
+@attrs(auto_attribs=True)
+class Vial(Searchable): pass
 
 @attrs(auto_attribs=True)
 class Organ(Searchable):
@@ -472,6 +519,11 @@ class Organ(Searchable):
         data = super().get_json()
         data = {
             "query": {
+                "status": {
+                    "option": "online"
+                },
+                # For the base, we only truly care about the last word
+                # in the item's base: Organ, Heart, Lung, Eye, or Liver.
                 "type": "Metamorph " + self.base.split(' ')[-1],
                 "stats": data["query"]["stats"],
                 "filters": {
@@ -539,6 +591,11 @@ class Accessory(Wearable): pass
 @attrs(auto_attribs=True)
 class Ring(Accessory):
     def sanitize_modifiers(self):
+        '''
+        Sanitize modifiers for a Ring specifically.
+
+        :return: None
+        '''
         # Some of the synthesised explicit mods are also standard enchanted
         # mods. Fix them up if this ring is synthesised.
         if self.synthesised:
@@ -574,6 +631,11 @@ class Belt(Accessory): pass
 # Base class for any Armor-type Items located below this class
 @attrs(auto_attribs=True)
 class Armor(Wearable):
+    '''
+    Armor base class for any Armor-type items: Helmet, BodyArmor, Boots,
+    Gloves, Shield.
+    '''
+
     def sanitize_modifiers(self):
         '''
         Sanitize modifiers for an Armor base or subclass. With these items,
@@ -629,7 +691,7 @@ class Quiver(Wearable): pass
 class Weapon(Wearable):
     def sanitize_modifiers(self):
         '''
-        Sanitize modifiers for an Weapon base or subclass. With these items,
+        Sanitize modifiers for a Weapon or subclass of it. With these items,
         we should convert certain global modifiers to local modifiers if we
         find them. This method modifies our modifiers attribute in-place.
 

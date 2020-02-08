@@ -1,4 +1,5 @@
 import time
+import traceback
 from queue import Queue
 from threading import Thread
 from tkinter import TclError
@@ -96,6 +97,7 @@ class HotkeyWatcher(Thread):
             except Exception as e:
                 # Do not fail
                 print("Unexpected exception occurred while handling hotkey: " + str(e))
+                traceback.print_exc()
 
             self.queue.task_done()
 

@@ -46,7 +46,14 @@ from utils.item import (
     parse_item_info,
     InvalidItemError,
 )
-from models.item import Exchangeable
+from models.item import (
+    Exchangeable,
+    Wearable,
+)
+from utils.mods import (
+    create_pseudo_mods,
+    relax_modifiers,
+)
 
 def search_item(j, league):
     """
@@ -336,13 +343,23 @@ def price_item(text):
         item.sanitize_modifiers()
 
         json = item.get_json()
-        logging.debug("json query: %s" % str(json))
+
+        # pseudo what we can
+        if isinstance(item, Wearable):
+            json = create_pseudo_mods(json)
+            logging.debug("json query: %s" % str(json))
+
+            json = relax_modifiers(json)
+            logging.debug("relaxed query: %s" % str(json))
 
         query_url = item.query_url(LEAGUE)
         response = requests.post(query_url, json=json)
         logging.debug("json response: %s" % str(response.json()))
 
         response_json = response.json()
+        if len(response_json["result"]) == 0:
+            raise NotFoundException
+
         fetched = fetch(response_json, isinstance(item, Exchangeable))
         logging.debug("Fetched: %s" % str(fetched))
 
@@ -577,27 +594,14 @@ def watch_keyboard(keyboard, use_hotkeys):
 
 
 def search_ninja_base(text):
-    info = parse_item_info(text)
-    influence = None
-    if any(i == True for i in info["influenced"].values()):
-        if info["influenced"]["shaper"]:
-            influence = "shaper"
-        elif info["influenced"]["elder"]:
-            influence = "elder"
-        elif info["influenced"]["crusader"]:
-            influence = "crusader"
-        elif info["influenced"]["warlord"]:
-            influence = "warlord"
-        elif info["influenced"]["redeemer"]:
-            influence = "redeemer"
-        elif info["influenced"]["hunter"]:
-            influence = "hunter"
+    real_item = parse_item_info(text)
 
-    ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
+    influences = real_item.influence
+    ilvl = real_item.ilevel if real_item.ilevel >= 84 else 84
+    base = real_item.base
+    # base = info["itype"] if info["itype"] != None else info["base"]
 
-    base = info["itype"] if info["itype"] != None else info["base"]
-
-    logging.info(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
+    logging.info(f"[*] Searching for base {base}. Item Level: {ilvl}, Influences: {influences}")
     result = None
     try:
         result = next(
@@ -606,8 +610,12 @@ def search_ninja_base(text):
             if (
                 item["base"] == base
                 and (
-                    (influence == None and item["influence"] == None)
-                    or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+                    (not influences and item["influence"] == None)
+                    or (
+                        bool(influences)
+                        and item["influence"] != None
+                        and influences[0] == item["influence"].lower()
+                    )
                 )
                 and ilvl == item["ilvl"]
             )
@@ -622,6 +630,7 @@ def search_ninja_base(text):
         currency = "ex" if result["exalt"] >= 1 else "chaos"
         logging.info(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
+            influence = influences[0] if bool(influences) else None
             gui.show_base_result(base, influence, ilvl, price, currency)
 
 def hotkey_handler(keyboard, hotkey):
@@ -632,33 +641,21 @@ def hotkey_handler(keyboard, hotkey):
 
     text = get_clipboard()
     if hotkey == "alt+t":
-        info = parse_item_info(text)
-        j = build_json_official(
-            **{
-                k: v
-                for k, v in info.items()
-                if k
-                in (
-                    "name",
-                    "itype",
-                    "ilvl",
-                    "links",
-                    "corrupted",
-                    "influenced",
-                    "stats",
-                    "rarity",
-                    "gem_level",
-                    "quality",
-                    "maps",
-                )
-            },
-        )
-        res = query_item(j, LEAGUE)
-        open_trade_site(res["id"], LEAGUE)
+        item = parse_item_info(text)
+        item = item.deduce_specific_object()
+        item.sanitize_modifiers()
+        json = item.get_json()
+
+        # if not isinstance(item, Exchangeable):
+        response = requests.post(item.query_url(LEAGUE), json=json)
+        response_json = response.json()
+        logging.debug("response json: %s" % str(response_json))
+        open_trade_site(response_json["id"], LEAGUE)
 
     elif hotkey == "alt+w":
-        info = parse_item_info(text)
-        wiki_lookup(text, info)
+        item = parse_item_info(text)
+        item = item.deduce_specific_object()
+        wiki_lookup(item)
 
     elif hotkey == "alt+c":
         search_ninja_base(text)
