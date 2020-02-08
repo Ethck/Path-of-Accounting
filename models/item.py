@@ -13,6 +13,7 @@ from utils.trade import (
     exchange_url,
 )
 from utils.mods import create_pseudo_mods
+from utils.types import get_magic_type
 
 # Synthesis uniques
 synthesis_uniques = dict()
@@ -191,7 +192,23 @@ class Item:
                 "Found base's type and converted the Item to %s" % str(cls.__class__.__name__)
             )
 
-        if self.rarity == "unique":
+        if self.rarity == "magic":
+            # If this item is a magic item, we can determine it's type
+            # through our magic type graph algorithm
+            logging.debug("Searching '%s' via get_magic_type" % self.base)
+            base = re.sub(r' of .*$', '', self.base)
+            result = get_magic_type(base)
+            if result is not None:
+                logging.debug("Magic base: %s" % str(result))
+                item_base = result[0]
+                item_type = result[1]
+                self.base = item_base
+                if item_type in weapon_types:
+                    cls = Weapon
+                elif item_type in other_types:
+                    cls = other_types[item_type]
+
+        elif self.rarity == "unique":
             name_and_base = (self.name, self.base.replace("Synthesised ", ''))
             synthesis_uniques = get_synthesis_uniques()
             if name_and_base in synthesis_uniques:
