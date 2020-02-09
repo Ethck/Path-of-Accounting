@@ -27,13 +27,19 @@ def get_foreground_window():
 
 components = []
 
+def init_gui():
+    if USE_GUI:
+        tk = tkinter.Tk().withdraw()
+
 def close_all_windows():
-    for x in components:
-        x.close()
+    if USE_GUI:
+        for x in components:
+            x.close()
 
 def check_timeout_gui():
-    for x in components:
-        x.should_close()
+    if USE_GUI:
+        for x in components:
+            x.should_close()
 
 class DisplayWindow:
     def __init__(self):

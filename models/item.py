@@ -19,6 +19,8 @@ from utils.types import (
     get_map_base,
 )
 
+from utils.config import LEAGUE
+
 # Synthesis uniques
 synthesis_uniques = dict()
 
@@ -84,7 +86,7 @@ class Item:
     base: str = None
     ilevel: int = 0
     quality: int = 0
-
+    category = None
     # TODO: handle base stats
     stats: [str] = []
 
@@ -161,22 +163,30 @@ class Item:
             "Dagger",
         }
 
-        other_types = {
+        accessory_types = {
+            "Ring": Ring,
+            "Amulet": Amulet,
+            "Belt": Belt,
+        }
+        armor_types = {
             "Helmet": Helmet,
             "Body Armour": BodyArmor,
             "Boots": Boots,
             "Gloves": Gloves,
-            "Ring": Ring,
-            "Amulet": Amulet,
-            "Belt": Belt,
             "Shield": Shield,
-            "Quiver": Quiver,
-            "Jewel": Jewel
         }
 
+        other_types = {
+            "Quiver": Quiver,
+            "Jewel": Jewel
+            
+        }
+
+
+        ninja_bases = get_ninja_bases(LEAGUE)
         global types
         if len(types) == 0:
-            ninja_bases = get_ninja_bases()
+            ninja_bases = get_ninja_bases(LEAGUE)
             for e in ninja_bases:
                 item_type = e["type"]
                 item_base = e["base"]
@@ -190,71 +200,16 @@ class Item:
             types["Ornate Quiver"] = Quiver
 
         cls = None
-        if self.base in types:
-            cls = types[self.base]
-            logging.debug(
-                "Found base's type and converted the Item to %s" % str(cls.__class__.__name__)
-            )
+        
 
-        if self.rarity == "magic":
-            # If this item is a magic item, we can determine it's type
-            # through our magic type graph algorithm
-            logging.debug("Searching '%s' via get_magic_type" % self.base)
-            base = re.sub(r' of .*$', '', self.base)
-            result = get_magic_type(base)
-            if result is not None:
-                logging.debug("Magic base: %s" % str(result))
-                item_base = result[0]
-                item_type = result[1]
-                self.base = item_base
-                if item_type in weapon_types:
-                    cls = Weapon
-                elif item_type in other_types:
-                    cls = other_types[item_type]
-
-        elif self.rarity == "unique":
-            name_and_base = (self.name, self.base.replace("Synthesised ", ''))
-            synthesis_uniques = get_synthesis_uniques()
-            if name_and_base in synthesis_uniques:
-                self.synthesised = True
-                self.base = self.base.replace("Synthesised ", '')
-                cls = synthesis_uniques[name_and_base]
-                logging.debug(
-                    "Found item to be a synthesis unique and "
-                    + "converted the Item to %s" % str(cls.__class__.__name__)
-                )
-
-        if not cls:
-            # Oil, Catalyst, Fossil, Resonator, and Incubator is taken
-            # care of by the Currency class, as they are of 'Currency' rarity
-            end = ' ' + self.base.split(' ')[-1]
-            possible_ends = {
-                " Scarab": Scarab,
-            }
-            if end in possible_ends:
-                cls = possible_ends[end]
-            elif "Essence of " in self.base:
-                cls = Essence
-            elif "Vial of " in self.base:
-                cls = Vial
-
-        if cls:
-            kwargs = copy.copy(self.__dict__)
-            to_exclude = (
-                "r_sockets",
-                "b_sockets",
-                "g_sockets",
-                "w_sockets",
-                "a_sockets"
-            )
-            for attr in to_exclude:
-                del kwargs[attr]
-            return cls(**kwargs)
-
-        logging.error(
-            "deduce_specific_object was called via Item, "
-            + "but no base could be found to be converted"
-        )
+        print(self.base)
+        for e in ninja_bases:
+            if self.base in e["base"]:
+                self.category = e["type"]
+                break
+        if not self.category:
+            print("Something went wrong with finding item category")
+        
         return self
 
     def get_pseudo_mods(self):
@@ -288,9 +243,6 @@ class Item:
         if self.rarity == "unique" and self.name is not None:
             data["query"]["name"] = self.name
 
-        if self.base:
-            data["query"]["type"] = self.base
-
         if len(self.modifiers) > 0:
             set_modifiers(data, self.modifiers)
 
@@ -309,8 +261,7 @@ class Item:
             data["query"]["filters"]["socket_filters"] = {
                 "filters": {
                     "sockets": {
-                        "min": 6,
-                        "max": 6
+                        "min": 6
                     }
                 }
             }
@@ -318,14 +269,50 @@ class Item:
         # If we have 5 or more links, we'll include that in the query
         if self.links >= 5:
             data["query"]["filters"]["socket_filters"]["filters"]["links"] = {
-                "min": self.links,
-                "max": self.links
+                "min": self.links
             }
 
         # Set this key up; if it's not further modified, that's okay
         # from the API's perspective
         data["query"]["filters"]["misc_filters"] = {
             "filters": {}
+        }
+
+
+        category_list = {
+                    "One Handed Sword": "weapon.onesword",
+                    "Two Handed Sword": "weapon.twosword",
+                    "One Handed Axe":   "weapon.oneaxe",
+                    "Two Handed Axe": "weapon.twoaxe",
+                    "One Handed Mace": "weapon.onemace",
+                    "Two Handed Mace": "weapon.twomace",
+                    "Staff": "weapon.staff",
+                    "Wand": "weapon.wand",
+                    "Claw": "weapon.claw",
+                    "Bow": "weapon.bow",
+                    "Dagger": "weapon.dagger",
+                    "Jewel": "jewel",
+                    "Helmet": "armour.helmet",
+                    "Body Armour": "armour.bodyarmor",
+                    "Boots": "armour.boots",
+                    "Gloves": "armour.gloves",
+                    "Shield": "armour.shield",
+                    "Quiver": "armour.quiver",
+                    "Ring" : "accessory.ring",
+                    "Belt" : "accessory.belt",
+                    "Amulet" : "accessory.amulet"
+                }
+
+
+        data["query"]["filters"]["type_filters"] = {
+            "filters": {
+					"category": {
+						"option": category_list[self.category]
+					},
+					"rarity": {
+						"option": self.rarity
+					}
+				}
         }
 
         for influence in self.influence:
@@ -363,6 +350,9 @@ class Item:
             }
 
         return data
+
+    def query_url(self, league: str) -> str:
+        return search_url(league)
 
 @attrs(auto_attribs=True)
 class Searchable(Item):

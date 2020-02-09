@@ -1,11 +1,6 @@
 import time
-<<<<<<< HEAD
-from queue import Queue, Empty
-=======
 import traceback
-from queue import Queue
-from threading import Thread
->>>>>>> remotes/kevr/search_item_refactor_add
+from queue import Queue, Empty
 from tkinter import TclError
 
 import pyperclip
@@ -62,7 +57,7 @@ class ClipboardWatcher():
     def poll(self):
         try:
             text = get_clipboard()
-
+            
             if text != self.prev and self.should_process() and "clipboard" in self.combination_to_function:
                 self.combination_to_function["clipboard"]()
 

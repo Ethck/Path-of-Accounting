@@ -14,7 +14,7 @@ def __add_magic_base(dict_item, words, item_type):
 def add_magic_base(item_base, item_type):
     global base_graph
     words = item_base.split(' ')
-    logging.debug("Adding magic base: %s" % item_base)
+    #logging.debug("Adding magic base: %s" % item_base)
     __add_magic_base(base_graph, words, item_type)
 
 def __get_magic_type(dict_item, words, base=[]):
@@ -54,7 +54,7 @@ def __add_map_base(dict_item, words):
 def add_map_base(map_base):
     global map_graph
     words = map_base.split(' ')
-    logging.debug("Adding map base: %s" % map_base)
+    #logging.debug("Adding map base: %s" % map_base)
     __add_map_base(map_graph, words)
 
 def __get_map_base(dict_item, words, base=[]):

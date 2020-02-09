@@ -110,7 +110,5 @@ priceInformation = PriceInformation()
 notEnoughInformation = NotEnoughInformation()
 baseResults = BaseResults()
 
-def init_gui():
-    if USE_GUI:
-        tk = tkinter.Tk().withdraw()
+
         
