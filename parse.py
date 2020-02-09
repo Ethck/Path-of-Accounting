@@ -1163,8 +1163,6 @@ if __name__ == "__main__":
     print(f"[*] Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
 
-    NINJA_BASES = get_ninja_bases()
-    print(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
 
     # Inform user of choices
     print(f"If you wish to change the selected league you may do so in settings.cfg.")
@@ -1172,7 +1170,10 @@ if __name__ == "__main__":
 
     if LEAGUE not in valid_leagues:
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")
+        print(f"[!] Exiting, no valid league.")
     else:
+        NINJA_BASES = get_ninja_bases(LEAGUE)
+        print(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
         print(f"All values will be from the {Fore.MAGENTA}{LEAGUE} league")
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
@@ -1192,6 +1193,6 @@ if __name__ == "__main__":
         print(f"[!] Exiting, user requested termination.")
 
         close_all_windows()
-        # Apparently things go bad if we don't call this, so here it is!
-        deinit()  # Colorama
+    # Apparently things go bad if we don't call this, so here it is!
+    deinit()  # Colorama
         

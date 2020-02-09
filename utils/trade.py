@@ -150,13 +150,14 @@ def find_latest_update():
                 print("I did not understand your response. Please user either y or n.")
 
 
-def get_ninja_bases():
+def get_ninja_bases(league : str):
     """
     Retrieve all of the bases and their respective prices listed on poe.ninja
 
     Returns list[dict]
     """
-    query = requests.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en")
+
+    query = requests.get(f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en")
     tbases = query.json()
 
     bases = [
