@@ -104,6 +104,29 @@ class Item:
 
     synthesised: bool = False
 
+    def __attrs_post_init__(self):
+        if not self.base:
+            self.base = self.name
+            self.name = None
+        sockets = self.raw_sockets.lower()
+        self.r_sockets = sockets.count('r')
+        self.b_sockets = sockets.count('b')
+        self.g_sockets = sockets.count('g')
+        self.w_sockets = sockets.count('w')
+        self.a_sockets = sockets.count('a') # Abyssal sockets
+        # R-R-R-R R-R is not incorrectly registered as 5 link
+        self.links = sockets.count('-') - sockets.count(' ') + 1
+
+        if self.base.startswith("Veiled"):
+            self.veiled = True
+
+        # Some debug logging of the attributes of our class. If we are
+        # not running with DEBUG logging enabled, this becomes a no-op
+        if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+            logging.debug("====== %s ======" % self.__class__.__name__)
+            for k, v in self.__dict__.items():
+                logging.debug("%s: %s" % (k, v))
+            logging.debug("====== End of %s ======" % self.__class__.__name__)
 
     def sanitize_modifiers(self):
         '''
@@ -125,22 +148,6 @@ class Item:
         # If we're already a different object, turn this into a no-op method
         if self.__class__.__name__ != "Item":
             return self
-
-        if not self.base:
-            self.base = self.name
-            self.name = None
-        sockets = self.raw_sockets.lower()
-        self.r_sockets = sockets.count('r')
-        self.b_sockets = sockets.count('b')
-        self.g_sockets = sockets.count('g')
-        self.w_sockets = sockets.count('w')
-        self.a_sockets = sockets.count('a') # Abyssal sockets
-        # R-R-R-R R-R is not incorrectly registered as 5 link
-        self.links = sockets.count('-') - sockets.count(' ') + 1
-
-        if self.base.startswith("Veiled"):
-            self.veiled = True
-
 
         types = {
             "One Handed Sword": Weapon,
@@ -195,7 +202,7 @@ class Item:
         itemtype.influence = self.influence
         itemtype.links = self.links
         itemtype.synthesised = self.synthesised
-        print(itemtype.base)
+        #print(itemtype.base)
         return itemtype
 
     def get_pseudo_mods(self):
