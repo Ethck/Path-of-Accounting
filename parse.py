@@ -1,3 +1,5 @@
+import logging
+import sys
 import re
 import time
 import traceback
@@ -33,11 +35,14 @@ from utils.trade import (
     fetch,
     find_latest_update,
     get_item_modifiers,
+    get_item_modifiers_by_text,
+    get_item_modifiers_by_id,
     get_leagues,
     get_ninja_bases,
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
+<<<<<<< HEAD
 from gui.gui import check_timeout_gui, close_all_windows
 from gui.windows import priceInformation, notEnoughInformation, baseResults, init_gui
 import webbrowser
@@ -410,6 +415,20 @@ def build_json_official(
 
     return j
 
+=======
+from utils.item import (
+    parse_item_info,
+    InvalidItemError,
+)
+from models.item import (
+    Exchangeable,
+    Wearable,
+)
+from utils.mods import (
+    create_pseudo_mods,
+    relax_modifiers,
+)
+>>>>>>> remotes/kevr/search_item_refactor_add
 
 def search_item(j, league):
     """
@@ -426,10 +445,11 @@ def search_item(j, league):
 
             # If we ignore more than half of the stats, it's not accurate
             if num_stats_ignored > (int(total_num_stats * 0.6)):
-                print(
+                logging.info(
                     f"[!] Take any values after this with a grain of salt. You should probably do a"
                     + Fore.RED
                     + " MANUAL search"
+                    + Fore.RESET
                 )
 
             # Make the actual request.
@@ -443,14 +463,15 @@ def search_item(j, league):
                     i = choose_bad_mod(j)
 
                     # Tell the user which mod we are deleting
-                    print(
+                    logging.info(
                         "[-] Removing the"
                         + Fore.CYAN
-                        + f" {stat_translate(i['id']).text} "
-                        + Fore.WHITE
-                        + "mod from the list due to"
+                        + f" {stat_translate(i['id']).text}"
+                        + Fore.RESET
+                        + " mod from the list due to "
                         + Fore.RED
-                        + " no results found."
+                        + "no results found."
+                        + Fore.RESET
                     )
 
                     # Remove bad mod.
@@ -458,25 +479,23 @@ def search_item(j, league):
                     num_stats_ignored += 1
                 else:  # Found a result!
                     results = fetch(res)
-
-                    if DEBUG:
-                        print("Found results!")
+                    logging.debug("Found results!")
 
                     if result_prices_are_none(results):
-                        if DEBUG:
-                            print("All resulting prices are none.")
+                        logging.debug("All resulting prices are none.")
                         # Choose a non-priority mod
                         i = choose_bad_mod(j)
 
                         # Tell the user which mod we are deleting
-                        print(
-                            "[-] Removing the"
+                        logging.info(
+                            "[-] Removing the "
                             + Fore.CYAN
-                            + f" {stat_translate(i['id']).text} "
-                            + Fore.WHITE
-                            + "mod from the list due to"
+                            + f"{stat_translate(i['id']).text}"
+                            + Fore.RESET
+                            + " mod from the list due to "
                             + Fore.RED
-                            + " no results found."
+                            + "no results found."
+                            + Fore.RESET
                         )
 
                         # Remove bad mod.
@@ -496,152 +515,6 @@ def search_item(j, league):
         res = query_item(j, league)
         results = fetch(res)
         return results
-
-
-def create_pseudo_mods(j: Dict) -> Dict:
-    """
-    Combines life and resists into pseudo-mods
-
-    Returns modified JSON #TODO change this to only modify the stats section of the JSON
-    """
-    # Combine life and resists for pseudo-stats
-    total_ele_resists = 0
-    total_chaos_resist = 0
-    total_life = 0
-
-    # TODO: Find a way to not hard-code
-    # TODO: Support for attributes (including str->life), added phys to attacks, life regen
-    solo_resist_ids = [
-        "explicit.stat_3372524247",  # Explicit fire resist
-        "explicit.stat_1671376347",  # Explicit lightning resist
-        "explicit.stat_4220027924",  # Explicit cold resist
-        "implicit.stat_3372524247",  # Implicit fire resist
-        "implicit.stat_1671376347",  # Implicit lightning resist
-        "implicit.stat_4220027924",  # Implicit cold resist
-        "crafted.stat_3372524247",  # Crafted fire resist
-        "crafted.stat_1671376347",  # Crafted lightning resist
-        "crafted.stat_4220027924",  # Crafted cold resist
-    ]
-
-    dual_resist_ids = [
-        "explicit.stat_2915988346",  # Explicit fire and cold resists
-        "explicit.stat_3441501978",  # Explicit fire and lightning resists
-        "explicit.stat_4277795662",  # Explicit cold and lightning resists
-        "implicit.stat_2915988346",  # Implicit fire and cold resists
-        "implicit.stat_3441501978",  # Implicit fire and lightning resists
-        "implicit.stat_4277795662",  # Implicit cold and lightning resists
-        "crafted.stat_2915988346",  # Crafted fire and cold resists
-        "crafted.stat_3441501978",  # Crafted fire and lightning resists
-        "crafted.stat_4277795662",  # Crafted cold and lightning resists
-    ]
-
-    triple_resist_ids = [
-        "explicit.stat_2901986750",  # Explicit all-res
-        "implicit.stat_2901986750",  # Implicit all-res
-        "crafted.stat_2901986750",  # Crafted all-res
-    ]
-
-    solo_chaos_resist_ids = [
-        "explicit.stat_2923486259",  # Explicit chaos resist
-        "implicit.stat_2923486259",  # Implicit chaos resist
-    ]
-
-    dual_chaos_resist_ids = [
-        "crafted.stat_378817135",  # Crafted fire and chaos resists
-        "crafted.stat_3393628375",  # Crafted cold and chaos resists
-        "crafted.stat_3465022881",  # Crafted lightning and chaos resists
-    ]
-
-    life_ids = [
-        "explicit.stat_3299347043",  # Explicit maximum life
-        "implicit.stat_3299347043",  # Implicit maximum life
-    ]
-
-    combined_filters = []
-
-    # Solo elemental resists
-    for i in j["query"]["stats"][0]["filters"]:
-        if i["id"] in solo_resist_ids:
-            total_ele_resists += int(i["value"]["min"])
-            combined_filters.append(i)
-
-        # Dual elemental resists
-        elif i["id"] in dual_resist_ids:
-            total_ele_resists += 2 * int(i["value"]["min"])
-            combined_filters.append(i)
-
-        # Triple elemental resists
-        elif i["id"] in triple_resist_ids:
-            total_ele_resists += 3 * int(i["value"]["min"])
-            combined_filters.append(i)
-
-        # Solo chaos resists
-        elif i["id"] in solo_chaos_resist_ids:
-            total_chaos_resist += int(i["value"]["min"])
-            combined_filters.append(i)
-
-        # Dual chaos resists
-        elif i["id"] in dual_chaos_resist_ids:
-            total_chaos_resist += int(i["value"]["min"])
-            total_ele_resists += int(i["value"]["min"])
-            combined_filters.append(i)
-
-        # Maximum life
-        elif i["id"] in life_ids:
-            total_life += int(i["value"]["min"])
-            combined_filters.append(i)
-
-    # Round down to nearest 10 for combined stats (off by default)
-    do_round = False
-    if do_round:
-        total_ele_resists = total_ele_resists - (total_ele_resists % 10)
-        total_chaos_resist = total_chaos_resist - (total_chaos_resist % 10)
-        total_life = total_life - (total_life % 10)
-
-    # Remove stats that have been combined into psudo-stats
-    j["query"]["stats"][0]["filters"] = [e for e in j["query"]["stats"][0]["filters"] if e not in combined_filters]
-
-    if total_ele_resists > 0:
-        j["query"]["stats"][0]["filters"].append(
-            {"id": "pseudo.pseudo_total_elemental_resistance", "value": {"min": total_ele_resists, "max": 999},}
-        )
-        print(
-            "[o] Combining the"
-            + Fore.CYAN
-            + f" elemental resistance "
-            + Fore.WHITE
-            + "mods from the list into a pseudo-parameter"
-        )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_ele_resists}% total Elemental Resistance (pseudo)")
-
-    if total_chaos_resist > 0:
-        j["query"]["stats"][0]["filters"].append(
-            {"id": "pseudo.pseudo_total_chaos_resistance", "value": {"min": total_chaos_resist, "max": 999},}
-        )
-        print(
-            "[o] Combining the"
-            + Fore.CYAN
-            + f" chaos resistance "
-            + Fore.WHITE
-            + "mods from the list into a pseudo-parameter"
-        )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)")
-
-    if total_life > 0:
-        j["query"]["stats"][0]["filters"].append(
-            {"id": "pseudo.pseudo_total_life", "value": {"min": total_life, "max": 999}}
-        )
-        print(
-            "[o] Combining the"
-            + Fore.CYAN
-            + f" maximum life "
-            + Fore.WHITE
-            + "mods from the list into a pseudo-parameter"
-        )
-        print("[+] Pseudo-mod " + Fore.GREEN + f"+{total_life} to maximum Life (pseudo)")
-
-    return j
-
 
 def choose_bad_mod(j):
     """
@@ -680,7 +553,7 @@ def query_exchange(qcur):
     Return results of similar items.
     """
 
-    print(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
+    logging.info(f"[*] All values will be reported as their chaos, exalt, or mirror equivalent.")
     IG_CURRENCY = [
         CURRENCY,
         OILS,
@@ -706,8 +579,7 @@ def query_exchange(qcur):
         def_json = {"exchange": {"have": [haveCurrency], "want": [selection], "status": {"option": "online"},}}
 
         res = exchange_currency(def_json, LEAGUE)
-        if DEBUG:
-            print(def_json)
+        logging.debug(def_json)
 
         if len(res["result"]) == 0:
             continue
@@ -754,8 +626,8 @@ def affix_equals(text, affix) -> Optional[int]:
     # At this point all numbers and other special characters have been minimized
     # So if the mod is the same, this catches it.
     if text == query:
-        print(
-            "[+] Found mod " + Fore.GREEN + f"{text[0:]}: {value}"
+        logging.info(
+            "[+] Found mod " + Fore.GREEN + f"{text[0:]}: {value}" + Fore.RESET
         )  # TODO: support "# to # damage to attacks" type mods and other similar
         return value
 
@@ -772,8 +644,7 @@ def find_affix_match(affix: str) -> Tuple[str, int]:
     def get_mods_by_type(type: ItemModifierType) -> Iterable[ItemModifier]:
         return (x for x in ITEM_MODIFIERS if x.type == type)
 
-    if DEBUG:
-        print("AFFIX:", affix)
+    logging.debug("AFFIX:", affix)
 
     if re.search(r"\((pseudo|implicit|crafted)\)", affix):
         # Search for these special modifiers first
@@ -813,7 +684,7 @@ def stat_translate(jaffix: str) -> ItemModifier:
     Translate id to the equivalent stat.
     Returns the ItemModifier equivalent to requested id
     """
-    return next(x for x in ITEM_MODIFIERS if x.id == jaffix)
+    return get_item_modifiers_by_id(jaffix)
 
 
 def get_average_times(priceList):
@@ -842,26 +713,50 @@ def price_item(text):
     No return.
     """
     try:
-        info = parse_item_info(text)
-        trade_info = None
-        json = None
+        item = parse_item_info(text)
+        item = item.deduce_specific_object()
+        item.sanitize_modifiers()
 
+        json = item.get_json()
+
+        # pseudo what we can
+        if isinstance(item, Wearable):
+            json = create_pseudo_mods(json)
+            logging.debug("json query: %s" % str(json))
+
+            json = relax_modifiers(json)
+            logging.debug("relaxed query: %s" % str(json))
+
+        query_url = item.query_url(LEAGUE)
+        response = requests.post(query_url, json=json)
+        logging.debug("json response: %s" % str(response.json()))
+
+        response_json = response.json()
+        if len(response_json["result"]) == 0:
+            raise NotFoundException
+
+        fetched = fetch(response_json, isinstance(item, Exchangeable))
+        logging.debug("Fetched: %s" % str(fetched))
+
+        trade_info = fetched
+        logging.debug("Found %d items" % len(trade_info))
+        '''
         if info:
             # Uniques, only search by corrupted status, links, and name.
 
             if info["itype"] == "Currency":
-                print(f'[-] Found currency {info["name"]} in clipboard')
+                logging.info(f'[-] Found currency {info["name"]} in clipboard')
                 trade_info = query_exchange(info["name"])
 
             elif info["itype"] == "Divination Card":
-                print(f'[-] Found Divination Card {info["name"]}')
+                logging.info(f'[-] Found Divination Card {info["name"]}')
                 trade_info = query_exchange(info["name"])
 
             else:
 
                 # Do intensive search.
                 if info["itype"] != info["name"] and info["itype"] != None:
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}", flush=True)
+                    logging.info(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {info['itype']}", flush=True)
                 else:
                     extra_strings = ""
                     if info["rarity"] == "Gem":
@@ -874,8 +769,12 @@ def price_item(text):
                     if info["quality"] != 0:
                         extra_strings += f"Quality: {info['quality']}+"
 
+<<<<<<< HEAD
                     print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
                 
+=======
+                    logging.info(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
+>>>>>>> remotes/kevr/search_item_refactor_add
 
                 json = build_json_official(
                     **{
@@ -900,7 +799,85 @@ def price_item(text):
                 
             if json != None:
                 trade_info = search_item(json, LEAGUE)
+        '''
+        # If results found
+        if trade_info:
+            # If more than 1 result, assemble price list.
+            if len(trade_info) > 1:
+                # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
+                prev_account_name = ""
+                # Modify data to usable status.
+                prices = []
+                for trade in trade_info:  # Stop price fixers
+                    if trade["listing"]["account"]["name"] != prev_account_name:
+                        prices.append(trade["listing"]["price"])
 
+                    prev_account_name = trade["listing"]["account"]["name"]
+
+                prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
+
+                prices = {x: prices.count(x) for x in prices}
+                print_string = ""
+                total_count = 0
+
+                # Make pretty strings.
+                for price_dict in prices:
+                    pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
+                    print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.RESET + ", "
+                    total_count += prices[price_dict]
+
+                # Print the pretty string, ignoring trailing comma
+                logging.info(f"[$] Price: {print_string[:-2]}\n\n")
+                if config.USE_GUI:
+                    priceList = prices
+                    # Get difference between current time and posted time in timedelta format
+                    times = [
+                        (
+                            datetime.now(timezone.utc)
+                            - datetime.replace(
+                                datetime.strptime(time["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                                tzinfo=timezone.utc,
+                            )
+                        )
+                        for time in trade_info
+                    ]
+                    # Assign times to proper price values (for getting average later.)
+                    priceTimes = []
+                    total = 0
+                    for price in priceList:
+                        num = priceList[price]
+                        priceTimes.append(times[total : num + total])
+                        total += num
+
+                    avg_times = get_average_times(priceTimes)
+
+                    price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
+
+                    currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
+                    if "mir" in print_string:
+                        currency = "mirror"
+                    elif "exa" in print_string:
+                        currency = "exalt"
+                    elif "chaos" in print_string:
+                        currency = "chaos"
+                    elif "alch" in print_string:
+                        currency = "alchemy"
+
+                    price.sort()
+
+                    # Fastest method for calculating average as seen here:
+                    # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
+                    # TODO average between multiple currencies...
+                    L = [float(n) for n in price if n]
+                    average = str(round(sum(L) / float(len(L)) if L else "-", 2))
+
+                    price = [
+                        round(float(price[0]), 2),
+                        average,
+                        round(float(price[-1]), 2),
+                    ]
+
+<<<<<<< HEAD
             # If results found
             if trade_info:
                 # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
@@ -994,68 +971,117 @@ def price_item(text):
                 print("[!] No results!")
                 if config.USE_GUI:
                     notEnoughInformation.create_at_cursor()
+=======
+                    if config.USE_GUI:
+                        gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
+            else:
+                price = trade_info[0]["listing"]["price"]
+                if price != None:
+                    price_val = price["amount"]
+                    price_curr = price["currency"]
+                    price = f"{price_val} x {price_curr}"
+                    logging.info(f"[$] Price: {Fore.YELLOW}{price}{Fore.RESET} \n\n")
+                    time = datetime.now(timezone.utc) - datetime.replace(
+                        datetime.strptime(trade_info[0]["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
+                        tzinfo=timezone.utc,
+                    )
+                    time = [[time.days, time.seconds]]
+                    price_vals = [[str(price_val) + price_curr]]
+
+                    logging.info("[!] Not enough data to confidently price this item.")
+                    if config.USE_GUI:
+                        gui.show_price(price, price_vals, time, True)
+                else:
+                    logging.info(f"[$] Price: {Fore.YELLOW}None{Fore.RESET} \n\n")
+                    logging.info("[!] Not enough data to confidently price this item.")
+                    if config.USE_GUI:
+                        gui.show_not_enough_data()
+
+        elif trade_info is not None:
+            logging.info("[!] No results!")
+            if config.USE_GUI:
+                gui.show_not_enough_data()
+
+    except InvalidItemError:
+        # This exception is only raised when we find that the text
+        # being parsed is not actually a valid PoE item.
+        pass
+>>>>>>> remotes/kevr/search_item_refactor_add
 
     except NotFoundException as e:
-        print("[!] No results!")
+        logging.info("[!] No results!")
         if config.USE_GUI:
             notEnoughInformation.create_at_cursor()
 
     except InvalidAPIResponseException as e:
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
-        print(
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================={Fore.RESET}")
+        logging.info(
             f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
         )
-        print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-        print(f"{Fore.GREEN}Title:")
-        print("Failed to query item from trade API.")
-        print(f"{Fore.GREEN}Body:")
-        print("Macro failed to lookup item from POE trade API. Here is the item in question.")
-        print("====== ITEM DATA=====")
-        print(f"{text}")
-        print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
+        logging.info(f"{Fore.GREEN}================== START ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.GREEN}Title:{Fore.RESET}")
+        logging.info("Failed to query item from trade API.")
+        logging.info(f"{Fore.GREEN}Body:{Fore.RESET}")
+        logging.info("Macro failed to lookup item from POE trade API. Here is the item in question.")
+        logging.info("====== ITEM DATA=====")
+        logging.info(f"{text}")
+        logging.info(f"{Fore.GREEN}================== END ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================={Fore.RESET}")
 
     except Exception as e:
         exception = traceback.format_exc()
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW ==================")
-        print(
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================={Fore.RESET}")
+        logging.info(
             f"[!] Something went horribly wrong. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
         )
-        print(f"{Fore.GREEN}================== START ISSUE DATA ==================")
-        print(f"{Fore.GREEN}Title:")
-        print("Failed to query item from trade API.")
-        print(f"{Fore.GREEN}Body:")
-        print("Here is the item in question.")
-        print("====== ITEM DATA=====")
-        print(f"{text}")
-        print("====== TRACEBACK =====")
-        print(exception)
-        print(f"{Fore.GREEN}================== END ISSUE DATA ==================")
-        print(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE ==================")
-        print(exception)
+        logging.info(f"{Fore.GREEN}================== START ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.GREEN}Title:{Fore.RESET}")
+        logging.info("Failed to query item from trade API.")
+        logging.info(f"{Fore.GREEN}Body:{Fore.RESET}")
+        logging.info("Here is the item in question.")
+        logging.info("====== ITEM DATA=====")
+        logging.info(f"{text}")
+        logging.info("====== TRACEBACK =====")
+        logging.info(exception)
+        logging.info(f"{Fore.GREEN}================== END ISSUE DATA =================={Fore.RESET}")
+        logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================={Fore.RESET}")
 
+<<<<<<< HEAD
+=======
+
+def watch_keyboard(keyboard, use_hotkeys):
+    if use_hotkeys:
+        # Use the "f5" key to go to hideout
+        keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
+
+        # Use the alt+d key as an alternative to ctrl+c
+        keyboard.add_hotkey("<alt>+d", lambda: hotkey_handler(keyboard, "alt+d"))
+
+        # Open item in the Path of Exile Wiki
+        keyboard.add_hotkey("<alt>+w", lambda: hotkey_handler(keyboard, "alt+w"))
+
+        # Open item search in pathofexile.com/trade
+        keyboard.add_hotkey("<alt>+t", lambda: hotkey_handler(keyboard, "alt+t"))
+
+        # poe.ninja base check
+        keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
+
+    # Fetch the item's approximate price
+    logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
+    keyboard.clipboard_callback = lambda _: hotkey_handler(keyboard, "clipboard")
+    keyboard.start()
+
+
+>>>>>>> remotes/kevr/search_item_refactor_add
 def search_ninja_base(text):
-    info = parse_item_info(text)
-    influence = None
-    if any(i == True for i in info["influenced"].values()):
-        if info["influenced"]["shaper"]:
-            influence = "shaper"
-        elif info["influenced"]["elder"]:
-            influence = "elder"
-        elif info["influenced"]["crusader"]:
-            influence = "crusader"
-        elif info["influenced"]["warlord"]:
-            influence = "warlord"
-        elif info["influenced"]["redeemer"]:
-            influence = "redeemer"
-        elif info["influenced"]["hunter"]:
-            influence = "hunter"
+    real_item = parse_item_info(text)
 
-    ilvl = info["ilvl"] if info["ilvl"] >= 84 else 84
+    influences = real_item.influence
+    ilvl = real_item.ilevel if real_item.ilevel >= 84 else 84
+    base = real_item.base
+    # base = info["itype"] if info["itype"] != None else info["base"]
 
-    base = info["itype"] if info["itype"] != None else info["base"]
-
-    print(f"[*] Searching for base {base}. Item Level: {ilvl}, Influence: {influence}")
+    logging.info(f"[*] Searching for base {base}. Item Level: {ilvl}, Influences: {influences}")
     result = None
     try:
         result = next(
@@ -1064,22 +1090,27 @@ def search_ninja_base(text):
             if (
                 item["base"] == base
                 and (
-                    (influence == None and item["influence"] == None)
-                    or (influence != None and item["influence"] != None and influence == item["influence"].lower())
+                    (not influences and item["influence"] == None)
+                    or (
+                        bool(influences)
+                        and item["influence"] != None
+                        and influences[0] == item["influence"].lower()
+                    )
                 )
                 and ilvl == item["ilvl"]
             )
         )
     except StopIteration:
-        print("[!] Could not find the requested item.")
+        logging.error("[!] Could not find the requested item.")
         if config.USE_GUI:
             notEnoughInformation.create_at_cursor()
 
     if result != None:
         price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
         currency = "ex" if result["exalt"] >= 1 else "chaos"
-        print(f"[$] Price: {price} {currency}")
+        logging.info(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
+<<<<<<< HEAD
             baseResults.add_base_result(base, influence, ilvl, price, currency)
             baseResults.create_at_cursor()
 
@@ -1106,6 +1137,10 @@ def watch_keyboard(keyboard, use_hotkeys):
     keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
     keyboard.start()
 
+=======
+            influence = influences[0] if bool(influences) else None
+            gui.show_base_result(base, influence, ilvl, price, currency)
+>>>>>>> remotes/kevr/search_item_refactor_add
 
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
@@ -1115,33 +1150,21 @@ def hotkey_handler(keyboard, hotkey):
     text = get_clipboard()
 
     if hotkey == "alt+t":
-        info = parse_item_info(text)
-        j = build_json_official(
-            **{
-                k: v
-                for k, v in info.items()
-                if k
-                in (
-                    "name",
-                    "itype",
-                    "ilvl",
-                    "links",
-                    "corrupted",
-                    "influenced",
-                    "stats",
-                    "rarity",
-                    "gem_level",
-                    "quality",
-                    "maps",
-                )
-            },
-        )
-        res = query_item(j, LEAGUE)
-        open_trade_site(res["id"], LEAGUE)
+        item = parse_item_info(text)
+        item = item.deduce_specific_object()
+        item.sanitize_modifiers()
+        json = item.get_json()
+
+        # if not isinstance(item, Exchangeable):
+        response = requests.post(item.query_url(LEAGUE), json=json)
+        response_json = response.json()
+        logging.debug("response json: %s" % str(response_json))
+        open_trade_site(response_json["id"], LEAGUE)
 
     elif hotkey == "alt+w":
-        info = parse_item_info(text)
-        wiki_lookup(text, info)
+        item = parse_item_info(text)
+        item = item.deduce_specific_object()
+        wiki_lookup(item)
 
     elif hotkey == "alt+c":
         search_ninja_base(text)
@@ -1150,23 +1173,22 @@ def hotkey_handler(keyboard, hotkey):
         price_item(text)
 
 
-# This is necessary to do Unit Testing, needs to be GLOBAL
-ITEM_MODIFIERS: Optional[Tuple[ItemModifier, ...]] = get_item_modifiers()
-
-
 if __name__ == "__main__":
+    loglevel = logging.INFO
+    if len(sys.argv) > 1 and sys.argv[1] in ("-d", "--debug"):
+        loglevel = logging.DEBUG
+    logging.basicConfig(format="%(message)s", level=loglevel)
 
     find_latest_update()
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff
-    print(f"[*] Loaded {len(ITEM_MODIFIERS)} item mods.")
     valid_leagues = get_leagues()
 
 
     # Inform user of choices
-    print(f"If you wish to change the selected league you may do so in settings.cfg.")
-    print(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}.")
+    logging.info(f"If you wish to change the selected league you may do so in settings.cfg.")
+    logging.info(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}.")
 
     if LEAGUE not in valid_leagues:
         print(f"Unable to locate {LEAGUE}, please check settings.cfg.")

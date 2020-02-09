@@ -1,45 +1,39 @@
 import webbrowser
+import logging
+from models.item import (
+    Currency
+)
 
+def wiki_lookup(item):
+    base_url = "https://pathofexile.gamepedia.com/"
 
-def wiki_lookup(text, info):
+    base_rarities = {
+        "rare",
+        "gem",
+        "divination card",
+        "normal",
+        "currency"
+    }
 
-    baseURL = "https://pathofexile.gamepedia.com/"
+    if item:
+        if item.rarity == "unique":
+            url = base_url + item.name
+            logging.info(f'[*] wiki_lookup item : {item.name}')
+            url = base_url + item.name.replace(' ', '_')
+            logging.info(url)
+            webbrowser.open(url)
 
-    x = info.get("itype")
-    if x == None:
-        try:
-            x = info.get("base")
-        except:
-            pass
-    x = str(x)
-
-    if info:
-        if x == "Currency":
-            print(f'[*] wiki_lookup item : {info["name"]}')
-            print(baseURL + info["name"])
-            webbrowser.open(baseURL + info["name"])
-
-        elif (
-            info["rarity"] == "Unique"
-            or info["rarity"] == "Gem"
-            or info["rarity"] == "Divination Card\r"
-            or info["rarity"] == "Normal"
-        ):
-            print(f'[*] wiki_lookup item : {info["name"]}')
-            print(baseURL + info["name"])
-            webbrowser.open(baseURL + info["name"])
-
-        # Magic items will have a NoneType, that is why we store them in x so other non uniques may be checked.
-        elif x != "None" and info["rarity"] == "Magic" or info["rarity"] == "Rare":
-            print(f"[*] wiki_lookup item : {x}")
-            print(baseURL + x)
-            webbrowser.open(baseURL + x)
+        elif item.rarity in base_rarities:
+            logging.info(f'[*] wiki_lookup item : {item.base}')
+            url = base_url + item.base.replace(' ', '_')
+            logging.info(url)
+            webbrowser.open(url)
 
         # Only items not supported are magic items.
         else:
-            print("[!] Wiki page not found.")
-
+            logging.error("[!] Wiki page not found.")
 
 def open_trade_site(rid, league):
-    tradeURL = f"https://pathofexile.com/trade/search/{league}/{rid}"
-    webbrowser.open(tradeURL)
+    trade_url = f"https://pathofexile.com/trade/search/{league}/{rid}"
+    logging.debug("Opening trade site with url: %s" % trade_url)
+    webbrowser.open(trade_url)

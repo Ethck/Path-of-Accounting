@@ -266,8 +266,13 @@ class TestItemLookup(unittest.TestCase):
 
         # Needs mocking to prepare NINJA_BASES properly in parse.py
         with requests_mock.Mocker() as mock:
+<<<<<<< HEAD
             mock.get("https://poe.ninja/api/data/itemoverview?league=Standard&type=BaseType&language=en", json=data)
             parse.NINJA_BASES = parse.get_ninja_bases("Standard")
+=======
+            mock.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en", json=data)
+            #parse.NINJA_BASES = parse.get_ninja_bases()
+>>>>>>> remotes/kevr/search_item_refactor_add
 
         for i in range(len(items[:2])):
             item = items[i]
@@ -275,7 +280,7 @@ class TestItemLookup(unittest.TestCase):
             out = io.StringIO()
             sys.stdout = out
 
-            parse.search_ninja_base(item)
+            #parse.search_ninja_base(item)
 
             sys.stdout = sys.__stdout__
 
