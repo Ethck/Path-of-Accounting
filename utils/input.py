@@ -191,6 +191,8 @@ class Keyboard:
         self.enabled = True
         self.keyboard_hook = windll.user32.SetWindowsHookExA(win32con.WH_KEYBOARD_LL, keyboard_callback, windll.kernel32.GetModuleHandleW(None),0)
         self.mouse_hook = windll.user32.SetWindowsHookExA(win32con.WH_MOUSE_LL, mouse_callback, windll.kernel32.GetModuleHandleW(None),0)
+        if not self.mouse_hook:
+            print("err")
         atexit.register(windll.user32.UnhookWindowsHookEx, self.keyboard_hook)
         atexit.register(windll.user32.UnhookWindowsHookEx, self.mouse_hook)
     def disable_hook(self):
@@ -210,7 +212,7 @@ class Keyboard:
                 windll.user32.DispatchMessageA(msg)
             except:
                 pass
-        disable()
+        disable_hook()
 
 
 if os.name == "nt" and STASHTAB_SCROLLING:
@@ -230,7 +232,6 @@ if os.name == "nt" and STASHTAB_SCROLLING:
         return windll.user32.CallNextHookEx(kb_macro.keyboard_hook, ncode, wparam, lparam)
 
 
-
     class MSLLHOOKSTRUCT(Structure): _fields_=[('pt',POINT),('mouseData',DWORD),('flags',DWORD),('time',DWORD),('dwExtraInfo',ULONG)]
 
     def mouse_callback(ncode, wparam, lparam):
@@ -247,12 +248,15 @@ if os.name == "nt" and STASHTAB_SCROLLING:
                     return 1 
         return windll.user32.CallNextHookEx(kb_macro.keyboard_hook, ncode, wparam, lparam)
 
+    def create_cfunction(fn):
+        #                               (this, ncode, wparam, lparam)
+        c_func = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_int, WPARAM, LPARAM)
+        return c_func(fn)
 
     def setup():
-        #                               (this, ncode, wparam, lparam)
-        c_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, WPARAM, LPARAM)
-        kc = c_func(keyboard_callback)
-        mc = c_func(mouse_callback)
+        
+        kc = create_cfunction(keyboard_callback)
+        mc = create_cfunction(mouse_callback)
         kb_macro.enable_hook(kc,mc)
         kb_macro.run_stash_macro()
 

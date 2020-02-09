@@ -384,19 +384,6 @@ if __name__ == "__main__":
         start_stash_scroll()
         
         init_gui()
-        """
-        data = {
-            "exchange": {
-                "status": {
-                    "option": "online"
-                },
-                "have": ["chaos"],
-                "want": ["splinter-esh"]
-            }
-        }
-        response = exchange_currency(data, LEAGUE)
-        open_exchange_site(response["id"], LEAGUE)
-        """
 
         try:
             while True:
