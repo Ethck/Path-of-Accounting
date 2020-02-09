@@ -42,380 +42,6 @@ from utils.trade import (
     query_item,
 )
 from utils.web import open_trade_site, wiki_lookup
-<<<<<<< HEAD
-from gui.gui import check_timeout_gui, close_all_windows
-from gui.windows import priceInformation, notEnoughInformation, baseResults, init_gui
-import webbrowser
-
-DEBUG = False
-
-
-def parse_item_info(text: str) -> Dict:
-    """
-    Parse item info (from clipboard, as obtained by pressing Ctrl+C hovering an item in-game).
-    """
-    # Find out if this is a path of exile item
-    m = re.findall(r"^Rarity: (\w+)\r?\n(.+?)\r?\n(.+?)\r?\n", text)
-
-    if not m:  # Different check
-        m = re.findall(r"^Rarity: (.*)\n(.*)", text)
-        if not m:
-            return {}
-        else:
-            info = {"name": m[0][1], "rarity": m[0][0], "itype": m[0][0]}
-    else:
-
-        # get some basic info
-        info = {"name": m[0][1], "rarity": m[0][0], "itype": m[0][2]}
-
-    unident = bool(re.search("Unidentified", text, re.M))
-    metamorph = bool(re.search("Tane", text, re.M))
-    prophecy = bool(re.search("Right-click to add this prophecy to your character.", text, re.M))
-
-    # Corruption status and influenced status
-
-    info["influenced"] = {}
-    info["influenced"]["shaper"] = bool(re.search(r"^Shaper Item", text, re.M))
-    info["influenced"]["elder"] = bool(re.search(r"^Elder Item", text, re.M))
-    info["influenced"]["crusader"] = bool(re.search("Crusader Item", text, re.M))
-    info["influenced"]["hunter"] = bool(re.search("Hunter Item", text, re.M))
-    info["influenced"]["redeemer"] = bool(re.search("Redeemer Item", text, re.M))
-    info["influenced"]["warlord"] = bool(re.search("Warlord Item", text, re.M))
-    info["corrupted"] = bool(re.search("^Corrupted$", text, re.M))
-
-    # Get Qual
-    m = re.findall(r"Quality: \+(\d+)%", text)
-
-    info["quality"] = int(m[0]) if m else 0
-
-    if "Map" in info["name"] and "Map" not in info["itype"]:  # Seems to be all Superior maps...
-        if info["itype"] == "--------":
-            info["itype"] = info["name"]
-
-    if "Synthesised" in info["itype"]:
-        info["itype"] = info["itype"].replace("Synthesised ", "")
-
-    if "<<set:MS>><<set:M>><<set:S>>" in info["name"]:  # For checking in chat items... For some reason this is added.
-        info["name"] = info["name"].replace("<<set:MS>><<set:M>><<set:S>>", "").strip()
-
-    # Oh, it's currency!
-    if info["rarity"] == "Currency":
-        info["itype"] = info.pop("rarity").rstrip()
-    elif info["rarity"] == "Divination Card":
-        info["rarity"] = info["rarity"].strip()
-        info["itype"] = info.pop("rarity")
-    elif info["rarity"] == "Normal" and "Scarab" in info["name"]:
-        info["itype"] = "Currency"
-    elif "Map" in info["itype"]:
-        if info["quality"] != 0:
-            info["itype"] = info["itype"].replace("Superior", "").strip()
-        map_mods = {}
-        map_mods["tier"] = re.findall(r"Map Tier: (\d+)", text)[0]
-
-        iiq_re = re.findall(r"Item Quantity: \+(\d+)%", text)
-        if len(iiq_re) > 0:
-            map_mods["iiq"] = iiq_re[0]
-
-        pack_re = re.findall(r"Pack Size: \+(\d+)%", text)
-        if len(pack_re) > 0:
-            map_mods["pack"] = pack_re[0]
-
-        iir_re = re.findall(r"Item Rarity: \+(\d+)%", text)
-        if len(iir_re) > 0:
-            map_mods["iir"] = iir_re[0]
-
-        map_mods["blight"] = bool(re.search(r"Blighted", text, re.M))
-        map_mods["shaper"] = bool(re.search("Area is influenced by The Shaper", text, re.M))
-        map_mods["elder"] = bool(re.search("Area is influenced by The Elder", text, re.M))
-        map_mods["enslaver"] = bool(re.search("Map is occupied by The Enslaver", text, re.M))
-        map_mods["eradicator"] = bool(re.search("Map is occupied by The Eradicator", text, re.M))
-        map_mods["constrictor"] = bool(re.search("Map is occupied by The Constrictor", text, re.M))
-        map_mods["purifier"] = bool(re.search("Map is occupied by The Purifier", text, re.M))
-
-        info["maps"] = map_mods
-
-    elif info["itype"] == "--------" and unident:  # Unided
-        info["itype"] = info["name"]
-        if info["rarity"] == "Unique":
-            print(
-                "[!] "
-                + Fore.RED
-                + "Can't price "
-                + Fore.WHITE
-                + "this item because it is "
-                + Fore.YELLOW
-                + "unidentified"
-                + Fore.WHITE
-                + ". Please identify and try again."
-            )
-            return 0
-        # Item Level
-        m = re.findall(r"Item Level: (\d+)", text)
-
-        if m:
-            info["ilvl"] = int(m[0])
-
-    elif metamorph:
-        info["itype"] = "Metamorph"
-        m = re.findall(r"Item Level: (\d+)", text)
-
-        if m:
-            info["ilvl"] = int(m[0])
-
-    elif info["rarity"] == "Normal" and prophecy:  # Prophecies
-        info["itype"] = "Prophecy"
-
-    else:
-        if info["rarity"] == "Magic" or info["rarity"] == "Normal" or info["rarity"] == "Rare":
-            info["base"] = info["itype"]
-            info["itype"] = None
-
-        if info["rarity"] == "Gem":
-            m = bool(re.search("Vaal", text, re.M))
-            no_vaal = bool(re.search("Cannot support Vaal skills", text, re.M))
-            a = bool(re.search("Awakened", text, re.M))
-            c = bool(re.search("^Corrupted", text, re.M))
-
-            lvl = re.findall(r"Level: (\d+)", text)[0]
-            if lvl is not None:
-                info["gem_level"] = lvl
-
-            if c:
-                info["corrupted"] = True
-            if m and not a and not no_vaal:
-                impurity = bool(re.search(r"Purity of \w+", text, re.M))
-                if impurity:
-                    info["itype"] = "Vaal Im" + info["name"][0].lower() + info["name"][1:]
-                else:
-                    info["itype"] = "Vaal " + info["name"]
-            else:
-                info["itype"] = info["name"]
-
-        # Sockets and Links
-        m = re.findall(r"Sockets:(.*)", text)
-
-        if m:
-            info["links"] = m[0].count("-") + 1
-
-        # Item Level
-        m = re.findall(r"Item Level: (\d+)", text)
-
-        if m:
-            info["ilvl"] = int(m[0])
-
-        # Find all the affixes
-        m = re.findall(r"Item Level: \d+[\r\n]+--------[\r\n]+(.+)((?:[\r\n]+.+)+)", text)
-
-        if DEBUG:
-            print("STATS:", m)
-
-        if m:
-            info["stats"] = []
-            info["stats"].append(m[0][0])
-            info["stats"].extend(m[0][1].split("\n"))
-
-            # Clean up the leftover stuff / Make it useable data
-            if info["stats"][1] == "" and info["stats"][2] == "--------":  # Implicits and enchantments.
-                del info["stats"][1:3]
-            elif "--------" in info["stats"]:
-                pass  # It might have implicits, annointments, and/or enchantments.
-            else:
-                info["stats"] = info["stats"][:-1]
-
-            if "" in info["stats"]:
-                info["stats"].remove("")
-
-            info["stats"] = [stat.strip() for stat in info["stats"]]
-
-    if DEBUG:  # DEBUG
-        print("COMPLETE INFO: ", info)
-
-    return info
-
-
-def build_json_official(
-    name: str = None,
-    ilvl: int = None,
-    itype: str = None,
-    links: int = None,
-    corrupted: bool = None,
-    influenced: bool = None,
-    rarity: str = None,
-    stats: List[str] = None,
-    gem_level: int = None,
-    quality: int = None,
-    maps=None,
-) -> List[Dict]:  # JSON
-    """
-    Build JSON for fetch request of an item for trade.
-    Take all the parsed item info, and construct JSON based off of it.
-
-    returns JSON of format for pathofexile.com/trade.
-    """
-    if stats is None:
-        stats = []
-    # Basic JSON structure
-    j = {"query": {"filters": {}}, "sort": {"price": "asc"}}
-
-    if maps is not None:
-        j["query"]["filters"]["map_filters"] = {}
-        j["query"]["filters"]["map_filters"]["filters"] = {}
-
-        if rarity == "Unique":  # Unique maps, may be unidentified
-            j["query"]["filters"]["type_filters"] = {}
-            j["query"]["filters"]["type_filters"]["filters"] = {"rarity": {"option": "unique"}}
-            j["query"]["type"] = {"option": name}
-            name = None
-
-        if maps["blight"]:
-            j["query"]["filters"]["map_filters"]["filters"]["map_blighted"] = "True"
-            itype = itype.replace("Blighted", "").strip()
-
-        if "iiq" in maps:
-            if maps["iiq"]:
-                j["query"]["filters"]["map_filters"]["filters"]["map_iiq"] = {
-                    "min": maps["iiq"],
-                    "max": "null",
-                }
-
-        if "iir" in maps:  # False if Unidentified
-            if maps["iir"]:
-                j["query"]["filters"]["map_filters"]["filters"]["map_iir"] = {
-                    "min": maps["iir"],
-                    "max": "null",
-                }
-        if "pack" in maps:  # False if Unidentified
-            if maps["pack"]:
-                j["query"]["filters"]["map_filters"]["filters"]["map_packsize"] = {
-                    "min": maps["pack"],
-                    "max": "null",
-                }
-
-        if maps["tier"]:
-            j["query"]["filters"]["map_filters"]["filters"]["map_tier"] = {
-                "min": maps["tier"],
-                "max": "null",
-            }
-
-        if maps["shaper"] or maps["elder"]:
-            j["query"]["stats"] = [{}]
-            j["query"]["stats"][0]["type"] = "and"
-            j["query"]["stats"][0]["filters"] = []
-
-            if maps["shaper"]:  # Area is influenced by the Shaper
-                j["query"]["stats"][0]["filters"].append({"id": "implicit.stat_1792283443", "value": {"option": "1"}})
-            elif maps["elder"]:  # Area is influenced by the Elder
-                j["query"]["stats"][0]["filters"].append({"id": "implicit.stat_1792283443", "value": {"option": "2"}})
-
-            if maps["enslaver"] or maps["eradicator"] or maps["constrictor"] or maps["purifier"]:
-                if maps["enslaver"]:
-                    j["query"]["stats"][0]["filters"].append(
-                        {"id": "implicit.stat_3624393862", "value": {"option": "1"}}
-                    )
-                elif maps["eradicator"]:
-                    j["query"]["stats"][0]["filters"].append(
-                        {"id": "implicit.stat_3624393862", "value": {"option": "2"}}
-                    )
-                elif maps["constrictor"]:
-                    j["query"]["stats"][0]["filters"].append(
-                        {"id": "implicit.stat_3624393862", "value": {"option": "3"}}
-                    )
-                elif maps["purifier"]:
-                    j["query"]["stats"][0]["filters"].append(
-                        {"id": "implicit.stat_3624393862", "value": {"option": "4"}}
-                    )
-
-    # If unique, Div Card, or Gem search by name
-    if rarity == "Unique" or itype == "Divination Card":
-        if name != None:
-            j["query"]["name"] = name
-
-    if itype == "Metamorph":
-        mm_parts = ["Brain", "Lung", "Eye", "Heart", "Liver"]
-
-        for part in mm_parts:
-            if part in name:
-                del j["query"]["name"]
-                j["query"]["type"] = "Metamorph " + part
-
-    # Set itemtype. TODO: change to allow similar items of other base types... Unless base matters...
-    elif itype:
-        j["query"]["type"] = itype
-
-    if itype == "Prophecy":
-        j["query"]["name"] = name
-
-    # Only search for items online
-    j["query"]["status"] = {}
-    j["query"]["status"]["option"] = "online"
-
-    # Set required links
-    if links:
-        if links >= 5:
-            j["query"]["filters"]["socket_filters"] = {"filters": {"links": {"min": links}}}
-
-    j["query"]["filters"]["misc_filters"] = {}
-    j["query"]["filters"]["misc_filters"]["filters"] = {}
-
-    # Set corrupted status
-    if corrupted:
-        j["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {"option": "true"}
-
-    if gem_level:
-        # Only used for skill gems
-        j["query"]["filters"]["misc_filters"]["filters"]["gem_level"] = {
-            "min": gem_level,
-            "max": "null",
-        }
-        j["query"]["filters"]["misc_filters"]["filters"]["quality"] = {
-            "min": quality,
-            "max": "null",
-        }
-
-    # Set influenced status
-    if influenced:
-        if True in influenced.values():
-            for influence in influenced:
-                if influenced[influence]:
-                    j["query"]["filters"]["misc_filters"]["filters"][influence + "_item"] = "true"
-
-    if (
-        name == itype or rarity == "Normal" or rarity == "Magic" or itype == "Metamorph"
-    ) and ilvl != None:  # Unidentified item
-        j["query"]["filters"]["misc_filters"]["filters"]["ilvl"] = {
-            "min": ilvl - 3,
-            "max": ilvl + 3,
-        }
-
-    fetch_called = False
-
-    if DEBUG:
-        print(j)
-    # Find every stat
-    if stats:
-        j["query"]["stats"] = [{}]
-        j["query"]["stats"][0]["type"] = "and"
-        j["query"]["stats"][0]["filters"] = []
-        for stat in stats:
-            try:
-                (proper_affix, value) = find_affix_match(stat)
-                value = int(float(value) * 0.95)
-            except NotImplementedError:
-                # Can't find mod, move on
-                continue
-            affix_types = ["implicit", "crafted", "explicit", "enchantments"]
-            if any(atype in proper_affix for atype in affix_types):  # If proper_affix is an actual mod...
-                j["query"]["stats"][0]["filters"].append({"id": proper_affix, "value": {"min": value, "max": 999}})
-
-        # Turn life + resists into pseudo-mods
-        j = create_pseudo_mods(j)
-
-    if DEBUG:
-        print("FULL Query:", j)
-
-    return j
-
-=======
 from utils.item import (
     parse_item_info,
     InvalidItemError,
@@ -428,7 +54,6 @@ from utils.mods import (
     create_pseudo_mods,
     relax_modifiers,
 )
->>>>>>> remotes/kevr/search_item_refactor_add
 
 def search_item(j, league):
     """
@@ -769,12 +394,7 @@ def price_item(text):
                     if info["quality"] != 0:
                         extra_strings += f"Quality: {info['quality']}+"
 
-<<<<<<< HEAD
-                    print(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
-                
-=======
                     logging.info(f"[*] Found {info['rarity']} item in clipboard: {info['name']} {extra_strings}")
->>>>>>> remotes/kevr/search_item_refactor_add
 
                 json = build_json_official(
                     **{
@@ -877,101 +497,6 @@ def price_item(text):
                         round(float(price[-1]), 2),
                     ]
 
-<<<<<<< HEAD
-            # If results found
-            if trade_info:
-                # print(trade_info[0]['item']['extended']) #TODO search this for bad mods
-                prev_account_name = ""
-                # Modify data to usable status.
-                prices = []
-                for trade in trade_info:  # Stop price fixers
-                    if trade["listing"]["account"]["name"] != prev_account_name:
-                        prices.append(trade["listing"]["price"])
-
-                    prev_account_name = trade["listing"]["account"]["name"]
-
-                prices = ["%(amount)s%(currency)s" % x for x in prices if x != None]
-
-                prices = {x: prices.count(x) for x in prices}
-                print_string = ""
-                total_count = 0
-
-                # Make pretty strings.
-                for price_dict in prices:
-                    pretty_price = " ".join(re.split(r"([0-9.]+)", price_dict)[1:])
-                    print_string += f"{prices[price_dict]} x " + Fore.YELLOW + f"{pretty_price}" + Fore.WHITE + ", "
-                    total_count += prices[price_dict]
-
-                # Print the pretty string, ignoring trailing comma
-                print(f"[$] Price: {print_string[:-2]}\n\n")
-                priceList = prices
-                # Get difference between current time and posted time in timedelta format
-                times = [
-                    (
-                        datetime.now(timezone.utc)
-                        - datetime.replace(
-                            datetime.strptime(time["listing"]["indexed"], "%Y-%m-%dT%H:%M:%SZ"),
-                            tzinfo=timezone.utc,
-                        )
-                    )
-                    for time in trade_info
-                ]
-                # Assign times to proper price values (for getting average later.)
-                priceTimes = []
-                total = 0
-                for price in priceList:
-                    num = priceList[price]
-                    priceTimes.append(times[total : num + total])
-                    total += num
-
-                avg_times = get_average_times(priceTimes)
-
-                price = [re.findall(r"([0-9.]+)", tprice)[0] for tprice in prices.keys()]
-
-                currency = None  # TODO If a single result shows a higher tier, it currently presents only that value in the GUI.
-                if "mir" in print_string:
-                    currency = "mirror"
-                elif "exa" in print_string:
-                    currency = "exalt"
-                elif "chaos" in print_string:
-                    currency = "chaos"
-                elif "alch" in print_string:
-                    currency = "alchemy"
-
-                price.sort()
-
-                # Fastest method for calculating average as seen here:
-                # https://stackoverflow.com/questions/21230023/average-of-a-list-of-numbers-stored-as-strings-in-a-python-list
-                # TODO average between multiple currencies...
-                L = [float(n) for n in price if n]
-                average = str(round(sum(L) / float(len(L)) if L else "-", 2))
-
-                price = [
-                    round(float(price[0]), 2),
-                    average,
-                    round(float(price[-1]), 2),
-                ]
-                if len(trade_info) > 1:
-                    if config.USE_GUI:
-                        priceInformation.add_price_information(price, prices, avg_times, len(trade_info) < MIN_RESULTS)
-                        priceInformation.create_at_cursor()
-
-                elif len(trade_info) < 2:
-                    has_price = trade_info[0]["listing"]["price"]
-                    if has_price != None:
-                        print("[!] Not enough data to confidently price this item.")
-                        if config.USE_GUI:
-                            priceInformation.add_price_information(price, prices, avg_times, len(trade_info) < MIN_RESULTS)
-                            priceInformation.create_at_cursor()
-                    else:
-                        print(f"[$] Price: {Fore.YELLOW}None \n\n")
-                        if config.USE_GUI:
-                            notEnoughInformation.create_at_cursor()
-            else:
-                print("[!] No results!")
-                if config.USE_GUI:
-                    notEnoughInformation.create_at_cursor()
-=======
                     if config.USE_GUI:
                         gui.show_price(price, list(prices), avg_times, len(trade_info) < MIN_RESULTS)
             else:
@@ -1006,7 +531,6 @@ def price_item(text):
         # This exception is only raised when we find that the text
         # being parsed is not actually a valid PoE item.
         pass
->>>>>>> remotes/kevr/search_item_refactor_add
 
     except NotFoundException as e:
         logging.info("[!] No results!")
@@ -1046,8 +570,6 @@ def price_item(text):
         logging.info(f"{Fore.GREEN}================== END ISSUE DATA =================={Fore.RESET}")
         logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================={Fore.RESET}")
 
-<<<<<<< HEAD
-=======
 
 def watch_keyboard(keyboard, use_hotkeys):
     if use_hotkeys:
@@ -1072,7 +594,6 @@ def watch_keyboard(keyboard, use_hotkeys):
     keyboard.start()
 
 
->>>>>>> remotes/kevr/search_item_refactor_add
 def search_ninja_base(text):
     real_item = parse_item_info(text)
 
@@ -1110,37 +631,8 @@ def search_ninja_base(text):
         currency = "ex" if result["exalt"] >= 1 else "chaos"
         logging.info(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
-<<<<<<< HEAD
-            baseResults.add_base_result(base, influence, ilvl, price, currency)
-            baseResults.create_at_cursor()
-
-
-def watch_keyboard(keyboard, use_hotkeys):
-    if use_hotkeys:
-        # Use the "f5" key to go to hideout
-        keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
-
-        # Use the alt+d key as an alternative to ctrl+c
-        keyboard.add_hotkey("<alt>+d", lambda: hotkey_handler(keyboard, "alt+d"))
-
-        # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey("<alt>+w", lambda: hotkey_handler(keyboard, "alt+w"))
-
-        # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey("<alt>+t", lambda: hotkey_handler(keyboard, "alt+t"))
-
-        # poe.ninja base check
-        keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
-
-    # Fetch the item's approximate price
-    print("[*] Watching clipboard (Ctrl+C to stop)...")
-    keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
-    keyboard.start()
-
-=======
             influence = influences[0] if bool(influences) else None
             gui.show_base_result(base, influence, ilvl, price, currency)
->>>>>>> remotes/kevr/search_item_refactor_add
 
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
