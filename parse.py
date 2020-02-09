@@ -56,8 +56,7 @@ from utils.mods import (
 )
 
 from gui.gui import init_gui, close_all_windows, check_timeout_gui
-from gui.windows import baseResults, notEnoughInformation, priceInformation
-
+from gui.windows import baseResults, notEnoughInformation, priceInformation, BaseResults
 
 
 def result_prices_are_none(j: Dict) -> bool:
@@ -259,6 +258,7 @@ def price_item(text):
 
 
 def search_ninja_base(text):
+    NINJA_BASES = get_ninja_bases(LEAGUE)
     real_item = parse_item_info(text)
 
     influences = real_item.influence
@@ -296,7 +296,9 @@ def search_ninja_base(text):
         logging.info(f"[$] Price: {price} {currency}")
         if config.USE_GUI:
             influence = influences[0] if bool(influences) else None
-            gui.show_base_result(base, influence, ilvl, price, currency)
+            baseGUI = BaseResults()
+            baseGUI.add_base_result(base, influence, ilvl, price, currency)
+            baseGUI.create_at_cursor()
 
 
 
