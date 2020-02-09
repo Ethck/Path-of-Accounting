@@ -25,3 +25,5 @@ GUI_HEADER_COLOR = config["GUI"]["headerColor"]
 
 
 MIN_RESULTS = 10
+
+STASHTAB_SCROLLING = True if config["GENERAL"]["stashtabMacro"] == "yes" else False

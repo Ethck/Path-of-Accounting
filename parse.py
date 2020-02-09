@@ -27,7 +27,7 @@ from utils.currency import (
     VIALS,
 )
 from utils.exceptions import InvalidAPIResponseException, NotFoundException
-from utils.input import Keyboard, get_clipboard
+from utils.input import Keyboard, get_clipboard, start_stash_scroll, stop_stash_scroll
 from utils.trade import (
     exchange_currency,
     fetch,
@@ -1178,6 +1178,8 @@ if __name__ == "__main__":
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
 
+        start_stash_scroll()
+        
         if config.USE_GUI:
             init_gui()
 
@@ -1189,7 +1191,8 @@ if __name__ == "__main__":
                     check_timeout_gui()
         except KeyboardInterrupt:
             pass
-
+        
+        stop_stash_scroll()
         print(f"[!] Exiting, user requested termination.")
 
         close_all_windows()
