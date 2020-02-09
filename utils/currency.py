@@ -684,3 +684,5 @@ DIV_CARDS = {
     "Volatile Power": "volatile-power",
     "Wealth and Power": "wealth-and-power",
 }
+
+currency_global = {**CURRENCY, **OILS, **CATALYSTS, **FRAGMENTS_AND_SETS, **INCUBATORS, **SCARABS, **RESONATORS, **FOSSILS, **VIALS, **ESSENCES, **DIV_CARDS}

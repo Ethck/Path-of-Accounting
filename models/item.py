@@ -19,6 +19,8 @@ from utils.types import (
     get_map_base,
 )
 
+from utils.currency import currency_global
+
 from utils.config import LEAGUE
 
 # Synthesis uniques
@@ -384,35 +386,21 @@ class Searchable(Item):
 @attrs(auto_attribs=True)
 class Exchangeable(Item):
     # A conversion table for different types of bases
-    convert = {
-        "Chaos Orb": "chaos",
-        "Exalted Orb": "exa",
-        "Mirror of Kalandra": "mir",
-        "Splinter of Tul": "splinter-tul",
-        "Splinter of Uul-Netol": "splinter-uul",
-        "Splinter of Chayula": "splinter-chayula",
-        "Splinter of Xoph": "splinter-xoph",
-        "Splinter of Esh": "splinter-esh"
-    }
 
     def get_json(self) -> Dict:
         '''
         :return: An exchange API JSON dictionary for this item
         '''
-        base = self.base
-        if base in self.convert:
-            base = self.convert[self.base]
 
-        if " of " in base: # splinter-of-esh needs to be splinter-esh
-            base = base.replace(" of ", " ")
-
+        want = currency_global[self.base]
+        print(want)
         data = {
             "exchange": {
                 "status": {
                     "option": "online"
                 },
                 "have": ["chaos"],
-                "want": [base.lower().replace(' ', '-')]
+                "want": [want]
             }
         }
         return data
@@ -556,15 +544,15 @@ class Prophecy(Searchable):
 # Oils, Catalysts, Fossils, Incubators, and Resonators are all
 # of currency rarity, and so they are taken care of by Currency.
 @attrs(auto_attribs=True)
-class Fragment(Searchable): pass
+class Fragment(Exchangeable): pass
 
 @attrs(auto_attribs=True)
-class Essence(Searchable): pass
+class Essence(Exchangeable): pass
 
 @attrs(auto_attribs=True)
-class Scarab(Searchable): 
+class Scarab(Exchangeable): 
     def get_json(self) -> Dict:
-        self.rarity = None # Scarab cant have rarity
+        #self.rarity = None # Scarab cant have rarity
         data = super().get_json()
         return data
 

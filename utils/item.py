@@ -100,6 +100,7 @@ def parse_item_info(text: str) -> Item:
             del item_list[i]
             break
 
+    print(name)
     for i in range(len(item_list)):
         region = item_list[i]
         first_line = region[0]
@@ -108,7 +109,9 @@ def parse_item_info(text: str) -> Item:
         elif rarity == 'currency':
             return Currency(rarity=rarity, name=name)
         elif rarity == 'divination card':
-            return Card(rarity=rarity, name=name)
+            return Currency(rarity=rarity, name=name)
+        elif name == "Offering to the Goddess" or name == "Divine Vessel":
+            return Currency(rarity=rarity, name=name)
         elif rarity == 'gem':
             level = [
                 int(line.replace(' (Max)', '')[7:]) for line in item_list[1]
