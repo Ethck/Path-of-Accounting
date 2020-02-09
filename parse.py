@@ -41,7 +41,7 @@ from utils.trade import (
     get_ninja_bases,
     query_item,
 )
-from utils.web import open_trade_site, wiki_lookup
+from utils.web import open_trade_site, wiki_lookup, open_exchange_site
 from utils.item import (
     parse_item_info,
     InvalidItemError,
@@ -109,21 +109,21 @@ def price_item(text):
             json = relax_modifiers(json)
             logging.debug("relaxed query: %s" % str(json))
 
-        query_url = item.query_url(LEAGUE)
-        response = requests.post(query_url, json=json)
-        logging.debug("json response: %s" % str(response.json()))
 
-        response_json = response.json()
-        open_trade_site(response_json["id"], LEAGUE)
-        if "error" in response_json.keys():
-            logging.info(response_json["error"]["message"])
-            return
+        if isinstance(item, Exchangeable):
+            response = exchange_currency(json, LEAGUE)
+            open_exchange_site(response["id"], LEAGUE)
+        else:
+            response = query_item(json, LEAGUE)
+            open_trade_site(response["id"], LEAGUE)
 
-        
-        if len(response_json["result"]) == 0:
+        logging.debug("json response: %s" % str(response))
+
+
+        if len(response["result"]) == 0:
             raise NotFoundException
 
-        fetched = fetch(response_json, isinstance(item, Exchangeable))
+        fetched = fetch(response, isinstance(item, Exchangeable))
         logging.debug("Fetched: %s" % str(fetched))
 
         trade_info = fetched
@@ -384,6 +384,19 @@ if __name__ == "__main__":
         start_stash_scroll()
         
         init_gui()
+        """
+        data = {
+            "exchange": {
+                "status": {
+                    "option": "online"
+                },
+                "have": ["chaos"],
+                "want": ["splinter-esh"]
+            }
+        }
+        response = exchange_currency(data, LEAGUE)
+        open_exchange_site(response["id"], LEAGUE)
+        """
 
         try:
             while True:

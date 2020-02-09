@@ -37,3 +37,8 @@ def open_trade_site(rid, league):
     trade_url = f"https://pathofexile.com/trade/search/{league}/{rid}"
     logging.debug("Opening trade site with url: %s" % trade_url)
     webbrowser.open(trade_url)
+
+def open_exchange_site(rid, league):
+    url = f"https://www.pathofexile.com/trade/exchange/{league}/{rid}"
+    logging.debug("Opening exchange site with url: %s" % url)
+    webbrowser.open(url)

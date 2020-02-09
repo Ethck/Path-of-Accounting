@@ -38,8 +38,13 @@ def exchange_currency(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(exchange_url(league), json=query)
-    return results.json()
+    results = requests.post(exchange_url(league), json=query).json()
+    if "error" in results.keys():
+        msg = results["error"]["message"]
+        logging.info(f"[Error] {msg}")
+        raise InvalidAPIResponseException()
+        return None
+    return results
 
 
 def query_item(query: dict, league: str) -> dict:
@@ -49,8 +54,14 @@ def query_item(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(search_url(league), json=query)
-    return results.json()
+    results = requests.post(search_url(league), json=query).json()
+
+    if "error" in results.keys():
+        msg = results["error"]["message"]
+        logging.info(f"[Error] {msg}")
+        raise InvalidAPIResponseException()
+        return None
+    return results
 
 
 def fetch(q_res: dict, exchange: bool = False) -> List[dict]:  # JSON

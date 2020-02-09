@@ -68,7 +68,11 @@ def set_modifiers(json_data: Dict, modifiers: List) -> Dict:
         try:
             if ',' in e[1]:
                 value = re.sub(r',.*', '', e[1])
+                if "Adds # to #" in e[0].text:
+                    value = float(re.sub(r',.*', '', e[1])) + float(re.sub(r'.*,', '', e[1])) / 2
                 mods.append({ "id": e[0].id, "value": { "min": float(value) }})
+            elif float(e[1]) < 0:
+                mods.append({ "id": e[0].id, "value": { "max": float(e[1]) }})
             else:
                 mods.append({ "id": e[0].id, "value": { "min": float(e[1]) }})
         except ValueError:
@@ -166,27 +170,34 @@ class Item:
             "Gloves": Gloves,
             "Shield": Shield,
             "Quiver": Quiver,
-            "Jewel": Jewel 
+            "Jewel": Jewel,
+            "Scarab": Scarab
         }
 
 
         ninja_bases = get_ninja_bases(LEAGUE)
 
+        if "Synthesised " in self.base:
+            self.synthesised = True
+            self.base = self.base.replace("Synthesised ", "")
         
         for e in ninja_bases:
             if e["base"] in self.base:
+                self.base = e["base"]
                 self.category = e["type"]
                 break
         if not self.category:
-            print(self.base)
-            print("Something went wrong with finding item category")
-            return None
-
+            if "Scarab" in self.base:
+                self.category = "Scarab"
+            else:
+                print(self.base)
+                print("Something went wrong with finding item category")
+                return None
 
         itemtype = types[self.category](rarity=self.rarity, name=self.name, base=self.base, quality=self.quality,
                       category=self.category, stats=self.stats, raw_sockets=self.raw_sockets, ilevel=self.ilevel,
                       modifiers=self.modifiers, corrupted=self.corrupted,
-                      mirrored=self.mirrored, influence=self.influence)
+                      mirrored=self.mirrored, influence=self.influence, synthesised=self.synthesised)
 
         return itemtype
 
@@ -221,6 +232,10 @@ class Item:
         if self.rarity == "unique" and self.name is not None:
             data["query"]["name"] = self.name
 
+        if self.base:
+            data["query"]["type"] = self.base
+
+
         if len(self.modifiers) > 0:
             set_modifiers(data, self.modifiers)
 
@@ -246,8 +261,12 @@ class Item:
 
         # If we have 5 or more links, we'll include that in the query
         if self.links >= 5:
-            data["query"]["filters"]["socket_filters"]["filters"]["links"] = {
-                "min": self.links
+            data["query"]["filters"]["socket_filters"] = {
+                "filters": {
+                    "links": {
+                        "min": self.links
+                    }
+                }
             }
 
         # Set this key up; if it's not further modified, that's okay
@@ -271,33 +290,54 @@ class Item:
                     "Dagger": "weapon.dagger",
                     "Jewel": "jewel",
                     "Helmet": "armour.helmet",
-                    "Body Armour": "armour.bodyarmor",
+                    "Body Armour": "armour.chest",
                     "Boots": "armour.boots",
                     "Gloves": "armour.gloves",
                     "Shield": "armour.shield",
                     "Quiver": "armour.quiver",
                     "Ring" : "accessory.ring",
                     "Belt" : "accessory.belt",
-                    "Amulet" : "accessory.amulet"
+                    "Amulet" : "accessory.amulet",
+                    "Gem": "gem",
+                    "Flask": "flask",
+                    "Map": "map",
+                    "Resonator": "resonator",
+                    "Fossil": "fossil",
+                    "Incubator": "incubator",
+                    "Prophecy": "prophecy",
+                    "Card": "card",
+                    "Scarab": "map.scarab"
                 }
 
+        data["query"]["filters"]["type_filters"] = {}
+        data["query"]["filters"]["type_filters"]["filters"] = {}
 
-        data["query"]["filters"]["type_filters"] = {
-            "filters": {
-					"category": {
-						"option": category_list[self.category]
-					},
-					"rarity": {
-						"option": self.rarity
-					}
-				}
-        }
+        if self.category in category_list:
+            print(self.category)
+            data["query"]["filters"]["type_filters"]["filters"]["category"] = {
+                    "option": category_list[self.category]
+            }
+        else:
+            logging.info(f"[Warning] Could not find item category: {self.base}")
+
+        if self.rarity:
+            data["query"]["filters"]["type_filters"]["filters"]["rarity"]= {
+                    "option": self.rarity
+            }
+        
 
         for influence in self.influence:
             text = "%s_item" % influence
             data["query"]["filters"]["misc_filters"]["filters"][text] = {
                 "option": "true"
             }
+
+
+        if self.synthesised:
+            data["query"]["filters"]["misc_filters"]["filters"]["synthesised_item"] = {
+                "option": "true"
+            }
+
 
         if self.corrupted:
             data["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {
@@ -348,6 +388,11 @@ class Exchangeable(Item):
         "Chaos Orb": "chaos",
         "Exalted Orb": "exa",
         "Mirror of Kalandra": "mir",
+        "Splinter of Tul": "splinter-tul",
+        "Splinter of Uul-Netol": "splinter-uul",
+        "Splinter of Chayula": "splinter-chayula",
+        "Splinter of Xoph": "splinter-xoph",
+        "Splinter of Esh": "splinter-esh"
     }
 
     def get_json(self) -> Dict:
@@ -357,6 +402,9 @@ class Exchangeable(Item):
         base = self.base
         if base in self.convert:
             base = self.convert[self.base]
+
+        if " of " in base: # splinter-of-esh needs to be splinter-esh
+            base = base.replace(" of ", " ")
 
         data = {
             "exchange": {
@@ -395,11 +443,18 @@ class Wearable(Searchable):
 class Currency(Exchangeable): pass
 
 @attrs(auto_attribs=True)
-class Card(Searchable): pass
+class Card(Searchable):
+    def get_json(self) -> Dict:
+        self.category = "Card"
+        self.rarity = None
+        data = super().get_json()
+        return data
 
 @attrs(auto_attribs=True)
 class Gem(Searchable):
     def get_json(self) -> Dict:
+        self.category = "Gem"
+        self.rarity = None
         data = super().get_json()
         data["query"]["filters"]["misc_filters"]["filters"]["gem_level"] = {
             "min": self.ilevel
@@ -421,6 +476,9 @@ class Map(Searchable):
 
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
+
+        self.category = "Map"
+
         build_map_bases()
 
         if self.rarity == "magic":
@@ -488,6 +546,8 @@ class Map(Searchable):
 @attrs(auto_attribs=True)
 class Prophecy(Searchable):
     def get_json(self) -> Dict:
+        self.category = "Prophecy"
+        self.rarity = None # Prophecy cant have rarity
         data = super().get_json()
         data["query"]["name"] = self.base
         data["query"]["type"] = "Prophecy"
@@ -502,7 +562,11 @@ class Fragment(Searchable): pass
 class Essence(Searchable): pass
 
 @attrs(auto_attribs=True)
-class Scarab(Searchable): pass
+class Scarab(Searchable): 
+    def get_json(self) -> Dict:
+        self.rarity = None # Scarab cant have rarity
+        data = super().get_json()
+        return data
 
 @attrs(auto_attribs=True)
 class Vial(Searchable): pass
@@ -708,21 +772,24 @@ class Weapon(Wearable):
             r'#% chance to Poison on Hit',
         ]
 
+        
         for i in range(len(self.modifiers)):
             for possible in convert:
                 mod = self.modifiers[i]
                 mod_text = mod[0].text
                 mod_type = mod[0].type
                 logging.debug("Sanitizing %s" % str(mod))
-                if re.search(possible, mod_text):
+                if re.search(possible, mod_text) and not "to Spells" in mod_text:
+                    if self.modifiers[i+1]:
+                        if "increased Damage with Poison" in self.modifiers[i+1][0].text and "chance to Poison on Hit" in self.modifiers[i][0].text:
+                            break
                     altered = mod_text + " (Local)"
                     sanitized_mod = get_item_modifiers_by_text(
                         (altered, mod_type)
                     )
+
                     self.modifiers[i] = (sanitized_mod, mod[1])
                     logging.debug(
                         "Altered mod to be local: %s" % str(self.modifiers[i])
                     )
-                else:
-                    logging.debug("No sanitization needed")
-
+                    break

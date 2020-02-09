@@ -12,8 +12,7 @@ import parse
 from utils import config
 from tests.mocks import *
 from tests.sampleItems import items
-from gui.gui import close_all_windows
-from gui.windows import init_gui
+from gui.gui import close_all_windows, init_gui
 
 LOOKUP_URL = "https://www.pathofexile.com/api/trade/search/Metamorph"
 EXCHANGE_URL = "https://www.pathofexile.com/api/trade/exchange/Metamorph"
