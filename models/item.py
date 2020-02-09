@@ -86,7 +86,7 @@ class Item:
     base: str = None
     ilevel: int = 0
     quality: int = 0
-    category = None
+    category: str = None
     # TODO: handle base stats
     stats: [str] = []
 
@@ -120,14 +120,6 @@ class Item:
         if self.base.startswith("Veiled"):
             self.veiled = True
 
-        # Some debug logging of the attributes of our class. If we are
-        # not running with DEBUG logging enabled, this becomes a no-op
-        if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
-            logging.debug("====== %s ======" % self.__class__.__name__)
-            for k, v in self.__dict__.items():
-                logging.debug("%s: %s" % (k, v))
-            logging.debug("====== End of %s ======" % self.__class__.__name__)
-
     def sanitize_modifiers(self):
         '''
         This method normally allows subclasses of Item to specifically
@@ -148,6 +140,10 @@ class Item:
         # If we're already a different object, turn this into a no-op method
         if self.__class__.__name__ != "Item":
             return self
+
+        if self.base.startswith("Veiled"):
+            self.veiled = True
+
 
         types = {
             "One Handed Sword": Weapon,
@@ -185,24 +181,13 @@ class Item:
             print(self.base)
             print("Something went wrong with finding item category")
             return None
-        itemtype = types[self.category]()
 
-        itemtype.rarity = self.rarity
-        itemtype.name = self.name
-        itemtype.base = self.base
-        itemtype.ilevel = self.ilevel
-        itemtype.quality = self.quality
-        itemtype.category = self.category
-        itemtype.stats = self.stats
-        itemtype.raw_sockets = self.raw_sockets
-        itemtype.modifiers = self.modifiers
-        itemtype.corrupted = self.corrupted
-        itemtype.mirrored = self.mirrored
-        itemtype.veiled = self.veiled
-        itemtype.influence = self.influence
-        itemtype.links = self.links
-        itemtype.synthesised = self.synthesised
-        #print(itemtype.base)
+
+        itemtype = types[self.category](rarity=self.rarity, name=self.name, base=self.base, quality=self.quality,
+                      category=self.category, stats=self.stats, raw_sockets=self.raw_sockets, ilevel=self.ilevel,
+                      modifiers=self.modifiers, corrupted=self.corrupted,
+                      mirrored=self.mirrored, influence=self.influence)
+
         return itemtype
 
     def get_pseudo_mods(self):

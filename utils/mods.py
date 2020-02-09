@@ -178,9 +178,9 @@ def relax_modifiers(json: Dict) -> Dict:
     for mod in j["query"]["stats"][0]["filters"]:
         if mod["id"].startswith("explicit") or mod["id"].startswith("pseudo"):
             value = mod["value"]["min"]
-            value_min = value * (1 - 10 * 0.01)
-            value_max = value * (1 + 10 * 0.01)
-            mod["value"]["min"] = round(value_min, 2)
-            mod["value"]["max"] = round(value_max, 2)
+            value_min = value - (value * 0.1)
+            #value_max = value + (value * 0.1)
+            mod["value"]["min"] = round(value_min, 0)
+            #mod["value"]["max"] = round(value_max, 2)
     return j
 
