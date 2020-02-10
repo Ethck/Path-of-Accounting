@@ -1,10 +1,10 @@
 
 from gui.gui import DisplayWindow, ActiveWindow, close_all_windows
-from utils.config import USE_GUI
+from utils.config import USE_GUI, MIN_RESULTS
 
 import tkinter
 import timeago
-import datetime
+from datetime import datetime, timezone
 
 class BaseResults(DisplayWindow):
     def __init__(self):
@@ -58,16 +58,10 @@ class NotEnoughInformation(DisplayWindow):
 class PriceInformation(DisplayWindow):
     def __init__(self):
         super().__init__()
-        self.price = None
-        self.price_vals = {}
-        self.avg_times = {}
-        self.not_enough = False
+        self.data = None
 
-    def add_price_information(self, price, price_vals, avg_times, not_enough=False):
-        self.price = price
-        self.price_vals = price_vals
-        self.avg_times = avg_times
-        self.not_enough = not_enough
+    def add_price_information(self, data):
+        self.data = data
 
     def add_components(self):
         """
@@ -79,27 +73,28 @@ class PriceInformation(DisplayWindow):
         
 
         counter = 0
-        for price, count in self.price_vals.items():
-            date = datetime.datetime.now()
-            now = datetime.datetime.now() + datetime.timedelta(days=self.avg_times[counter][0], seconds=self.avg_times[counter][1])
-            time = timeago.format(date, now)
+        # dict{price: [count , time]}
+        for price, values in self.data.items():
+            date = datetime.now().replace(tzinfo=timezone.utc)
+            now = values[1]
+            time = timeago.format(now, date)
 
             if counter % 2:
                 self.create_label_BG1("", 0, counter + 2, "WE", 3)
                 self.create_label_BG1(price + "  ", 0, counter + 2, "E")
-                self.create_label_BG1(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
+                self.create_label_BG1(time + " (" + str(values[0]) + ")", 1, counter + 2, "E", 2)
             else:
                 self.create_label_BG2("", 0, counter + 2, "WE", 3)
                 self.create_label_BG2(price + "  ", 0, counter + 2, "E")
-                self.create_label_BG2(time + " (" + str(count) + ")", 1, counter + 2, "E", 2)
+                self.create_label_BG2(time + " (" + str(values[0]) + ")", 1, counter + 2, "E", 2)
             counter += 1
 
-        self.create_label_header("", 0, counter + 3, "WE", 3)
-        self.create_label_header("Low:" + str(self.price[0]), 0, counter + 3, "W")
-        self.create_label_header("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
-        self.create_label_header("High:" + str(self.price[2]), 2, counter + 3, "E")
+        #self.create_label_header("", 0, counter + 3, "WE", 3)
+        #self.create_label_header("Low:" + str(self.price[0]), 0, counter + 3, "W")
+        #self.create_label_header("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
+        #self.create_label_header("High:" + str(self.price[2]), 2, counter + 3, "E")
 
-        if self.not_enough:
+        if len(self.data) < MIN_RESULTS:
             self.create_label_header("", 0, counter + 4, "WE", 3)
             self.create_label_header("Found limited search results", 0, counter+4, "WE", 3)
             self.create_label_header("", 0, counter + 5, "WE", 3)

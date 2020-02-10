@@ -3,6 +3,8 @@ import copy
 from colorama import Fore
 from typing import Dict
 
+from utils.config import BAD_MODS
+
 def create_pseudo_mods(json: Dict) -> Dict:
     """
     Combines life and resists into pseudo-mods
@@ -189,4 +191,14 @@ def relax_modifiers(json: Dict) -> Dict:
             
             #mod["value"]["max"] = round(value_max, 2)
     return j
+def remove_bad_mods(item):
+    mods = BAD_MODS
+    i = 0
+    for mod in item.modifiers:
+        for bad in BAD_MODS:
+            if mod[0].text == bad:
+                rem = item.modifiers.pop(i)
+                print(f"[!] Removed {rem[0].text} From Search")
+        i += 1
+    return item
 

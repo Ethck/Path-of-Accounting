@@ -6,7 +6,7 @@ from typing import Dict, List
 
 from .item_modifier import ItemModifier
 from enums.item_modifier_type import ItemModifierType
-from utils.trade import (
+from utils.web import (
     get_ninja_bases,
     get_item_modifiers_by_text,
     build_map_bases,
@@ -192,7 +192,6 @@ class Item:
             if "Scarab" in self.base:
                 self.category = "Scarab"
             else:
-                print(self.base)
                 print("Something went wrong with finding item category")
                 return None
 
@@ -315,7 +314,6 @@ class Item:
         data["query"]["filters"]["type_filters"]["filters"] = {}
 
         if self.category in category_list:
-            print(self.category)
             data["query"]["filters"]["type_filters"]["filters"]["category"] = {
                     "option": category_list[self.category]
             }
@@ -393,7 +391,6 @@ class Exchangeable(Item):
         '''
 
         want = currency_global[self.base]
-        print(want)
         data = {
             "exchange": {
                 "status": {

@@ -16,7 +16,7 @@ from models.item import (
     Card,
     Gem,
 )
-from utils.trade import get_item_modifiers_by_text
+from utils.web import get_item_modifiers_by_text
 
 class InvalidItemError(Exception): pass
 

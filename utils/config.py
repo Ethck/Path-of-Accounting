@@ -1,5 +1,5 @@
 import configparser
-
+import json
 config = configparser.ConfigParser()
 config.read("settings.cfg")
 
@@ -13,6 +13,7 @@ VERSION = config["GENERAL"]["version"]
 
 RELEASE_URL = config["GENERAL"]["releaseURL"]
 
+BAD_MODS = json.loads(config.get("GENERAL","badMods"))
 
 USE_GUI = True if config["GUI"]["useGUI"] == "yes" else False
 TIMEOUT_GUI = config["GUI"]["timeout"]
