@@ -2,8 +2,7 @@ import logging
 import re
 
 # Local imports
-from enums.item_modifier_type import ItemModifierType
-from models.item_modifier import ItemModifier
+from models.itemModifier import ItemModifierType
 from models.item import (
     Item,
     Exchangeable,
@@ -13,7 +12,6 @@ from models.item import (
     Organ,
     Flask,
     Currency,
-    Card,
     Gem,
 )
 from utils.web import get_item_modifiers_by_text
@@ -100,7 +98,6 @@ def parse_item_info(text: str) -> Item:
             del item_list[i]
             break
 
-    print(name)
     for i in range(len(item_list)):
         region = item_list[i]
         first_line = region[0]
@@ -110,7 +107,7 @@ def parse_item_info(text: str) -> Item:
             return Currency(rarity=rarity, name=name)
         elif rarity == 'divination card':
             return Currency(rarity=rarity, name=name)
-        elif name == "Offering to the Goddess" or name == "Divine Vessel":
+        elif name == "Offering to the Goddess" or name == "Divine Vessel" or "Scarab" in name:
             return Currency(rarity=rarity, name=name)
         elif rarity == 'gem':
             level = [

@@ -1,8 +1,7 @@
 
-from gui.gui import DisplayWindow, ActiveWindow, close_all_windows
-from utils.config import USE_GUI, MIN_RESULTS
+from gui.gui import DisplayWindow
+from utils.config import MIN_RESULTS
 
-import tkinter
 import timeago
 from datetime import datetime, timezone
 
@@ -73,12 +72,13 @@ class PriceInformation(DisplayWindow):
         
 
         counter = 0
+        count = 0
         # dict{price: [count , time]}
         for price, values in self.data.items():
             date = datetime.now().replace(tzinfo=timezone.utc)
             now = values[1]
             time = timeago.format(now, date)
-
+            count += values[0]
             if counter % 2:
                 self.create_label_BG1("", 0, counter + 2, "WE", 3)
                 self.create_label_BG1(price + "  ", 0, counter + 2, "E")
@@ -94,7 +94,7 @@ class PriceInformation(DisplayWindow):
         #self.create_label_header("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
         #self.create_label_header("High:" + str(self.price[2]), 2, counter + 3, "E")
 
-        if len(self.data) < MIN_RESULTS:
+        if count < MIN_RESULTS:
             self.create_label_header("", 0, counter + 4, "WE", 3)
             self.create_label_header("Found limited search results", 0, counter+4, "WE", 3)
             self.create_label_header("", 0, counter + 5, "WE", 3)

@@ -1,8 +1,5 @@
-import time
-import traceback
 from queue import Queue, Empty
 from tkinter import TclError
-
 import pyperclip
 
 import os
@@ -11,7 +8,6 @@ if os.name == "nt" and STASHTAB_SCROLLING:
     import win32con
     import ctypes
     import atexit
-    import sys
     from ctypes import *
     from ctypes.wintypes import DWORD, WPARAM, LPARAM, ULONG, POINT, HMODULE, LPCWSTR
     from multiprocessing import Process

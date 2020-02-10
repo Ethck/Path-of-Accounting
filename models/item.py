@@ -1,11 +1,7 @@
 import logging
-import copy
 import re
 from attr import attrs
 from typing import Dict, List
-
-from .item_modifier import ItemModifier
-from enums.item_modifier_type import ItemModifierType
 from utils.web import (
     get_ninja_bases,
     get_item_modifiers_by_text,
@@ -13,9 +9,7 @@ from utils.web import (
     search_url,
     exchange_url,
 )
-from utils.mods import create_pseudo_mods
 from utils.types import (
-    get_magic_type,
     get_map_base,
 )
 
@@ -23,11 +17,17 @@ from utils.currency import currency_global
 
 from utils.config import LEAGUE
 
+from models.itemModifier import ItemModifier, ItemModifierType
 # Synthesis uniques
 synthesis_uniques = dict()
 
 # A global type cache for Base -> Item derivative conversions
 types = dict()
+
+
+
+
+
 
 def get_synthesis_uniques() -> Dict:
     '''
@@ -173,7 +173,6 @@ class Item:
             "Shield": Shield,
             "Quiver": Quiver,
             "Jewel": Jewel,
-            "Scarab": Scarab
         }
 
 
@@ -189,11 +188,8 @@ class Item:
                 self.category = e["type"]
                 break
         if not self.category:
-            if "Scarab" in self.base:
-                self.category = "Scarab"
-            else:
-                print("Something went wrong with finding item category")
-                return None
+            print("Something went wrong with finding item category")
+            return None
 
         itemtype = types[self.category](rarity=self.rarity, name=self.name, base=self.base, quality=self.quality,
                       category=self.category, stats=self.stats, raw_sockets=self.raw_sockets, ilevel=self.ilevel,

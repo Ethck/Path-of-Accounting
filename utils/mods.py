@@ -188,11 +188,9 @@ def relax_modifiers(json: Dict) -> Dict:
                 value_max = value - (value * 0.1)
                 mod["value"]["max"] = round(value_max, 0)
             #value_max = value + (value * 0.1)
-            
             #mod["value"]["max"] = round(value_max, 2)
     return j
 def remove_bad_mods(item):
-    mods = BAD_MODS
     i = 0
     for mod in item.modifiers:
         for bad in BAD_MODS:

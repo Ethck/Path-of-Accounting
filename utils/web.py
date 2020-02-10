@@ -2,19 +2,19 @@ import logging
 import pathlib
 import zipfile
 from itertools import chain
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Dict
 
 import requests
 from tqdm import tqdm
 
-from factories.item_modifier import build_from_json
-from models.item_modifier import ItemModifier
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 from utils.types import (
     add_magic_base,
     add_map_base,
 )
+
+from models.itemModifier import ItemModifier, ItemModifierType
 
 ninja_bases = []
 
@@ -134,6 +134,10 @@ def get_item_modifiers_by_id(element: str) -> ItemModifier:
         mod_list_dict_id = {e.id: e for e in item_modifiers}
     if element in mod_list_dict_id:
         return mod_list_dict_id[element]
+
+
+def build_from_json(blob: Dict) -> ItemModifier:
+    return ItemModifier(id=blob["id"], text=blob["text"], type=ItemModifierType(blob["type"].lower()))
 
 def get_item_modifiers() -> Tuple[ItemModifier, ...]:
     """

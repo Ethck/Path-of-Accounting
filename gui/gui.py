@@ -5,8 +5,6 @@ import screeninfo
 import time
 import traceback
 if os.name == "nt":
-    import pythoncom
-    import win32com.client
     import win32gui
 
 from utils.config import USE_GUI, TIMEOUT_GUI, GUI_BG1, GUI_BG2, GUI_HEADER_COLOR, GUI_FONT, GUI_FONT_SIZE, GUI_FONT_COLOR
@@ -29,7 +27,7 @@ components = []
 
 def init_gui():
     if USE_GUI:
-        tk = tkinter.Tk().withdraw()
+        tkinter.Tk().withdraw()
 
 def close_all_windows():
     if USE_GUI:
