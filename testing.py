@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from colorama import Fore, deinit, init
 
 import parse
-from utils import config
+from utils import config, trade
 from tests.mocks import *
 from tests.sampleItems import items
 from gui.gui import close_all_windows, init_gui
@@ -205,7 +205,8 @@ class TestItemLookup(unittest.TestCase):
                     "variant": None,
                     "corrupted": True,
                     "exaltedValue": 0.5,
-                    "chaosValue": 80.0
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger"
                 },
                 {
                     "baseType": "Boot Blade",
@@ -213,7 +214,8 @@ class TestItemLookup(unittest.TestCase):
                     "variant": "Elder",
                     "corrupted": True,
                     "exaltedValue": 0.5,
-                    "chaosValue": 80.0
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger"
                 },
                 {
                     "baseType": "Boot Blade",
@@ -221,7 +223,8 @@ class TestItemLookup(unittest.TestCase):
                     "variant": "Shaper",
                     "corrupted": True,
                     "exaltedValue": 0.5,
-                    "chaosValue": 80.0
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger"
                 },
                 {
                     "baseType": "Boot Blade",
@@ -229,7 +232,8 @@ class TestItemLookup(unittest.TestCase):
                     "variant": "Warlord",
                     "corrupted": True,
                     "exaltedValue": 0.5,
-                    "chaosValue": 80.0
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger"
                 },
                 {
                     "baseType": "Boot Blade",
@@ -237,7 +241,8 @@ class TestItemLookup(unittest.TestCase):
                     "variant": "Redeemer",
                     "corrupted": True,
                     "exaltedValue": 0.5,
-                    "chaosValue": 80.0
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger"
                 },
                 {
                     "baseType": "Boot Blade",
@@ -245,7 +250,8 @@ class TestItemLookup(unittest.TestCase):
                     "variant": "Crusader",
                     "corrupted": True,
                     "exaltedValue": 0.5,
-                    "chaosValue": 80.0
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger"
                 },
                 {
                     "baseType": "Boot Blade",
@@ -253,9 +259,25 @@ class TestItemLookup(unittest.TestCase):
                     "variant": "Hunter",
                     "corrupted": False,
                     "exaltedValue": 0.5,
-                    "chaosValue": 80.0
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger"
                 }
             ]
+        }
+
+        # mockign the list of mods from poe api
+        mods = {
+                "result": [
+                    {
+                        "label":"Pseudo",
+                        "entries": [
+                         {
+                            "id": "pseudo.pseudo_total_cold_resistance",
+                            "text": "+#% total to Cold Resistance",
+                            "type": "pseudo"
+                          }]
+                     }
+                ]
         }
 
         expected = [
@@ -265,45 +287,37 @@ class TestItemLookup(unittest.TestCase):
 
         # Needs mocking to prepare NINJA_BASES properly in parse.py
         with requests_mock.Mocker() as mock:
-            mock.get("https://poe.ninja/api/data/itemoverview?league=Standard&type=BaseType&language=en", json=data)
+            trade.ninja_bases = []
+            mock.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en", json=data)
+            mock.get("https://www.pathofexile.com/api/trade/data/stats", json=mods)
             #parse.NINJA_BASES = parse.get_ninja_bases("Standard")
 
-        for i in range(len(items[:2])):
-            item = items[i]
+            for i in range(len(items[:2])):
+                item = items[i]
+                with self.assertLogs(level='INFO') as logger:
+                    parse.search_ninja_base(item)
+                    [output] = logger.output[-1:]
+                    self.assertTrue(expected[i](output))
 
-            out = io.StringIO()
-            sys.stdout = out
+            # We'll take the first sample item and modify it so that we
+            # can match against all types of influences we support.
+            item = items[0]
 
-            #parse.search_ninja_base(item)
+            supportedInfluence = [
+                "Elder",
+                "Shaper",
+                "Warlord",
+                "Redeemer",
+                "Crusader",
+                "Hunter"
+            ]
 
-            sys.stdout = sys.__stdout__
-
-            self.assertTrue(expected[i](out.getvalue()))
-
-        # We'll take the first sample item and modify it so that we
-        # can match against all types of influences we support.
-        item = items[0]
-
-        supportedInfluence = [
-            "Elder",
-            "Shaper",
-            "Warlord",
-            "Redeemer",
-            "Crusader",
-            "Hunter"
-        ]
-
-        for inf in supportedInfluence:
-            current = item + ("%s Item\n" % inf)
-
-            out = io.StringIO()
-            sys.stdout = out
-
-            parse.search_ninja_base(current)
-
-            sys.stdout = sys.__stdout__
-
-            self.assertTrue(expected[0](out.getvalue()))
+            for inf in supportedInfluence:
+                current = item + ("\n--------\n%s Item\n" % inf)
+                with self.assertLogs(level='INFO') as logger:
+                    parse.search_ninja_base(current)
+                    [output] = logger.output[-1:]
+                    self.assertTrue(expected[0](output))
         close_all_windows()
         
 if __name__ == "__main__":
