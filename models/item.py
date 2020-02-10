@@ -761,7 +761,7 @@ class Weapon(Wearable):
                 mod_type = mod[0].type
                 logging.debug("Sanitizing %s" % str(mod))
                 if re.search(possible, mod_text) and not "to Spells" in mod_text:
-                    if self.modifiers[i+1]:
+                    if i+1 < len(self.modifiers):
                         if "increased Damage with Poison" in self.modifiers[i+1][0].text and "chance to Poison on Hit" in self.modifiers[i][0].text:
                             break
                     altered = mod_text + " (Local)"
