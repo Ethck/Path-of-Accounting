@@ -276,7 +276,8 @@ VIALS = {
     "Vial of Consequence": "vial-of-consequence",
     "Vial of the Ghost": "vial-of-the-ghost",
     "Vial of Transcendence": "vial-of-transcendence",
-    "Vial of Sacrifice ": "vial-of-sacrifice-",
+    "Vial of Sacrifice": "vial-of-sacrifice",
+    
 }
 
 ESSENCES = {

@@ -109,6 +109,8 @@ def parse_item_info(text: str) -> Item:
             return Currency(rarity=rarity, name=name)
         elif name == "Offering to the Goddess" or name == "Divine Vessel" or "Scarab" in name:
             return Currency(rarity=rarity, name=name)
+        #elif first_line.startswith("Genus:"):
+            #item_class.category == "Beast"
         elif rarity == 'gem':
             level = [
                 int(line.replace(' (Max)', '')[7:]) for line in item_list[1]

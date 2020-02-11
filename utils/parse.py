@@ -16,7 +16,7 @@ from utils.web import (
     query_item,
 )
 from utils.item import (
-    parse_item_info,
+    #parse_item_info,
     InvalidItemError,
 )
 from models.item import (
@@ -30,7 +30,7 @@ from utils.mods import (
 )
 
 from gui.windows import baseResults, notEnoughInformation, priceInformation
-
+from item.generator import *
 
 def result_prices_are_none(j: Dict) -> bool:
     """
@@ -77,8 +77,8 @@ def make_item(text):
     item = None
     try:
         item = parse_item_info(text)
-        item = item.deduce_specific_object()
-        item.sanitize_modifiers()
+        #item = item.deduce_specific_object()
+        #item.sanitize_modifiers()
     except InvalidItemError:
         # This exception is only raised when we find that the text
         # being parsed is not actually a valid PoE item.
@@ -153,6 +153,12 @@ def get_trade_data(trade_info):
     return None, 0
 
 
+def print_item(item):
+    print(f"{item.name}")
+    print(f"{item.base}")
+    print(f"{item.category}")
+    print(f"{item.modifiers}")
+
 def price_item(text):
     """
     Taking the text from the clipboard, parse the item, then price the item.
@@ -165,7 +171,8 @@ def price_item(text):
         item = make_item(text)
         if not item:
             return
-
+        """
+        print_item(item)
         response = get_response(item)
         if not response:
             return
@@ -201,6 +208,7 @@ def price_item(text):
             logging.info("[!] No results!")
             if config.USE_GUI:
                 notEnoughInformation.create_at_cursor()
+        """
 
 
     except InvalidAPIResponseException as e:

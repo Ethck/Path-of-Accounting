@@ -188,6 +188,7 @@ class Item:
                 self.category = e["type"]
                 break
         if not self.category:
+            print(self.base)
             print("Something went wrong with finding item category")
             return None
 
@@ -303,7 +304,8 @@ class Item:
                     "Incubator": "incubator",
                     "Prophecy": "prophecy",
                     "Card": "card",
-                    "Scarab": "map.scarab"
+                    "Scarab": "map.scarab",
+                    "Beast": "beast",
                 }
 
         data["query"]["filters"]["type_filters"] = {}
@@ -423,13 +425,6 @@ class Wearable(Searchable):
 @attrs(auto_attribs=True)
 class Currency(Exchangeable): pass
 
-@attrs(auto_attribs=True)
-class Card(Searchable):
-    def get_json(self) -> Dict:
-        self.category = "Card"
-        self.rarity = None
-        data = super().get_json()
-        return data
 
 @attrs(auto_attribs=True)
 class Gem(Searchable):
