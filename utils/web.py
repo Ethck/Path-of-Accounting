@@ -2,7 +2,8 @@ import logging
 import pathlib
 import zipfile
 from itertools import chain
-from typing import List, Tuple, Dict
+import webbrowser
+import logging
 
 import requests
 from tqdm import tqdm
@@ -14,7 +15,7 @@ from utils.types import (
     add_map_base,
 )
 
-from models.itemModifier import ItemModifier, ItemModifierType
+from item.itemModifier import ItemModifier, ItemModifierType
 
 ninja_bases = []
 
@@ -42,7 +43,6 @@ def exchange_currency(query: dict, league: str) -> dict:
     if "error" in results.keys():
         msg = results["error"]["message"]
         logging.info(f"[Error] {msg}")
-        raise InvalidAPIResponseException()
         return None
     return results
 
@@ -59,12 +59,11 @@ def query_item(query: dict, league: str) -> dict:
     if "error" in results.keys():
         msg = results["error"]["message"]
         logging.info(f"[Error] {msg}")
-        raise InvalidAPIResponseException()
         return None
     return results
 
 
-def fetch(q_res: dict, exchange: bool = False) -> List[dict]:  # JSON
+def fetch(q_res: dict, exchange: bool = False):
     """
     Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
     there are any similar items like it listed.
@@ -111,7 +110,7 @@ def fetch(q_res: dict, exchange: bool = False) -> List[dict]:  # JSON
     return results
 
 
-def get_leagues() -> Tuple[str, ...]:
+def get_leagues():
     """
     Get all valid leagues from the PoE API and put them into a tuple
     """
@@ -119,7 +118,7 @@ def get_leagues() -> Tuple[str, ...]:
     return tuple(x["id"] for x in leagues["result"])
 
 
-def get_item_modifiers_by_text(element: Tuple) -> ItemModifier:
+def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
     global mod_list_dict_text
     if len(mod_list_dict_text) == 0:
         item_modifiers = get_item_modifiers()
@@ -136,10 +135,10 @@ def get_item_modifiers_by_id(element: str) -> ItemModifier:
         return mod_list_dict_id[element]
 
 
-def build_from_json(blob: Dict) -> ItemModifier:
+def build_from_json(blob: dict) -> ItemModifier:
     return ItemModifier(id=blob["id"], text=blob["text"], type=ItemModifierType(blob["type"].lower()))
 
-def get_item_modifiers() -> Tuple[ItemModifier, ...]:
+def get_item_modifiers() -> tuple:
     """
     Get all valid Item Modifiers (affixes) from the PoE API
     """
@@ -246,34 +245,15 @@ def get_items():
         item_cache = items["result"]
     return item_cache
 
-def get_maps():
-    global item_cache
-    global map_cache
-    if not map_cache:
-        get_items()
-        for item_type in item_cache:
-            if item_type["label"] != "Maps":
-                continue
+def get_base(category, name):
+    items = get_items()
+    for i in items:
+        if i["label"] == category:
+            for l in i["entries"]:
+                if l["type"] in name:
+                    return l["type"]
+    return None
 
-            for map_entry in item_type["entries"]:
-                map_base = map_entry["type"]
-                if map_base not in map_cache:
-                    map_cache.add(map_base)
-
-    return map_cache
-
-def build_map_bases():
-    global map_cache
-    get_maps()
-    for e in map_cache:
-        add_map_base(e)
-
-
-import webbrowser
-import logging
-from models.item import (
-    Currency
-)
 
 def wiki_lookup(item):
     base_url = "https://pathofexile.gamepedia.com/"

@@ -3,7 +3,7 @@ import sys
 import time
 from colorama import Fore, deinit, init
 from utils.parse import price_item, search_ninja_base, get_response, get_ninja_bases
-from utils.item import parse_item_info
+from item.generator import parse_item_info
 from utils.input import Keyboard, start_stash_scroll, stop_stash_scroll, get_clipboard
 from gui.gui import init_gui, close_all_windows, check_timeout_gui
 from utils.web import find_latest_update, get_leagues, open_trade_site, wiki_lookup
@@ -13,13 +13,16 @@ def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
         keyboard.press_and_release("ctrl+c")
-        time.sleep(0.1)
+
+    time.sleep(0.1)
     text = get_clipboard()
 
     if hotkey == "alt+t":
         item = parse_item_info(text)
-        item = item.deduce_specific_object()
-        item.sanitize_modifiers()
+        if not item:
+            return
+        item.create_pseudo_mods()
+        item.relax_modifiers()
 
         response = get_response(item)
         if response:
@@ -27,7 +30,6 @@ def hotkey_handler(keyboard, hotkey):
 
     elif hotkey == "alt+w":
         item = parse_item_info(text)
-        item = item.deduce_specific_object()
         wiki_lookup(item)
 
     elif hotkey == "alt+c":
@@ -54,7 +56,8 @@ def watch_keyboard(keyboard, use_hotkeys):
         keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
 
     # Clipboard
-    keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
+    #keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
+    keyboard.add_hotkey("<ctrl>+c", lambda: hotkey_handler(keyboard, "clipboard"))
 
     # Fetch the item's approximate price
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
@@ -88,7 +91,7 @@ if __name__ == "__main__":
         watch_keyboard(keyboard, USE_HOTKEYS)
 
         start_stash_scroll()
-        
+
         init_gui()
 
         try:

@@ -53,14 +53,27 @@ class NotEnoughInformation(DisplayWindow):
         self.create_label_header("Not Enough Data", 0, 0, "WE")
         self.create_label_header("Could not find enough data to confidently price this item.", 0, 1, "WE")
 
+class Information(DisplayWindow):
+    def __init__(self):
+        super().__init__()
+        self.info = None
+
+    def add_info(self, info):
+        self.info = info
+
+    def add_components(self):
+        self.create_label_header(self.info, 0, 1, "WE")
+
 
 class PriceInformation(DisplayWindow):
     def __init__(self):
         super().__init__()
         self.data = None
+        self.offline = False
 
-    def add_price_information(self, data):
+    def add_price_information(self, data, offline = False):
         self.data = data
+        self.offline = offline
 
     def add_components(self):
         """
@@ -94,16 +107,20 @@ class PriceInformation(DisplayWindow):
         #self.create_label_header("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
         #self.create_label_header("High:" + str(self.price[2]), 2, counter + 3, "E")
 
+        counter = counter+4
+        if self.offline:
+            self.create_label_header("[!] Offline Results", 0, counter, "WE", 3)
+            counter += 1
+
         if count < MIN_RESULTS:
-            self.create_label_header("", 0, counter + 4, "WE", 3)
-            self.create_label_header("Found limited search results", 0, counter+4, "WE", 3)
-            self.create_label_header("", 0, counter + 5, "WE", 3)
-            self.create_label_header("Use alt+t to search manually", 0, counter+5, "WE", 3)
+            self.create_label_header("Found limited search results", 0, counter, "WE", 3)
+            self.create_label_header("Use alt+t to search manually", 0, counter+1, "WE", 3)
 
 
 priceInformation = PriceInformation()
 notEnoughInformation = NotEnoughInformation()
 baseResults = BaseResults()
+information = Information()
 
 
         

@@ -41,11 +41,8 @@ def get_clipboard():
     return pyperclip.paste()
 
 
+"""
 class ClipboardWatcher():
-    """
-    Watches for changes in clipboard and calls callback
-    """
-
     def __init__(self, combination_to_function, should_process):
         self.should_process = should_process
         self.prev = get_clipboard()
@@ -61,7 +58,7 @@ class ClipboardWatcher():
             self.prev = text
         except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
             pass
-
+"""
 
 class HotkeyWatcher():
     """
@@ -123,7 +120,7 @@ class Keyboard:
     def start(self):
         # Create hotkey watcher with all our hotkey callbacks
         self.hotkey_watcher = HotkeyWatcher(self.combination_to_function)
-        self.clipboard_watcher = ClipboardWatcher(self.combination_to_function, self.hotkey_watcher.is_processing)
+        #self.clipboard_watcher = ClipboardWatcher(self.combination_to_function, self.hotkey_watcher.is_processing)
         combination_to_queue = {}
 
         def to_watcher(watcher, hotkey):
@@ -144,7 +141,7 @@ class Keyboard:
 
     def poll(self):
         self.hotkey_watcher.poll()
-        self.clipboard_watcher.poll()
+        #self.clipboard_watcher.poll()
 
     def write(self, string):
         if is_keyboard_module_available:

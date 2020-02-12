@@ -14,22 +14,11 @@ from utils.web import (
     fetch,
     get_ninja_bases,
     query_item,
-)
-from utils.item import (
-    #parse_item_info,
-    InvalidItemError,
-)
-from models.item import (
-    Exchangeable,
-    Wearable,
-)
-from utils.mods import (
-    create_pseudo_mods,
-    relax_modifiers,
-    remove_bad_mods,
+    open_trade_site,
+    open_exchange_site
 )
 
-from gui.windows import baseResults, notEnoughInformation, priceInformation
+from gui.windows import baseResults, notEnoughInformation, priceInformation, information
 from item.generator import *
 
 def result_prices_are_none(j: Dict) -> bool:
@@ -62,28 +51,12 @@ def get_average_times(priceList):
 def get_response(item):
     json = item.get_json()
 
-    if isinstance(item, Wearable):
-        json = create_pseudo_mods(json)
-        json = relax_modifiers(json)
-
-    if isinstance(item, Exchangeable):
+    if isinstance(item, Currency):
         response = exchange_currency(json, LEAGUE)
     else:
         response = query_item(json, LEAGUE)
 
     return response
-
-def make_item(text):
-    item = None
-    try:
-        item = parse_item_info(text)
-        #item = item.deduce_specific_object()
-        #item.sanitize_modifiers()
-    except InvalidItemError:
-        # This exception is only raised when we find that the text
-        # being parsed is not actually a valid PoE item.
-        pass
-    return item
 
 def get_trade_data(trade_info):
     """
@@ -122,70 +95,64 @@ def get_trade_data(trade_info):
                 prev_account_name = trade["listing"]["account"]["name"]
 
         merged = {}
-        count = 1
-        for i in range(len(prices)):
-            if i+1 < len(prices):
-                if prices[i+1] == prices[i]:
-                    count += 1
-                    continue
-                else:
-                    start = i-count+1
-                    s = 0
-                    for y in range(start, i+1 ):
-                        s += times[y].replace(tzinfo=timezone.utc).timestamp()
-                    s = s / count
-                    time = datetime.fromtimestamp(s, tz=timezone.utc)
-                    merged[prices[i]] = [count,  time]
-                    count = 1
-            elif prices[i] != prices[i-1]:
-                merged[prices[i]] = [1, times[i].replace(tzinfo=timezone.utc)]
 
-            if count >= len(prices): # If theyre all the same price
-                start = i-count+1
-                s = 0
-                for y in range(len(prices)):
-                    s += times[y].replace(tzinfo=timezone.utc).timestamp()
-                s = s / count
-                time = datetime.fromtimestamp(s, tz=timezone.utc)
-                merged[prices[0]] = [count,  time]
+        for i in range(len(prices)):
+            if prices[i] in merged:
+                merged[prices[i]].append(times[i].replace(tzinfo=timezone.utc))
+            else:
+                merged[prices[i]] = [times[i].replace(tzinfo=timezone.utc)]
+
+        for key, value in merged.items():
+            combined = 0
+            count = 0
+            for t in value:
+                combined += t.timestamp()
+                count += 1
+            combined = combined / count
+            merged[key] = [count, datetime.fromtimestamp(combined, tz=timezone.utc)]
 
         return merged, len(prices)
     return None, 0
 
 
-def print_item(item):
-    print(f"{item.name}")
-    print(f"{item.base}")
-    print(f"{item.category}")
-    print(f"{item.modifiers}")
-
 def price_item(text):
-    """
-    Taking the text from the clipboard, parse the item, then price the item.
-    Reads the results from pricing (from fetch) and lists the prices given
-    for these similar items. Also calls the simple GUI if gui is enabled.
-    No return.
-    """
-    
     try:
-        item = make_item(text)
+        item = parse_item_info(text)
         if not item:
             return
-        """
-        print_item(item)
+        item.create_pseudo_mods()
+        item.relax_modifiers()
+        item.print()
+
         response = get_response(item)
         if not response:
             return
-
+    
         if len(response["result"]) < MIN_RESULTS:
-            item = remove_bad_mods(item)
+            print(f"[!] Limited Results, Removing some item stats")
+            if config.USE_GUI:
+                information.add_info("[!] Limited Results, Removing some item stats")
+                information.create_at_cursor()
+            item.remove_bad_mods()
+            response = get_response(item)
+            if not response:
+                return
+
+        offline = False
+        if len(response["result"]) <= 0:
+            print(f"[!] No results, Checking offline sellers")
+            if config.USE_GUI:
+                information.add_info("[!] No results, Checking offline sellers")
+                information.create_at_cursor()
+            item.set_offline()
+            offline = True
             response = get_response(item)
             if not response:
                 return
 
         trade_info = None
         if len(response["result"]) > 0:
-            fetched = fetch(response, isinstance(item, Exchangeable))
+            fetched = fetch(response, isinstance(item, Currency))
             trade_info = fetched
 
         # dict{price: [count , time]}
@@ -201,15 +168,13 @@ def price_item(text):
             if length < MIN_RESULTS:
                 logging.info("[!] Not enough data to confidently price this item.")
             if config.USE_GUI:
-                priceInformation.add_price_information(data)
+                priceInformation.add_price_information(data, offline)
                 priceInformation.create_at_cursor()
 
         else:
             logging.info("[!] No results!")
             if config.USE_GUI:
                 notEnoughInformation.create_at_cursor()
-        """
-
 
     except InvalidAPIResponseException as e:
         logging.info(f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================={Fore.RESET}")
