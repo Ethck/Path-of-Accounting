@@ -379,7 +379,7 @@ class Gem(BaseItem):
     
     def print(self):
         super().print()
-        print(f"[Item Level] {self.ilvl}")
+        print(f"[Item Level] {self.level}")
         print(f"[Quality] {self.quality}")
 
     def get_json(self):
