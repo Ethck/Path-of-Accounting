@@ -52,16 +52,17 @@ class BaseItem():
     def add_mods(self, json, modifiers):
         mods = []
         for e in modifiers:
-            try:
-                if float(e[1]) < 0:
-                    mods.append({ "id": e[0].id, "value": { "max": float(e[1]) }})
-                else:
-                    mods.append({ "id": e[0].id, "value": { "min": float(e[1]) }})
-            except ValueError:
-                if e[1]:
-                    mods.append({ "id": e[0].id, "value": { e[1] }})
-                else:
-                    mods.append({ "id": e[0].id})
+            if e[1]:
+                try:
+                    if float(e[1]) < 0:
+                        mods.append({ "id": e[0].id, "value": { "max": float(e[1]) }})
+                    else:
+                        mods.append({ "id": e[0].id, "value": { "min": float(e[1]) }})
+                except ValueError:
+                    if e[1]:
+                        mods.append({ "id": e[0].id, "value": { e[1] }})
+            else:
+                mods.append({ "id": e[0].id})
         json["query"]["stats"][0]["filters"] = mods
         return json
 
@@ -136,7 +137,10 @@ class Item(BaseItem):
         print(f"[Item Level] {self.ilvl}")
         print(f"[Quality] {self.quality}")
         for mod in self.mods:
-            print(f"[Mod] {mod[0].text}: [{Fore.YELLOW}{mod[1]}{Fore.RESET}]")
+            if mod[1]:
+                print(f"[Mod] {mod[0].text}: [{Fore.YELLOW}{mod[1]}{Fore.RESET}]")
+            else:
+                print(f"[Mod] {mod[0].text}")
     def get_json(self):
         json = super().get_json()
         json = self.set_type(json, self.base)
