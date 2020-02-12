@@ -10,10 +10,6 @@ from tqdm import tqdm
 
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
-from utils.types import (
-    add_magic_base,
-    add_map_base,
-)
 
 from item.itemModifier import ItemModifier, ItemModifierType
 
@@ -230,10 +226,6 @@ def get_ninja_bases(league : str):
         unique_ninja_bases = [
             e for e in ninja_bases if not e["influence"]
         ]
-
-        # Populate magic item base graph
-        for e in unique_ninja_bases:
-            add_magic_base(e["base"], e["type"])
 
     return ninja_bases
 
