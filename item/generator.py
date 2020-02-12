@@ -279,6 +279,9 @@ class Item(BaseItem):
             return
         nMods = []
         for mod in self.mods:
+            if mod[0].type == ItemModifierType.ENCHANT:
+                nMods.append(mod)
+                continue
             try:
                 n = (mod[0],float(mod[1]) - (float(mod[1]) * 0.1))
                 nMods.append(n)
@@ -496,6 +499,15 @@ def parse_mod(mod_text: str, mod_values, category = ''):
 
     if not mod:
         mod = get_item_modifiers_by_text((mod_text + ' (Local)', mod_type))
+
+    if not mod:
+        if not mod_values:
+            mod_text = '#% chance to ' + mod_text
+        mod = get_item_modifiers_by_text((mod_text, ItemModifierType.ENCHANT))
+
+    if not mod: # example: Skills which throw Mines throw up to 1 additional Mine if you have at least 800 Dexterity
+            mod_text2 = mod_text.replace('#', '1')
+            mod = get_item_modifiers_by_text((mod_text2, mod_type))
     try:
         if not mod:
             if 'reduced' in mod_text:
@@ -504,9 +516,6 @@ def parse_mod(mod_text: str, mod_values, category = ''):
             elif 'increased' in mod_text:
                 mod_text = mod_text.replace('increased', 'reduced')
                 mod_values = str(float(mod_values) *(-1))
-            mod = get_item_modifiers_by_text((mod_text, mod_type))
-        if not mod: # example: Skills which throw Mines throw up to 1 additional Mine if you have at least 800 Dexterity
-            mod_text = mod_text.replace('#', '1')
             mod = get_item_modifiers_by_text((mod_text, mod_type))
     except ValueError:
         return None, ''
@@ -771,10 +780,6 @@ def parse_item_info(text: str):
                     if not mod_text:
                         mod_text = line
                     mod, mod_values = parse_mod(mod_text, mod_values, category)
-                    if not mod:
-                        if not mod_values:
-                            mod_text = '#% chance to ' + mod_text
-                        get_item_modifiers_by_text((mod_text, ItemModifierType.ENCHANT))
                     if mod:
                         mods.append((mod, mod_values))
                         if mod.type == ItemModifierType.EXPLICIT:
