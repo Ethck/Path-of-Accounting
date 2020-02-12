@@ -359,7 +359,6 @@ class Flask(BaseItem):
     def print(self):
         super().print()
         print(f"[Base] {self.base}")
-        print(f"[Item Level] {self.ilvl}")
         print(f"[Quality] {self.quality}")
         for mod in self.mods:
             print(f"[Mod] {mod[0].text}")
@@ -597,7 +596,7 @@ def parse_flask(regions: list, rarity: str, quality: int, name: str):
             mod_values = re.findall(r'[+-]?\d+\.?\d?\d?', line)
             mod_values = ','.join([''.join(v) for v in mod_values])
             mod_text = re.sub(r'[+-]?\d+\.?\d?\d?', '#', line)
-            mod, mod_values = get_explicit_mod(mod_text, mod_values)
+            mod, mod_values = parse_mod(mod_text, mod_values)
             if mod:
                 mods.append((mod, mod_values))
 
