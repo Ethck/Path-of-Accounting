@@ -66,29 +66,29 @@ class TestItemLookup(unittest.TestCase):
         # 10 results from any search. We don't have to worry about sorting by
         # price here, as we know that PoE/trade sorts by default.
         prices = [
-            [(45, "alch"),] * 10,  # List 1
+            [(45, "Alch"),] * 10,  # List 1
             [  # List 2
                 # 5 x 1 chaos
-                *(((1, "chaos"),) * 5),
+                *(((1, "Chaos"),) * 5),
                 # 1 x 3 chaos
-                (3, "chaos"),
+                (3, "Chaos"),
                 # 4 x 2 alch
-                *(((2, "alch"),) * 4),
+                *(((2, "Alch"),) * 4),
             ],
             [],  # List 3
             [],  # List 4
-            [(666, "exa")],  # List 5
+            [(666, "Exa")],  # List 5
             [],  # List 6
             [],  # List 7
             [],  # List 8
             [],  # List 9
             [],  # List 10
-            [(2.5, "mir")] * 10,  # List 11
+            [(2.5, "Mir")] * 10,  # List 11
             [],  # List 12
             [],  # List 13
             [],  # List 14
             [],  # List 15
-            [(1, "fuse")] * 10,  # List 16
+            [(1, "Fuse")] * 10,  # List 16
         ]
 
         for i in range(len(items)):
@@ -166,10 +166,10 @@ class TestItemLookup(unittest.TestCase):
                                 # becomes 2.75 but retains it's floating pointness.
                                 fmt = "%i" if int(k[0]) == k[0] else "%s"
                                 priceList.append(
-                                    ("%d x %s" + fmt + " %s")
-                                    % (v, Fore.YELLOW, k[0], k[1])
+                                    ("%s" + fmt + " %s" + Fore.RESET + " x %d")
+                                    % (Fore.YELLOW, k[0], k[1], v)
                                 )
-                            expectedStr = ("%s, " % Fore.RESET).join(priceList)
+                            expectedStr = (', ').join(priceList)
                             self.assertTrue(expectedStr in output)
         close_all_windows()
 

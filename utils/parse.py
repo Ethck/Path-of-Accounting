@@ -137,7 +137,7 @@ def price_item(text):
 
         offline = False
         if results <= 0:
-            print(f"[!] No results, Checking offline sellers")
+            logging.info(f"[!] No results, Checking offline sellers")
             if config.USE_GUI:
                 information.add_info(
                     "[!] No results, Checking offline sellers"
@@ -155,7 +155,7 @@ def price_item(text):
                 )
 
             print_text = print_text[:-2]
-            print(print_text)
+            logging.info(print_text)
             if results < MIN_RESULTS:
                 logging.info(
                     "[!] Not enough data to confidently price this item."
