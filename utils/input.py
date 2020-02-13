@@ -1,9 +1,19 @@
-import time
-from queue import Queue
-from threading import Thread
+from queue import Queue, Empty
 from tkinter import TclError
-
 import pyperclip
+
+import os
+from utils.config import STASHTAB_SCROLLING
+if os.name == "nt" and STASHTAB_SCROLLING:
+    import win32con
+    import ctypes
+    import atexit
+    from ctypes import *
+    from ctypes.wintypes import DWORD, WPARAM, LPARAM, ULONG, POINT, HMODULE, LPCWSTR
+    from multiprocessing import Process
+    from win32gui import GetWindowText, GetForegroundWindow
+    import struct
+    bits = struct.calcsize("P") * 8
 
 is_keyboard_module_available = False
 try:
@@ -31,51 +41,37 @@ def get_clipboard():
     return pyperclip.paste()
 
 
-class ClipboardWatcher(Thread):
-    """
-    Watches for changes in clipboard and calls callback.
-    """
-
-    def __init__(self, callback, should_process, pause=0.3):
-        super(ClipboardWatcher, self).__init__()
-        self.daemon = True
-        self.callback = callback
+"""
+class ClipboardWatcher():
+    def __init__(self, combination_to_function, should_process):
         self.should_process = should_process
-        self.pause = pause
-        self.stopping = False
+        self.prev = get_clipboard()
+        self.combination_to_function = combination_to_function
 
-    def run(self):
-        prev = get_clipboard()
+    def poll(self):
+        try:
+            text = get_clipboard()
+            
+            if text != self.prev and self.should_process() and "clipboard" in self.combination_to_function:
+                self.combination_to_function["clipboard"]()
 
-        while not self.stopping:
-            try:
-                text = get_clipboard()
+            self.prev = text
+        except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
+            pass
+"""
 
-                if text != prev and self.should_process():
-                    self.callback(text)
-
-                prev = text
-                time.sleep(self.pause)
-            except (TclError, UnicodeDecodeError):  # ignore non-text clipboard contents
-                continue
-            except KeyboardInterrupt:
-                break
-
-    def stop(self):
-        self.stopping = True
-
-
-class HotkeyWatcher(Thread):
+class HotkeyWatcher():
     """
-    Watches for changes in hotkey queue and calls callbacks
+    Watches for changes in hotkey queue and calls callback
     """
 
     def __init__(self, combination_to_function):
-        super(HotkeyWatcher, self).__init__()
-        self.daemon = True
-        self.combination_to_function = combination_to_function
-        self.stopping = False
         self.queue = Queue()
+        self.combination_to_function = combination_to_function
+        self.processed = False
+
+    def is_processing(self):
+        return not self.processed
 
     def is_empty(self):
         return self.queue.unfinished_tasks == 0 and self.queue.qsize() == 0
@@ -84,21 +80,20 @@ class HotkeyWatcher(Thread):
         if self.is_empty():
             self.queue.put(hotkey)
 
-    def run(self):
-        while not self.stopping:
-            try:
-                hotkey = self.queue.get()
-                self.combination_to_function[hotkey]()
-            except KeyboardInterrupt:
-                break
-            except Exception as e:
-                # Do not fail
-                print("Unexpected exception occurred while handling hotkey: " + str(e))
+    def poll(self):
+        self.processed = False
 
-            self.queue.task_done()
+        try:
+            hotkey = self.queue.get_nowait()
+            self.processed = True
+            self.combination_to_function[hotkey]()
+        except Empty:
+            return
+        except Exception as e:
+            # Do not fail
+            print("Unexpected exception occurred while handling hotkey: " + str(e))
 
-    def stop(self):
-        self.stopping = True
+        self.queue.task_done()
 
 
 class Keyboard:
@@ -108,7 +103,12 @@ class Keyboard:
         self.combination_to_function = {}
         self.hotkey_watcher = None
         self.clipboard_watcher = None
-        self.clipboard_callback = None
+
+        # For Stashtab Scrolling
+        self.enabled = False
+        self.keyboard_hook = None
+        self.mouse_hook = None
+        self.ctrl_pressed = False
 
         if is_pyinput_module_available:
             self.controller = Controller()
@@ -120,7 +120,7 @@ class Keyboard:
     def start(self):
         # Create hotkey watcher with all our hotkey callbacks
         self.hotkey_watcher = HotkeyWatcher(self.combination_to_function)
-        self.clipboard_watcher = ClipboardWatcher(self.clipboard_callback, self.hotkey_watcher.is_empty)
+        #self.clipboard_watcher = ClipboardWatcher(self.combination_to_function, self.hotkey_watcher.is_processing)
         combination_to_queue = {}
 
         def to_watcher(watcher, hotkey):
@@ -128,7 +128,8 @@ class Keyboard:
 
         # Convert hotkey callbacks to proxy everything to hotkey watcher
         for h in self.combination_to_function:
-            combination_to_queue[h] = to_watcher(self.hotkey_watcher, h)
+            if h != "clipboard":
+                combination_to_queue[h] = to_watcher(self.hotkey_watcher, h)
 
         if is_keyboard_module_available:
             for h in combination_to_queue:
@@ -138,13 +139,9 @@ class Keyboard:
             self.listener.daemon = True
             self.listener.start()
 
-        if is_keyboard_module_available or is_pyinput_module_available:
-            self.hotkey_watcher.start()
-
-        self.clipboard_watcher.start()
-
-    def wait(self):
-        self.clipboard_watcher.join()
+    def poll(self):
+        self.hotkey_watcher.poll()
+        #self.clipboard_watcher.poll()
 
     def write(self, string):
         if is_keyboard_module_available:
@@ -180,3 +177,99 @@ class Keyboard:
             elif len(keys) == 1:
                 safe_press(self.controller, keys[0])
                 safe_press(self.controller, keys[0], False)
+
+    
+    def enable_hook(self, keyboard_callback, mouse_callback):
+        if self.enabled:
+            return
+        self.enabled = True
+        GetModuleHandleW = windll.kernel32.GetModuleHandleW
+        GetModuleHandleW.restype = HMODULE
+        GetModuleHandleW.argtypes = [LPCWSTR]
+        if bits == 64:
+            handle = ctypes.c_longlong(GetModuleHandleW(None))
+        else:
+            handle = GetModuleHandleW(None)
+        self.keyboard_hook = windll.user32.SetWindowsHookExA(win32con.WH_KEYBOARD_LL, keyboard_callback, handle,0)
+        self.mouse_hook = windll.user32.SetWindowsHookExA(win32con.WH_MOUSE_LL, mouse_callback, handle,0)
+        atexit.register(windll.user32.UnhookWindowsHookEx, self.keyboard_hook)
+        atexit.register(windll.user32.UnhookWindowsHookEx, self.mouse_hook)
+    def disable_hook(self):
+        if not self.enabled:
+            return
+        self.enabled = False
+        windll.user32.UnhookWindowsHookEx(self.keyboard_hook)
+        windll.user32.UnhookWindowsHookEx(self.mouse_hook)
+        self.keyboard_hook = None
+        self.mouse_hook = None
+    def run_stash_macro(self):
+        while self.enabled:
+            try:
+                msg = ctypes.wintypes.MSG()
+                windll.user32.GetMessageA(byref(msg), 0, 0, 0)
+                windll.user32.TranslateMessage(msg)
+                windll.user32.DispatchMessageA(msg)
+            except:
+                pass
+        disable_hook()
+
+
+if os.name == "nt" and STASHTAB_SCROLLING:
+
+    class KBDLLHOOKSTRUCT(Structure): _fields_=[('vkCode',DWORD),('scanCode',DWORD),('flags',DWORD),('time',DWORD),('dwExtraInfo',ULONG)]
+    kb_macro = Keyboard()
+
+    def keyboard_callback(ncode, wparam, lparam):
+        if ncode >= 0 and GetWindowText(GetForegroundWindow()) == "Path of Exile":
+            key = KBDLLHOOKSTRUCT.from_address(lparam)
+            if key.vkCode == win32con.VK_LCONTROL:
+                if wparam == win32con.WM_KEYDOWN:
+                    kb_macro.ctrl_pressed = True
+                elif wparam == win32con.WM_KEYUP:
+                    kb_macro.ctrl_pressed = False
+        if bits == 64:
+            return windll.user32.CallNextHookEx(ctypes.c_longlong(kb_macro.keyboard_hook), ctypes.c_longlong(ncode), ctypes.c_longlong(wparam), ctypes.c_longlong(lparam))
+        else:
+            return windll.user32.CallNextHookEx(kb_macro.keyboard_hook, ncode, wparam, lparam)
+
+
+
+    class MSLLHOOKSTRUCT(Structure): _fields_=[('pt',POINT),('mouseData',DWORD),('flags',DWORD),('time',DWORD),('dwExtraInfo',ULONG)]
+
+    def mouse_callback(ncode, wparam, lparam):
+        if ncode >= 0 and kb_macro.ctrl_pressed and GetWindowText(GetForegroundWindow()) == "Path of Exile" and wparam == win32con.WM_MOUSEWHEEL:
+            data = MSLLHOOKSTRUCT.from_address(lparam)
+            a = ctypes.c_short(data.mouseData >> 16).value
+            if a > 0: # up
+                    kb_macro.press_and_release("left")
+                    return 1
+            elif a < 0: # down
+                    kb_macro.press_and_release("right")
+                    return 1
+        if not GetWindowText(GetForegroundWindow()) == "Path of Exile":
+            kb_macro.ctrl_pressed = False
+        if bits == 64:
+            return windll.user32.CallNextHookEx(ctypes.c_longlong(kb_macro.mouse_hook), ctypes.c_longlong(ncode), ctypes.c_longlong(wparam), ctypes.c_longlong(lparam))
+        else:
+            return windll.user32.CallNextHookEx(kb_macro.mouse_hook, ncode, wparam, lparam)
+
+
+    def setup():
+        #                               (this, ncode, wparam, lparam)
+        c_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, WPARAM, LPARAM)
+        kc = c_func(keyboard_callback)
+        mc = c_func(mouse_callback)
+        kb_macro.enable_hook(kc,mc)
+        kb_macro.run_stash_macro()
+
+    
+    p = Process(target=setup, args=())
+
+def start_stash_scroll():
+    if os.name == "nt" and STASHTAB_SCROLLING:
+        p.daemon = True
+        p.start()
+def stop_stash_scroll():
+    if os.name == "nt" and STASHTAB_SCROLLING:
+        kb_macro.disable_hook()
+        p.terminate()
