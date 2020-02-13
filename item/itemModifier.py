@@ -1,5 +1,7 @@
 from enum import Enum
+
 from attr import attrs
+
 
 class ItemModifierType(Enum):
     PSEUDO = "pseudo"
@@ -11,6 +13,7 @@ class ItemModifierType(Enum):
     VEILED = "veiled"
     MONSTER = "monster"
     DELVE = "delve"
+
 
 @attrs(auto_attribs=True, frozen=True)
 class ItemModifier:

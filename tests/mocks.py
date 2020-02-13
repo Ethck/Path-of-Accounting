@@ -1,11 +1,12 @@
-import sys
 import os
+import sys
+
+import Accounting
 
 # Append the root directory to sys.path so we can import like normal.
 BASE_DIR = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, ".."))
 
-import Accounting
 
 # A helper used to generate a mock dictionary response
 # from a PoE/trade POST request.
@@ -15,13 +16,12 @@ import Accounting
 def mockResponse(n):
     return {
         # result0, result1, result2, ...
-        "result": [
-            "result%d" % i for i in range(n)
-        ],
+        "result": ["result%d" % i for i in range(n)],
         # Don't change this during mock for simplification
         "id": "mockID",
-        "total": n
+        "total": n,
     }
+
 
 # A helper that takes a JSON result from PoE/trade search and generates
 # a URL used to fetch the items after the POST request.
@@ -34,33 +34,6 @@ def makeFetchURL(result, exchange=False):
         url += "exchange=true"
     return url
 
-# A simple helper function that generates the (info, json) of
-# an item before using them to search the item on PoE/trade.
-#
-# Returns a tuple (item info, json data)
-def makeItemInfo(item):
-    info = Accounting.parse_item_info(items[i])
-    data = Accounting.build_json_official(
-        **{
-            k: v
-            for k, v in info.items()
-            if k
-            in (
-                "name",
-                "itype",
-                "ilvl",
-                "links",
-                "corrupted",
-                "influenced",
-                "stats",
-                "rarity",
-                "gem_level",
-                "quality",
-                "maps",
-            )
-        },
-    )
-    return (info, data)
 
 class TkMockObject:
     def __init__(self, *args, **kwargs):
@@ -144,26 +117,32 @@ class TkMockObject:
     def config(self, *args, **kwargs):
         pass
 
+
 # Mock up Tkinter classes
 class TkMock(TkMockObject):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
 class LabelMock(TkMockObject):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
 
 class ButtonMock(TkMockObject):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
 class ToplevelMock(TkMockObject):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+
 class FrameMock(TkMockObject):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
 
 class MonitorMock:
     height = 200
@@ -171,6 +150,6 @@ class MonitorMock:
     x = 0
     y = 0
 
+
 def mock_get_monitors():
     return [MonitorMock()]
-

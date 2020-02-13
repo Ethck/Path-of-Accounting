@@ -277,7 +277,6 @@ VIALS = {
     "Vial of the Ghost": "vial-of-the-ghost",
     "Vial of Transcendence": "vial-of-transcendence",
     "Vial of Sacrifice": "vial-of-sacrifice",
-    
 }
 
 ESSENCES = {
@@ -686,4 +685,16 @@ DIV_CARDS = {
     "Wealth and Power": "wealth-and-power",
 }
 
-currency_global = {**CURRENCY, **OILS, **CATALYSTS, **FRAGMENTS_AND_SETS, **INCUBATORS, **SCARABS, **RESONATORS, **FOSSILS, **VIALS, **ESSENCES, **DIV_CARDS}
+currency_global = {
+    **CURRENCY,
+    **OILS,
+    **CATALYSTS,
+    **FRAGMENTS_AND_SETS,
+    **INCUBATORS,
+    **SCARABS,
+    **RESONATORS,
+    **FOSSILS,
+    **VIALS,
+    **ESSENCES,
+    **DIV_CARDS,
+}
