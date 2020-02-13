@@ -53,6 +53,7 @@ def get_trade_data(item):
             currency = "Fuse"
         return currency
 
+    trade_info = None
 
     response = get_response(item)
     if not response:
