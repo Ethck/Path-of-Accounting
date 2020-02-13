@@ -5,7 +5,7 @@ import time
 from colorama import Fore, deinit, init
 
 from gui.gui import check_timeout_gui, close_all_windows, init_gui
-from item.generator import parse_item_info
+from item.generator import parse_item_info, Currency
 from utils.config import LEAGUE, USE_HOTKEYS
 from utils.input import (
     Keyboard,
@@ -23,6 +23,7 @@ from utils.web import (
     find_latest_update,
     get_leagues,
     open_trade_site,
+    open_exchange_site,
     wiki_lookup,
 )
 

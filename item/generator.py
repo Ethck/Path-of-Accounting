@@ -45,18 +45,21 @@ class BaseItem:
         mods = []
         for e in modifiers:
             if e[1]:
-                try:
-                    if float(e[1]) < 0:
-                        mods.append(
-                            {"id": e[0].id, "value": {"max": float(e[1])}}
-                        )
-                    else:
-                        mods.append(
-                            {"id": e[0].id, "value": {"min": float(e[1])}}
-                        )
-                except ValueError:
-                    if e[1]:
-                        mods.append({"id": e[0].id, "value": {"option": e[1]}})
+                if e[0].id == 'enchant.stat_2954116742':
+	                mods.append({ "id": e[0].id, "value": { "option": e[1] }})
+                else:
+                    try:
+                        if float(e[1]) < 0:
+                            mods.append(
+                                {"id": e[0].id, "value": {"max": float(e[1])}}
+                            )
+                        else:
+                            mods.append(
+                                {"id": e[0].id, "value": {"min": float(e[1])}}
+                            )
+                    except ValueError:
+                        if e[1]:
+                            mods.append({"id": e[0].id, "value": {"option": e[1]}})
             else:
                 mods.append({"id": e[0].id})
         json["query"]["stats"][0]["filters"] = mods
@@ -588,6 +591,7 @@ def parse_mod(mod_text: str, mod_values, category=""):
         mod_values = mod_text[10:]
         element = ("Allocates #", ItemModifierType.ENCHANT)
         mod = get_item_modifiers_by_text(element)
+        mod_values = mod.options[mod_values]
 
     if mod_text.endswith("(implicit)"):
         mod_text = mod_text[:-11]
@@ -768,8 +772,9 @@ def parse_item_info(text: str):
     for i, region in enumerate(regions):
         regions[i] = region.strip().splitlines()
 
-    if regions[-1][0].startswith("Note"):
-        del regions[-1]
+    if regions[-1][0]:
+        if "Note" in regions[-1][0]:
+            del regions[-1]
 
     rarity = regions[0][0][8:].lower()
 
