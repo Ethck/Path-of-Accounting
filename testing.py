@@ -102,11 +102,11 @@ class TestItemLookup(unittest.TestCase):
                         priceCount[price] = 1
 
                 # Middleman our stdout, so we can check programmatically
-                out = io.StringIO()
-                sys.stdout = out
+                # out = io.StringIO()
+                # sys.stdout = out
 
                 # Mockup response
-                with requests_mock.Mocker(real_http=True) as mock:
+                with requests_mock.Mocker() as mock:
                     mock.post(expected[i][2], json=expected[i][0])
 
                     response = {
@@ -146,8 +146,27 @@ class TestItemLookup(unittest.TestCase):
 
                     # Callout to API and price the item
                     with self.assertLogs(level="INFO") as logger:
+                        data = None
+                        with open("tests/mockItems.txt") as f:
+                            data = json.load(f)
+                            mock.get(
+                                "https://www.pathofexile.com/api/trade/data/items",
+                                json=data,
+                            )
+
+                        statData = None
+                        with open("tests/mockModifiers.txt") as f:
+                            statData = json.load(f)
+                            mock.get(
+                                "https://www.pathofexile.com/api/trade/data/stats",
+                                json=statData,
+                            )
+
                         Accounting.price_item(items[i])
                         [output] = logger.output[-1:]
+                        if "[!]" in output:
+                            if len(logger.output) >= 2:
+                                output = logger.output[-2]
 
                         # Get the expected condition
                         currentExpected = expected[i][1]
@@ -164,15 +183,21 @@ class TestItemLookup(unittest.TestCase):
                                 # if k[0] == int(k[0]), output it as a pure integer.
                                 # Otherwise, use the string formatter, so 2.750
                                 # becomes 2.75 but retains it's floating pointness.
-                                fmt = "%i" if int(k[0]) == k[0] else "%s"
+                                # fmt = "%i" if int(k[0]) == k[0] else "%s"
+                                # priceList.append(
+                                #    ("%d x %s" + fmt + " %s")
+                                #    % (k[0], Fore.YELLOW, k[1], v)
+                                # )
                                 priceList.append(
-                                    ("%d x %s" + fmt + " %s")
-                                    % (v, Fore.YELLOW, k[0], k[1])
+                                    f"{Fore.YELLOW}{k[0]} {k[1]}{Fore.RESET} x {v}"
                                 )
-                            expectedStr = ("%s, " % Fore.RESET).join(priceList)
-                            self.assertTrue(expectedStr in output)
+                            expectedStr = ", ".join(priceList)
+                            print(expectedStr, output)
+                            self.assertTrue(expectedStr in output.lower())
         close_all_windows()
 
+
+class TestNinjaLookup(unittest.TestCase):
     @patch("tkinter.Tk", TkMock)
     @patch("tkinter.Toplevel", ToplevelMock)
     @patch("tkinter.Frame", FrameMock)

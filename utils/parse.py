@@ -155,7 +155,7 @@ def price_item(text):
                 )
 
             print_text = print_text[:-2]
-            print(print_text)
+            logging.info(print_text)
             if len(data) < MIN_RESULTS:
                 logging.info(
                     "[!] Not enough data to confidently price this item."
