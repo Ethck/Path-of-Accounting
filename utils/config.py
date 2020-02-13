@@ -13,8 +13,6 @@ VERSION = config["GENERAL"]["version"]
 
 RELEASE_URL = config["GENERAL"]["releaseURL"]
 
-BAD_MODS = json.loads(config.get("GENERAL","badMods"))
-
 USE_GUI = True if config["GUI"]["useGUI"] == "yes" else False
 TIMEOUT_GUI = config["GUI"]["timeout"]
 GUI_BG1 = config["GUI"]["backgroundColor"]

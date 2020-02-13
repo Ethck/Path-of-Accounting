@@ -3,7 +3,7 @@ from colorama import Fore
 
 from item.itemModifier import ItemModifierType
 from utils.web import get_ninja_bases, get_base, get_item_modifiers_by_text, get_item_modifiers_by_id
-from utils.config import LEAGUE, BAD_MODS
+from utils.config import LEAGUE
 from utils.currency import currency_global
 
 
@@ -291,10 +291,33 @@ class Item(BaseItem):
         self.mods = nMods
 
     def remove_bad_mods(self):
+
+        #TODO Add more, move to config ( config parse does not support multiple lines atm, prob need to write a custom one)
+        bad_mod_list = [
+            "Physical Attack Damage Leeched as Life",
+            "to maximum Mana",
+            "Life gained for each Enemy hit by Attacks",
+            "of Physical Attack Damage Leeched as Mana",
+            "increased Mana Regeneration Rate",
+            "Life gained on Kill",
+            "Mana gained on Kill",
+            "Reflects # Physical Damage to Melee Attackers", 
+            "Life gained for each Enemy hit by Attacks", 
+            "to Armour", 
+            "increased Rarity of Items found", 
+            "increased Stun Duration", 
+            "Regenerate", 
+            "Regeneration",
+            "increased Stun and Block Recovery",
+            "Minions have",
+            "additional Physical Damage Reduction against Abyssal Monsters",
+        ]
+
+
         nMods = []
         found = False
         for mod in self.mods:
-            for bad in BAD_MODS:
+            for bad in bad_mod_list:
                 if bad in mod[0].text:
                     found = True
                     print(f"[!] Removed {mod[0].text} From Search")
