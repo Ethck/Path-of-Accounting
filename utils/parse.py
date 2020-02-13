@@ -110,8 +110,8 @@ def get_trade_data(item):
                 datetime.fromtimestamp(combined, tz=timezone.utc),
             ]
 
-        return merged
-    return {}
+        return merged, len(prices)
+    return {}, 0
 
 
 def price_item(text):
@@ -123,9 +123,9 @@ def price_item(text):
         item.relax_modifiers()
         item.print()
 
-        data = get_trade_data(item)
+        data, results = get_trade_data(item)
 
-        if len(data) < MIN_RESULTS:
+        if results < MIN_RESULTS:
             print(f"[!] Limited Results, Removing some item stats")
             if config.USE_GUI:
                 information.add_info(
@@ -133,10 +133,10 @@ def price_item(text):
                 )
                 information.create_at_cursor()
             item.remove_bad_mods()
-            data = get_trade_data(item)
+            data, results = get_trade_data(item)
 
         offline = False
-        if len(data) <= 0:
+        if results <= 0:
             print(f"[!] No results, Checking offline sellers")
             if config.USE_GUI:
                 information.add_info(
@@ -145,7 +145,7 @@ def price_item(text):
                 information.create_at_cursor()
             item.set_offline()
             offline = True
-            data = get_trade_data(item)
+            data, results = get_trade_data(item)
 
         if data:
             print_text = "[$] Prices: "
@@ -156,7 +156,7 @@ def price_item(text):
 
             print_text = print_text[:-2]
             print(print_text)
-            if len(data) < MIN_RESULTS:
+            if results < MIN_RESULTS:
                 logging.info(
                     "[!] Not enough data to confidently price this item."
                 )
