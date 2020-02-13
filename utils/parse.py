@@ -123,7 +123,6 @@ def price_item(text):
         item.create_pseudo_mods()
         item.relax_modifiers()
         item.print()
-        print(item.get_json())
         response = get_response(item)
         if not response:
             return
