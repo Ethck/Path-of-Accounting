@@ -311,6 +311,7 @@ class Item(BaseItem):
             "increased Stun and Block Recovery",
             "Minions have",
             "additional Physical Damage Reduction against Abyssal Monsters",
+            "reduced Enemy Stun Threshold",
         ]
 
 
