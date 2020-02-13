@@ -17,3 +17,4 @@ class ItemModifier:
     type: ItemModifierType
     id: str
     text: str
+    options: list

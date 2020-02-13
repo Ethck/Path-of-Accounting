@@ -132,7 +132,13 @@ def get_item_modifiers_by_id(element: str) -> ItemModifier:
 
 
 def build_from_json(blob: dict) -> ItemModifier:
-    return ItemModifier(id=blob["id"], text=blob["text"], type=ItemModifierType(blob["type"].lower()))
+    if "option" in blob:
+        if "options" in blob["option"]:
+            options = {}
+            for i in blob["option"]["options"]:
+                options[i["text"]] = i["id"]
+            return ItemModifier(id=blob["id"], text=blob["text"], options=options, type=ItemModifierType(blob["type"].lower()))
+    return ItemModifier(id=blob["id"], text=blob["text"], options=[], type=ItemModifierType(blob["type"].lower()))
 
 def get_item_modifiers() -> tuple:
     """
