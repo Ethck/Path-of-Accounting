@@ -314,6 +314,7 @@ class Item(BaseItem):
             "reduced Enemy Stun Threshold",
             "increased Damage against Abyssal Monsters",
             "increased Movement Speed if you haven't taken Damage Recently",
+            "increased Projectile Speed",
 
         ]
 
