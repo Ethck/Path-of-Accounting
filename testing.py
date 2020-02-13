@@ -8,8 +8,8 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 from colorama import Fore, deinit, init
 
-import parse
-from utils import config, trade
+import Accounting
+from utils import config, web
 from tests.mocks import *
 from tests.sampleItems import items
 from gui.gui import close_all_windows, init_gui
@@ -109,7 +109,7 @@ class TestItemLookup(unittest.TestCase):
                 sys.stdout = out
 
                 # Mockup response
-                with requests_mock.Mocker() as mock:
+                with requests_mock.Mocker(real_http=True) as mock:
                     mock.post(
                         expected[i][2],
                         json=expected[i][0]
@@ -152,34 +152,33 @@ class TestItemLookup(unittest.TestCase):
                         mock.get(fetch_url, json=response)
 
                     # Callout to API and price the item
-                    parse.price_item(items[i])
+                    with self.assertLogs(level='INFO') as logger:
+                        Accounting.price_item(items[i])
+                        [output] = logger.output[-1:]
 
-                # Get the expected condition
-                currentExpected = expected[i][1]
+                        # Get the expected condition
+                        currentExpected = expected[i][1]
 
-                # Restore stdout and assert that the expected condition is true
-                sys.stdout = sys.__stdout__
+                        # Expect that our truthy condition is true
+                        self.assertTrue(currentExpected(output))
 
-                # Expect that our truthy condition is true
-                self.assertTrue(currentExpected(out.getvalue()))
-
-                if len(expected[i][0]["result"]) >= config.MIN_RESULTS:
-                    # Expect that the currency is output properly, including
-                    # the color(s) expected.
-                    priceList = []
-                    for k, v in priceCount.items():
-                        # Normalize any non-integer decimal number. That is,
-                        # if k[0] == int(k[0]), output it as a pure integer.
-                        # Otherwise, use the string formatter, so 2.750
-                        # becomes 2.75 but retains it's floating pointness.
-                        fmt = "%i" if int(k[0]) == k[0] else "%s"
-                        priceList.append(
-                            ("%d x %s" + fmt + " %s") % (
-                                v, Fore.YELLOW, k[0], k[1]
-                            )
-                        )
-                    expectedStr = ("%s, " % Fore.WHITE).join(priceList)
-                    self.assertTrue(expectedStr in out.getvalue())
+                        if len(expected[i][0]["result"]) >= config.MIN_RESULTS:
+                            # Expect that the currency is output properly, including
+                            # the color(s) expected.
+                            priceList = []
+                            for k, v in priceCount.items():
+                                # Normalize any non-integer decimal number. That is,
+                                # if k[0] == int(k[0]), output it as a pure integer.
+                                # Otherwise, use the string formatter, so 2.750
+                                # becomes 2.75 but retains it's floating pointness.
+                                fmt = "%i" if int(k[0]) == k[0] else "%s"
+                                priceList.append(
+                                    ("%d x %s" + fmt + " %s") % (
+                                        v, Fore.YELLOW, k[0], k[1]
+                                    )
+                                )
+                            expectedStr = ("%s, " % Fore.RESET).join(priceList)
+                            self.assertTrue(expectedStr in output)
         close_all_windows()
         
     @patch('tkinter.Tk', TkMock)
@@ -286,8 +285,8 @@ class TestItemLookup(unittest.TestCase):
         ]
 
         # Needs mocking to prepare NINJA_BASES properly in parse.py
-        with requests_mock.Mocker() as mock:
-            trade.ninja_bases = []
+        with requests_mock.Mocker(real_http=True) as mock:
+            web.ninja_bases = []
             mock.get("https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en", json=data)
             mock.get("https://www.pathofexile.com/api/trade/data/stats", json=mods)
             #parse.NINJA_BASES = parse.get_ninja_bases("Standard")
@@ -295,7 +294,7 @@ class TestItemLookup(unittest.TestCase):
             for i in range(len(items[:2])):
                 item = items[i]
                 with self.assertLogs(level='INFO') as logger:
-                    parse.search_ninja_base(item)
+                    Accounting.search_ninja_base(item)
                     [output] = logger.output[-1:]
                     self.assertTrue(expected[i](output))
 
@@ -315,7 +314,7 @@ class TestItemLookup(unittest.TestCase):
             for inf in supportedInfluence:
                 current = item + ("\n--------\n%s Item\n" % inf)
                 with self.assertLogs(level='INFO') as logger:
-                    parse.search_ninja_base(current)
+                    Accounting.search_ninja_base(current)
                     [output] = logger.output[-1:]
                     self.assertTrue(expected[0](output))
         close_all_windows()
