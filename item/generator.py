@@ -652,7 +652,7 @@ def parse_beast(name: str, regions: str):
 
 def parse_item_info(text: str):
     regions = text.split('--------')
-    if len(regions) <= 2:
+    if len(regions) < 1:
         return None
 
     for i, region in enumerate(regions):
@@ -683,6 +683,7 @@ def parse_item_info(text: str):
         name += " " + regions[0][2]
 
     if len(name) > 60:
+        print("Not a PoE Item")
         return None
 
     quality = 0

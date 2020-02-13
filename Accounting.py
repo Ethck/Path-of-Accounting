@@ -6,8 +6,9 @@ from utils.parse import price_item, search_ninja_base, get_response, get_ninja_b
 from item.generator import parse_item_info
 from utils.input import Keyboard, start_stash_scroll, stop_stash_scroll, get_clipboard
 from gui.gui import init_gui, close_all_windows, check_timeout_gui
-from utils.web import find_latest_update, get_leagues, open_trade_site, wiki_lookup
+from utils.web import find_latest_update, get_leagues, open_trade_site, wiki_lookup, open_exchange_site
 from utils.config import LEAGUE, USE_HOTKEYS
+from item.generator import Currency
 
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
@@ -26,7 +27,10 @@ def hotkey_handler(keyboard, hotkey):
 
         response = get_response(item)
         if response:
-            open_trade_site(response["id"], LEAGUE)
+            if isinstance(item, Currency):
+                open_exchange_site(response["id"], LEAGUE)
+            else:
+                open_trade_site(response["id"], LEAGUE)
 
     elif hotkey == "alt+w":
         item = parse_item_info(text)
