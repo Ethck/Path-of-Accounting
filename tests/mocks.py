@@ -5,7 +5,7 @@ import os
 BASE_DIR = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(BASE_DIR, ".."))
 
-import parse
+import Accounting
 
 # A helper used to generate a mock dictionary response
 # from a PoE/trade POST request.
@@ -39,8 +39,8 @@ def makeFetchURL(result, exchange=False):
 #
 # Returns a tuple (item info, json data)
 def makeItemInfo(item):
-    info = parse.parse_item_info(items[i])
-    data = parse.build_json_official(
+    info = Accounting.parse_item_info(items[i])
+    data = Accounting.build_json_official(
         **{
             k: v
             for k, v in info.items()
