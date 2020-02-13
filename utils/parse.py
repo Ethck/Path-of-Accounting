@@ -21,33 +21,6 @@ from utils.web import (
 from gui.windows import baseResults, notEnoughInformation, priceInformation, information
 from item.generator import *
 
-def result_prices_are_none(j: Dict) -> bool:
-    """
-    Determine if all items in result are unpriced or not.
-
-    Returns BOOLEAN
-    """
-    return all(x["listing"]["price"] == None for x in j)
-
-
-def get_average_times(priceList):
-    avg_times = []
-    for tdList in priceList:
-        avg_time = []
-        days = 0
-        seconds = 0
-        num = 0
-        for td in tdList:
-            days += td.days
-            seconds += td.seconds
-            num += 1
-
-        avg_time = [int(round(float(days) / float(num), 2)), int(round((float(seconds) / float(num)), 2))]
-        avg_times.append(avg_time)
-
-    return avg_times
-
-
 def get_response(item):
     json = item.get_json()
 
@@ -58,7 +31,7 @@ def get_response(item):
 
     return response
 
-def get_trade_data(trade_info):
+def get_trade_data(item):
     """
     Returns a directory with price as key and value as list[time,count] or None if there where no items
     Returns dict{price: [count , time]}
@@ -81,7 +54,14 @@ def get_trade_data(trade_info):
         return currency
 
 
-    if trade_info and not result_prices_are_none(trade_info):
+    response = get_response(item)
+    if not response:
+        return {}
+
+    if len(response["result"]) > 0:
+            trade_info = fetch(response, isinstance(item, Currency))
+
+    if trade_info:
         prev_account_name = ""
         # Modify data to usable status.
         times = []
@@ -95,7 +75,6 @@ def get_trade_data(trade_info):
                 prev_account_name = trade["listing"]["account"]["name"]
 
         merged = {}
-
         for i in range(len(prices)):
             if prices[i] in merged:
                 merged[prices[i]].append(times[i].replace(tzinfo=timezone.utc))
@@ -111,9 +90,8 @@ def get_trade_data(trade_info):
             combined = combined / count
             merged[key] = [count, datetime.fromtimestamp(combined, tz=timezone.utc)]
 
-        return merged, len(prices)
-    return None, 0
-
+        return merged
+    return {}
 
 def price_item(text):
     try:
@@ -123,39 +101,26 @@ def price_item(text):
         item.create_pseudo_mods()
         item.relax_modifiers()
         item.print()
-        response = get_response(item)
-        if not response:
-            return
-    
-        if len(response["result"]) < MIN_RESULTS:
+
+        data = get_trade_data(item)
+
+        if len(data) < MIN_RESULTS:
             print(f"[!] Limited Results, Removing some item stats")
             if config.USE_GUI:
                 information.add_info("[!] Limited Results, Removing some item stats")
                 information.create_at_cursor()
             item.remove_bad_mods()
-            response = get_response(item)
-            if not response:
-                return
+            data = get_trade_data(item)
 
         offline = False
-        if len(response["result"]) <= 0:
+        if len(data) <= 0:
             print(f"[!] No results, Checking offline sellers")
             if config.USE_GUI:
                 information.add_info("[!] No results, Checking offline sellers")
                 information.create_at_cursor()
             item.set_offline()
             offline = True
-            response = get_response(item)
-            if not response:
-                return
-
-        trade_info = None
-        if len(response["result"]) > 0:
-            fetched = fetch(response, isinstance(item, Currency))
-            trade_info = fetched
-
-        # dict{price: [count , time]}
-        data, length = get_trade_data(trade_info)
+            data = get_trade_data(item)
 
         if data:
             print_text = "[$] Prices: "
@@ -164,7 +129,7 @@ def price_item(text):
             
             print_text = print_text[:-2]
             print(print_text)
-            if length < MIN_RESULTS:
+            if len(data) < MIN_RESULTS:
                 logging.info("[!] Not enough data to confidently price this item.")
             if config.USE_GUI:
                 priceInformation.add_price_information(data, offline)
