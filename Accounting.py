@@ -44,7 +44,10 @@ def hotkey_handler(keyboard, hotkey):
 
         response = get_response(item)
         if response:
-            open_trade_site(response["id"], LEAGUE)
+            if isinstance(item, Currency):
+                open_exchange_site(response["id"], LEAGUE)
+            else:
+                open_trade_site(response["id"], LEAGUE)
 
     elif hotkey == "alt+w":
         item = parse_item_info(text)
