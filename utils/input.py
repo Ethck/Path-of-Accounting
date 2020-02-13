@@ -246,6 +246,8 @@ if os.name == "nt" and STASHTAB_SCROLLING:
             elif a < 0: # down
                     kb_macro.press_and_release("right")
                     return 1
+        if not GetWindowText(GetForegroundWindow()) == "Path of Exile":
+            kb_macro.ctrl_pressed = False
         if bits == 64:
             return windll.user32.CallNextHookEx(ctypes.c_longlong(kb_macro.mouse_hook), ctypes.c_longlong(ncode), ctypes.c_longlong(wparam), ctypes.c_longlong(lparam))
         else:
