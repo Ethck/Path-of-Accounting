@@ -123,7 +123,7 @@ def price_item(text):
         item.create_pseudo_mods()
         item.relax_modifiers()
         item.print()
-
+        print(item.get_json())
         response = get_response(item)
         if not response:
             return
@@ -213,7 +213,9 @@ def price_item(text):
 def search_ninja_base(text):
     NINJA_BASES = get_ninja_bases(LEAGUE)
     real_item = parse_item_info(text)
-
+    if not isinstance(real_item, Item):
+        return
+    
     influences = real_item.influence
     ilvl = real_item.ilevel if real_item.ilevel >= 84 else 84
     base = real_item.base

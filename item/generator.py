@@ -60,7 +60,7 @@ class BaseItem():
                         mods.append({ "id": e[0].id, "value": { "min": float(e[1]) }})
                 except ValueError:
                     if e[1]:
-                        mods.append({ "id": e[0].id, "value": { e[1] }})
+                        mods.append({ "id": e[0].id, "value": { "option": e[1] }})
             else:
                 mods.append({ "id": e[0].id})
         json["query"]["stats"][0]["filters"] = mods
@@ -83,9 +83,9 @@ class BaseItem():
         json["query"]["type"] = item_type
         return json
 
-    def set_ilvl(self, json ,ilvl):
+    def set_ilevel(self, json ,ilevel):
         json["query"]["filters"]["misc_filters"]["filters"]["ilvl"] = {
-            "min": ilvl
+            "min": ilevel
         }
         return json
 
@@ -116,13 +116,13 @@ class BaseItem():
         return json
 
 class Item(BaseItem):
-    def __init__(self, name, base, category, rarity, quality, ilvl, mods, sockets, influence, identified, corrupted, mirrored, veiled, synthesised):
+    def __init__(self, name, base, category, rarity, quality, ilevel, mods, sockets, influence, identified, corrupted, mirrored, veiled, synthesised):
         super().__init__(name)
         self.rarity = rarity
         self.quality = quality
         self.base = base
         self.category = category
-        self.ilvl = ilvl
+        self.ilevel = ilevel
         self.mods = mods
         self.sockets = sockets
         self.influence = influence
@@ -134,7 +134,7 @@ class Item(BaseItem):
     def print(self):
         super().print()
         print(f"[Base] {self.base}")
-        print(f"[Item Level] {self.ilvl}")
+        print(f"[Item Level] {self.ilevel}")
         print(f"[Quality] {self.quality}")
         for mod in self.mods:
             if mod[1]:
@@ -145,7 +145,7 @@ class Item(BaseItem):
         json = super().get_json()
         json = self.set_type(json, self.base)
         json = self.set_rarity(json, self.rarity)
-        json = self.set_ilvl(json, self.ilvl)
+        json = self.set_ilevel(json, self.ilevel)
         json = self.set_category(json, self.category)
         json = self.set_quality(json, self.quality)
         json = self.set_influence(json, self.influence)
@@ -175,8 +175,8 @@ class Item(BaseItem):
             if links >= 5:
                 json["query"]["filters"]["socket_filters"]["filters"]["links"]  = {"min": links}
 
-        if self.rarity == 'unique':
-            json = self.set_name(json, self.name)
+        if self.rarity == 'unique' and self.identified:
+            json = self.set_name(json, self.name.replace(" "+self.base, ''))
 
         return json
 
@@ -233,6 +233,7 @@ class Item(BaseItem):
         life_ids = {
             "explicit.stat_3299347043",  # Explicit maximum life
             "implicit.stat_3299347043",  # Implicit maximum life
+            "crafted.stat_3299347043", # Crafted maximum life
         }
 
 
@@ -304,7 +305,7 @@ class Item(BaseItem):
         print(f"[!] Removed Quality From Search")
         print(f"[!] Removed Item Level From Search")
         self.quality = 0
-        self.ilvl = 0
+        self.ilevel = 0
 
 
 
@@ -334,22 +335,23 @@ class Prophecy(BaseItem):
         return json
 
 class Organ(BaseItem):
-    def __init__(self, name, ilvl, mods):
+    def __init__(self, name, ilevel, mods):
         super().__init__(name)
-        self.ilvl = ilvl
+        self.ilevel = ilevel
         self.mods = mods
 
     def print(self):
         super().print()
-        print(f"[Item Level] {self.ilvl}")
+        print(f"[Item Level] {self.ilevel}")
         for mod in self.mods:
             print(f"[Mod] {mod[0].text}")
 
     def get_json(self):
         json = super().get_json()
         json = self.set_type(json, "Metamorph " + self.name.split(' ')[-1])
-        json = self.set_ilvl(json, self.ilvl)
+        json = self.set_ilevel(json, self.ilevel)
         json = self.add_mods(json, self.mods)
+        return json
 
 class Flask(BaseItem):
     def __init__(self, name, base, rarity, quality, mods):
@@ -397,20 +399,21 @@ class Gem(BaseItem):
         return json
 
 class Map(BaseItem):
-    def __init__(self,name, base, rarity, ilvl, iiq, iir, pack_size, map_mods):
+    def __init__(self,name, base, rarity, ilevel, iiq, iir, pack_size, map_mods, identified):
         super().__init__(name)
         self.base = base
         self.rarity = rarity
-        self.ilvl = ilvl
+        self.ilevel = ilevel
         self.iiq = iiq
         self.iir = iir
         self.pack_size = pack_size
         self.map_mods = map_mods
+        self.identified = identified
     
     def print(self):
         super().print()
         print(f"[Base] {self.base}")
-        print(f"[Item Level] {self.ilvl}")
+        print(f"[Item Level] {self.ilevel}")
         for mod in self.map_mods:
             print(f"[Mod] {mod[0].text}")
 
@@ -420,7 +423,7 @@ class Map(BaseItem):
         json["query"]["filters"]["map_filters"] = {
             "filters": {
                 "map_tier": {
-                    "min": self.ilvl
+                    "min": self.ilevel
                 },
                 "map_iiq": {
                     "min": self.iiq
@@ -436,8 +439,8 @@ class Map(BaseItem):
                 }
             }
         }
-        if self.rarity == 'unique':
-            json = self.set_name(json, self.name)
+        if self.rarity == 'unique' and self.identified:
+            json = self.set_name(json, self.name.replace(" "+self.base, ''))
 
         json = self.set_type(json, self.base)
         json = self.add_mods(json, self.map_mods)
@@ -445,19 +448,19 @@ class Map(BaseItem):
         return json
 
 class Beast(BaseItem):
-    def __init__(self,name, base, ilvl):
+    def __init__(self,name, base, ilevel):
         super().__init__(name)
         self.base = base
-        self.ilvl = ilvl
+        self.ilevel = ilevel
     
     def print(self):
         super().print()
         print(f"[Base] {self.base}")
-        print(f"[Item Level] {self.ilvl}")
+        print(f"[Item Level] {self.ilevel}")
 
     def get_json(self):
         json = super().get_json()
-        json = self.set_ilvl(json, self.ilvl)
+        json = self.set_ilevel(json, self.ilevel)
         json = self.set_type(json, self.base)
         return json
 
@@ -469,6 +472,12 @@ def parse_mod(mod_text: str, mod_values, category = ''):
 
     mod = None
     mod_type = ItemModifierType.EXPLICIT
+
+    if mod_text.startswith('Allocates'):
+        mod_values = mod_text[10:]
+        element = ('Allocates #', ItemModifierType.ENCHANT)
+        mod = get_item_modifiers_by_text(element)
+
     if mod_text.endswith('(implicit)'):
         mod_text = mod_text[:-11]
         mod_type = ItemModifierType.IMPLICIT
@@ -521,7 +530,6 @@ def parse_mod(mod_text: str, mod_values, category = ''):
         return None, ''
 
     prev_mod = mod_text
-
     return mod, mod_values
 
 
@@ -541,9 +549,8 @@ def isCurrency(name : str, rarity: str, regions: list):
 
     if rarity == 'currency' or rarity == 'divination card':
         return Currency(name)
-    for n in names:
-        if n in name:
-            return Currency(name)
+    if name in currency_global:
+        return Currency(name)
 
     mapText = 'Travel to this Map by using it in a personal Map Device. Maps can only be used once.'
     for i in range(len(regions) -3, len(regions)):
@@ -554,8 +561,11 @@ def isCurrency(name : str, rarity: str, regions: list):
 
 def parse_map(regions : list, rarity, name):
     map_mods = []
+    identified = True
     for i in range(2,len(regions)):
         for line in regions[i]:
+            if line == 'Unidentified':
+                identified = False
             mod_text = line[:-11]
             mod = None
             mod_value = None
@@ -568,7 +578,7 @@ def parse_map(regions : list, rarity, name):
             if mod and mod_value:
                 map_mods.append(((mod, mod_value)))
 
-    ilvl = int(regions[1][0][10:])
+    ilevel = int(regions[1][0][10:])
     iiq = 0
     iir = 0
     pack_size = 0
@@ -582,7 +592,7 @@ def parse_map(regions : list, rarity, name):
 
     base = get_base("Maps", name)
 
-    return Map(name, base, rarity, ilvl, iiq, iir, pack_size, map_mods)
+    return Map(name, base, rarity, ilevel, iiq, iir, pack_size, map_mods, identified)
 
 def parse_organ(regions : list, name):
     mods = {}
@@ -594,9 +604,12 @@ def parse_organ(regions : list, name):
                 mods[mod] = 1
             else:
                 mods[mod] += 1
+    nMods = []
+    for key, value in mods.items():
+        nMods.append((key,value))
 
     ilevel = int(regions[2][0][11:])
-    return Organ(name, ilevel, mods)
+    return Organ(name, ilevel, nMods)
 
 def parse_flask(regions: list, rarity: str, quality: int, name: str):
     mods = []
@@ -617,8 +630,8 @@ def parse_flask(regions: list, rarity: str, quality: int, name: str):
 
 def parse_beast(name: str, regions: str):
     base = get_base("Itemised Monsters", name +" " + regions[0][2])
-    ilvl = int(regions[2][0][12:])
-    return Beast(name, base, ilvl)
+    ilevel = int(regions[2][0][12:])
+    return Beast(name, base, ilevel)
 
 
 def parse_item_info(text: str):
@@ -698,7 +711,7 @@ def parse_item_info(text: str):
     mirrored = False
     identified = True
     veiled = False
-    ilvl = 0
+    ilevel = 0
     influences = []
     mods = []
 
@@ -742,7 +755,7 @@ def parse_item_info(text: str):
         elif first_line == 'Unidentified':
             identified = False
         elif first_line.startswith('Item Level'):
-            ilvl = int(first_line[12:])
+            ilevel = int(first_line[12:])
         elif first_line.startswith('Place into an allocated Jewel Socket on the Passive Skill Tree. Right click to remove from the Socket.'):
             continue
         elif first_line.count(' ') == 1 and first_line.endswith('Item'):
@@ -788,7 +801,7 @@ def parse_item_info(text: str):
                         print(f"Unable to find mod: {line}")
 
 
-    if rarity == 'unique':
+    if rarity == 'unique' and identified:
         name = name.replace(" "+base, '')
     
-    return Item(name, base, category, rarity, quality, ilvl, mods, sockets, influences, identified, corrupted, mirrored, veiled, synthesised)
+    return Item(name, base, category, rarity, quality, ilevel, mods, sockets, influences, identified, corrupted, mirrored, veiled, synthesised)
