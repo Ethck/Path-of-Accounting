@@ -535,18 +535,6 @@ def parse_mod(mod_text: str, mod_values, category = ''):
 
 
 def isCurrency(name : str, rarity: str, regions: list):
-    names = ["Offering to the Goddess",
-            "Divine Vessel",
-            "Scarab",
-            "Fossil",   
-            "Resonator",
-            "Incubator",
-            "Oil",
-            "Catalyst",
-            "Vial",
-            "Essence",
-            "Incubator"]
-
     if rarity == 'currency' or rarity == 'divination card':
         return Currency(name)
     if name in currency_global:
