@@ -1,17 +1,15 @@
 import logging
 import pathlib
+import webbrowser
 import zipfile
 from itertools import chain
-import webbrowser
-import logging
 
 import requests
 from tqdm import tqdm
 
+from item.itemModifier import ItemModifier, ItemModifierType
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
-
-from item.itemModifier import ItemModifier, ItemModifierType
 
 ninja_bases = []
 
@@ -22,11 +20,14 @@ mod_list = []
 mod_list_dict_id = {}
 mod_list_dict_text = {}
 
+
 def search_url(league: str) -> str:
     return f"https://www.pathofexile.com/api/trade/search/{league}"
 
+
 def exchange_url(league: str) -> str:
     return f"https://www.pathofexile.com/api/trade/exchange/{league}"
+
 
 def exchange_currency(query: dict, league: str) -> dict:
     """
@@ -110,7 +111,9 @@ def get_leagues():
     """
     Get all valid leagues from the PoE API and put them into a tuple
     """
-    leagues = requests.get(url="https://www.pathofexile.com/api/trade/data/leagues").json()
+    leagues = requests.get(
+        url="https://www.pathofexile.com/api/trade/data/leagues"
+    ).json()
     return tuple(x["id"] for x in leagues["result"])
 
 
@@ -121,6 +124,7 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
         mod_list_dict_text = {(e.text, e.type): e for e in item_modifiers}
     if element in mod_list_dict_text:
         return mod_list_dict_text[element]
+
 
 def get_item_modifiers_by_id(element: str) -> ItemModifier:
     global mod_list_dict_id
@@ -148,8 +152,17 @@ def get_item_modifiers() -> tuple:
     if mod_list:
         return mod_list
     else:
-        json_blob = requests.get(url="https://www.pathofexile.com/api/trade/data/stats").json()
-        mod_list = tuple(chain(*[[build_from_json(y) for y in x["entries"]] for x in json_blob["result"]]))
+        json_blob = requests.get(
+            url="https://www.pathofexile.com/api/trade/data/stats"
+        ).json()
+        mod_list = tuple(
+            chain(
+                *[
+                    [build_from_json(y) for y in x["entries"]]
+                    for x in json_blob["result"]
+                ]
+            )
+        )
         logging.info(f"[*] Loaded {len(mod_list)} item mods.")
         return mod_list
 
@@ -165,7 +178,9 @@ def find_latest_update():
     local = VERSION
     # Check if the same
     if remote["tag_name"] != local:
-        logging.info("[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)")
+        logging.info(
+            "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
+        )
         # Keep going till user makes a valid choice
         choice_made = False
         while not choice_made:
@@ -173,7 +188,10 @@ def find_latest_update():
             if user_choice.lower() == "y":
                 choice_made = True
                 # Get the sole zip url
-                r = requests.get(url=remote["assets"][0]["browser_download_url"], stream=True)
+                r = requests.get(
+                    url=remote["assets"][0]["browser_download_url"],
+                    stream=True,
+                )
 
                 # Set up a progress bar
                 total_size = int(r.headers.get("content-length", 0))
@@ -189,12 +207,18 @@ def find_latest_update():
 
                 # This means data got lost somewhere...
                 if total_size != 0 and timer.n != total_size:
-                    logging.error("[!] Error, something went wrong while downloading the file.")
+                    logging.error(
+                        "[!] Error, something went wrong while downloading the file."
+                    )
                 else:
                     # Unzip it and tell the user where we unzipped it to.
-                    with zipfile.ZipFile("Path-of-Accounting.zip", "r") as zip_file:
+                    with zipfile.ZipFile(
+                        "Path-of-Accounting.zip", "r"
+                    ) as zip_file:
                         zip_file.extractall()
-                    logging.info(f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting")
+                    logging.info(
+                        f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting"
+                    )
 
                 # subprocess.Popen(f"{pathlib.Path().absolute()}\\Path\\ of\\Accounting\\parse.exe")
                 # sys.exit()
@@ -202,10 +226,12 @@ def find_latest_update():
             elif user_choice.lower() == "n":
                 choice_made = True
             else:
-                logging.error("I did not understand your response. Please user either y or n.")
+                logging.error(
+                    "I did not understand your response. Please user either y or n."
+                )
 
 
-def get_ninja_bases(league : str):
+def get_ninja_bases(league: str):
     """
     Retrieve all of the bases and their respective prices listed on poe.ninja
 
@@ -213,7 +239,9 @@ def get_ninja_bases(league : str):
     """
     global ninja_bases
     if not ninja_bases:
-        query = requests.get(f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en")
+        query = requests.get(
+            f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
+        )
         tbases = query.json()
 
         ninja_bases = [
@@ -224,24 +252,26 @@ def get_ninja_bases(league : str):
                 "corrupted": b["corrupted"],
                 "exalt": b["exaltedValue"],
                 "chaos": b["chaosValue"],
-                "type": b["itemType"]
+                "type": b["itemType"],
             }
             for b in tbases["lines"]
         ]
 
-        unique_ninja_bases = [
-            e for e in ninja_bases if not e["influence"]
-        ]
+        # unique_ninja_bases = [e for e in ninja_bases if not e["influence"]]
 
     return ninja_bases
+
 
 def get_items():
     global item_cache
     if not item_cache:
-        query = requests.get("https://www.pathofexile.com/api/trade/data/items")
+        query = requests.get(
+            "https://www.pathofexile.com/api/trade/data/items"
+        )
         items = query.json()
         item_cache = items["result"]
     return item_cache
+
 
 def get_base(category, name):
     items = get_items()
@@ -256,25 +286,19 @@ def get_base(category, name):
 def wiki_lookup(item):
     base_url = "https://pathofexile.gamepedia.com/"
 
-    base_rarities = {
-        "rare",
-        "gem",
-        "divination card",
-        "normal",
-        "currency"
-    }
+    base_rarities = {"rare", "gem", "divination card", "normal", "currency"}
 
     if item:
         if item.rarity == "unique":
             url = base_url + item.name
-            logging.info(f'[*] wiki_lookup item : {item.name}')
-            url = base_url + item.name.replace(' ', '_')
+            logging.info(f"[*] wiki_lookup item : {item.name}")
+            url = base_url + item.name.replace(" ", "_")
             logging.info(url)
             webbrowser.open(url)
 
         elif item.rarity in base_rarities:
-            logging.info(f'[*] wiki_lookup item : {item.base}')
-            url = base_url + item.base.replace(' ', '_')
+            logging.info(f"[*] wiki_lookup item : {item.base}")
+            url = base_url + item.base.replace(" ", "_")
             logging.info(url)
             webbrowser.open(url)
 
@@ -282,10 +306,12 @@ def wiki_lookup(item):
         else:
             logging.error("[!] Wiki page not found.")
 
+
 def open_trade_site(rid, league):
     trade_url = f"https://pathofexile.com/trade/search/{league}/{rid}"
     logging.debug("Opening trade site with url: %s" % trade_url)
     webbrowser.open(trade_url)
+
 
 def open_exchange_site(rid, league):
     url = f"https://www.pathofexile.com/trade/exchange/{league}/{rid}"

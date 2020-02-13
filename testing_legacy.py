@@ -3,8 +3,9 @@ import sys
 import unittest
 
 import parse
-from utils import config
+
 from tests.sampleItems import items
+from utils import config
 
 
 class TestItemLookup(unittest.TestCase):
@@ -16,8 +17,13 @@ class TestItemLookup(unittest.TestCase):
                 sys.stdout = out
                 parse.price_item(items[i])
                 sys.stdout = sys.__stdout__
-                alternate = "[!] Not enough data to confidently price this item."
-                self.assertTrue("[$]" in out.getvalue() or alternate in out.getvalue())
+                alternate = (
+                    "[!] Not enough data to confidently price this item."
+                )
+                self.assertTrue(
+                    "[$]" in out.getvalue() or alternate in out.getvalue()
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
