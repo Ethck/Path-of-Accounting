@@ -312,6 +312,9 @@ class Item(BaseItem):
             "Minions have",
             "additional Physical Damage Reduction against Abyssal Monsters",
             "reduced Enemy Stun Threshold",
+            "increased Damage against Abyssal Monsters",
+            "increased Movement Speed if you haven't taken Damage Recently",
+
         ]
 
 
