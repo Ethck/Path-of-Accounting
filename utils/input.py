@@ -231,6 +231,8 @@ if os.name == "nt" and STASHTAB_SCROLLING:
     kb_macro = Keyboard()
 
     def keyboard_callback(ncode, wparam, lparam):
+        if not GetWindowText(GetForegroundWindow()) == "Path of Exile":
+            kb_macro.ctrl_pressed = False
         if (
             ncode >= 0
             and GetWindowText(GetForegroundWindow()) == "Path of Exile"
