@@ -1,3 +1,4 @@
+import logging
 import re
 
 from colorama import Fore
@@ -45,8 +46,8 @@ class BaseItem:
         mods = []
         for e in modifiers:
             if e[1]:
-                if e[0].id == 'enchant.stat_2954116742':
-	                mods.append({ "id": e[0].id, "value": { "option": e[1] }})
+                if e[0].id == "enchant.stat_2954116742":
+                    mods.append({"id": e[0].id, "value": {"option": e[1]}})
                 else:
                     try:
                         if float(e[1]) < 0:
@@ -59,7 +60,9 @@ class BaseItem:
                             )
                     except ValueError:
                         if e[1]:
-                            mods.append({"id": e[0].id, "value": {"option": e[1]}})
+                            mods.append(
+                                {"id": e[0].id, "value": {"option": e[1]}}
+                            )
             else:
                 mods.append({"id": e[0].id})
         json["query"]["stats"][0]["filters"] = mods
@@ -298,14 +301,14 @@ class Item(BaseItem):
                 total_ele_resists,
             )
             self.mods.append(mod)
-            print(
+            logging.info(
                 "[o] Combining the "
                 + Fore.CYAN
                 + f"elemental resistance"
                 + Fore.RESET
                 + " mods from the list into a pseudo-parameter"
             )
-            print(
+            logging.info(
                 "[+] Pseudo-mod "
                 + Fore.GREEN
                 + f"+{total_ele_resists}% total Elemental Resistance (pseudo)"
@@ -320,14 +323,14 @@ class Item(BaseItem):
                 total_chaos_resist,
             )
             self.mods.append(mod)
-            print(
+            logging.info(
                 "[o] Combining the "
                 + Fore.CYAN
                 + f"chaos resistance"
                 + Fore.RESET
                 + " mods from the list into a pseudo-parameter"
             )
-            print(
+            logging.info(
                 "[+] Pseudo-mod "
                 + Fore.GREEN
                 + f"+{total_chaos_resist}% total Chaos Resistance (pseudo)"
@@ -339,14 +342,14 @@ class Item(BaseItem):
                 total_life,
             )
             self.mods.append(mod)
-            print(
+            logging.info(
                 "[o] Combining the "
                 + Fore.CYAN
                 + f"maximum life"
                 + Fore.RESET
                 + " mods from the list into a pseudo-parameter"
             )
-            print(
+            logging.info(
                 "[+] Pseudo-mod "
                 + Fore.GREEN
                 + f"+{total_life} to maximum Life (pseudo)"
@@ -401,13 +404,13 @@ class Item(BaseItem):
             for bad in bad_mod_list:
                 if bad in mod[0].text:
                     found = True
-                    print(f"[!] Removed {mod[0].text} From Search")
+                    logging.info(f"[!] Removed {mod[0].text} From Search")
             if not found:
                 nMods.append(mod)
             found = False
         self.mods = nMods
-        print(f"[!] Removed Quality From Search")
-        print(f"[!] Removed Item Level From Search")
+        logging.info(f"[!] Removed Quality From Search")
+        logging.info(f"[!] Removed Item Level From Search")
         self.quality = 0
         self.ilevel = 0
 
@@ -763,10 +766,10 @@ def parse_beast(name: str, regions: str):
 
 def parse_item_info(text: str):
 
-    regions = text.split('--------')
-    
+    regions = text.split("--------")
+
     if len(regions) < 2:
-        print("Not a PoE Item")
+        logging.info("Not a PoE Item")
         return None
 
     for i, region in enumerate(regions):
@@ -789,7 +792,7 @@ def parse_item_info(text: str):
     ]
 
     if rarity not in validRarity:
-        print("Not a PoE Item")
+        logging.info("Not a PoE Item")
         return None
 
     name = re.sub(r"<<set:M?S?>>", "", regions[0][1])
@@ -798,7 +801,7 @@ def parse_item_info(text: str):
         name += " " + regions[0][2]
 
     if len(name) > 60:
-        print("Not a PoE Item")
+        logging.info("Not a PoE Item")
         return None
 
     quality = 0
@@ -866,7 +869,7 @@ def parse_item_info(text: str):
         base = get_base("Jewels", name)
         category = "jewel"
     if not base:
-        print("Item not found")
+        logging.info("Item not found")
         return None
 
     influenceText = {
@@ -951,7 +954,7 @@ def parse_item_info(text: str):
                         if mod.type == ItemModifierType.EXPLICIT:
                             foundExplicit = True  # Dont parse flavor text
                     else:
-                        print(f"Unable to find mod: {line}")
+                        logging.info(f"Unable to find mod: {line}")
 
     if rarity == "unique" and identified:
         name = name.replace(" " + base, "")

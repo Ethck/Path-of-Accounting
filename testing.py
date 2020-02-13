@@ -169,10 +169,12 @@ class TestItemLookup(unittest.TestCase):
                                     ("%s" + fmt + " %s" + Fore.RESET + " x %d")
                                     % (Fore.YELLOW, k[0], k[1], v)
                                 )
-                            expectedStr = (', ').join(priceList)
+                            expectedStr = (", ").join(priceList)
                             self.assertTrue(expectedStr in output)
         close_all_windows()
 
+
+class TestBaseLookup(unittest.TestCase):
     @patch("tkinter.Tk", TkMock)
     @patch("tkinter.Toplevel", ToplevelMock)
     @patch("tkinter.Frame", FrameMock)
