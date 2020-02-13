@@ -1,13 +1,31 @@
 import logging
 import sys
 import time
+
 from colorama import Fore, deinit, init
-from utils.parse import price_item, search_ninja_base, get_response, get_ninja_bases
+
+from gui.gui import check_timeout_gui, close_all_windows, init_gui
 from item.generator import parse_item_info
-from utils.input import Keyboard, start_stash_scroll, stop_stash_scroll, get_clipboard
-from gui.gui import init_gui, close_all_windows, check_timeout_gui
-from utils.web import find_latest_update, get_leagues, open_trade_site, wiki_lookup
 from utils.config import LEAGUE, USE_HOTKEYS
+from utils.input import (
+    Keyboard,
+    get_clipboard,
+    start_stash_scroll,
+    stop_stash_scroll,
+)
+from utils.parse import (
+    get_ninja_bases,
+    get_response,
+    price_item,
+    search_ninja_base,
+)
+from utils.web import (
+    find_latest_update,
+    get_leagues,
+    open_trade_site,
+    wiki_lookup,
+)
+
 
 def hotkey_handler(keyboard, hotkey):
     # Without this block, the clipboard's contents seem to always be from 1 before the current
@@ -38,30 +56,42 @@ def hotkey_handler(keyboard, hotkey):
     else:  # alt+d, ctrl+c
         price_item(text)
 
+
 def watch_keyboard(keyboard, use_hotkeys):
     if use_hotkeys:
         # Use the "f5" key to go to hideout
         keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
 
         # Use the alt+d key as an alternative to ctrl+c
-        keyboard.add_hotkey("<alt>+d", lambda: hotkey_handler(keyboard, "alt+d"))
+        keyboard.add_hotkey(
+            "<alt>+d", lambda: hotkey_handler(keyboard, "alt+d")
+        )
 
         # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey("<alt>+w", lambda: hotkey_handler(keyboard, "alt+w"))
+        keyboard.add_hotkey(
+            "<alt>+w", lambda: hotkey_handler(keyboard, "alt+w")
+        )
 
         # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey("<alt>+t", lambda: hotkey_handler(keyboard, "alt+t"))
+        keyboard.add_hotkey(
+            "<alt>+t", lambda: hotkey_handler(keyboard, "alt+t")
+        )
 
         # poe.ninja base check
-        keyboard.add_hotkey("<alt>+c", lambda: hotkey_handler(keyboard, "alt+c"))
+        keyboard.add_hotkey(
+            "<alt>+c", lambda: hotkey_handler(keyboard, "alt+c")
+        )
 
     # Clipboard
-    #keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
-    keyboard.add_hotkey("<ctrl>+c", lambda: hotkey_handler(keyboard, "clipboard"))
+    # keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
+    keyboard.add_hotkey(
+        "<ctrl>+c", lambda: hotkey_handler(keyboard, "clipboard")
+    )
 
     # Fetch the item's approximate price
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
     keyboard.start()
+
 
 if __name__ == "__main__":
     loglevel = logging.INFO
@@ -75,18 +105,25 @@ if __name__ == "__main__":
     # Get some basic setup stuff
     valid_leagues = get_leagues()
 
-
     # Inform user of choices
-    logging.info(f"If you wish to change the selected league you may do so in settings.cfg.")
-    logging.info(f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}.")
+    logging.info(
+        f"If you wish to change the selected league you may do so in settings.cfg."
+    )
+    logging.info(
+        f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}."
+    )
 
     if LEAGUE not in valid_leagues:
-        logging.info(f"Unable to locate {Fore.MAGENTA}{LEAGUE}{Fore.RESET}, please check settings.cfg.")
+        logging.info(
+            f"Unable to locate {Fore.MAGENTA}{LEAGUE}{Fore.RESET}, please check settings.cfg."
+        )
         logging.info(f"[!] Exiting, no valid league.")
     else:
         NINJA_BASES = get_ninja_bases(LEAGUE)
         logging.info(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
-        logging.info(f"All values will be from the {Fore.MAGENTA}{LEAGUE}{Fore.RESET} league")
+        logging.info(
+            f"All values will be from the {Fore.MAGENTA}{LEAGUE}{Fore.RESET} league"
+        )
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
 
@@ -100,7 +137,7 @@ if __name__ == "__main__":
                 check_timeout_gui()
         except KeyboardInterrupt:
             pass
-        
+
         stop_stash_scroll()
         close_all_windows()
         logging.info(f"[!] Exiting, user requested termination.")
