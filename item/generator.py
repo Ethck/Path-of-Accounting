@@ -1,6 +1,6 @@
 import logging
 import re
-
+from math import floor
 from colorama import Fore
 
 from item.itemModifier import ItemModifierType
@@ -414,6 +414,90 @@ class Item(BaseItem):
         self.quality = 0
         self.ilevel = 0
 
+
+class Weapon(Item):
+    def __init__(self, name, base, category, rarity, quality, ilevel, mods, sockets, influence, identified, corrupted, mirrored, veiled, synthesised):
+        super().__init__(name, base, category, rarity, quality, ilevel, mods, sockets, influence, identified, corrupted, mirrored, veiled, synthesised)
+        self.pdps = None
+        self.edps = None
+        self.speed = None
+        self.crit = None
+    
+    def parse_weapon_stats(self, regions):
+        pValues = None
+        eValues = None
+        for line in regions[1]:
+            line = line.replace(" (augmented)", '')
+            if "Physical Damage" in line:
+                line = line.replace("Physical Damage: ", "")
+                pValues = line.split("-")
+            elif "Elemental Damage: " in line:
+                line = line.replace("Elemental Damage: ", "")
+                values = line.split(", ")
+                minValues = 0
+                maxValues = 0
+                for v in values:
+                    v2 = v.split("-")
+                    minValues += float(v2[0])
+                    maxValues += float(v2[1])
+                eValues = []
+                eValues.append(minValues)
+                eValues.append(maxValues)
+            elif "Critical Strike Chance: " in line:
+                line = line.replace("Critical Strike Chance: ", "")
+                line = line.replace("%", "")
+                self.crit = float(line)
+            elif "Attacks per Second: " in line:
+                self.speed = float(line.replace("Attacks per Second: ", ""))
+        
+        if pValues and self.speed:
+            self.pdps = floor(((float(pValues[0]) * self.speed) + (float(pValues[1]) * self.speed)) / 2)
+        if eValues and self.speed:
+            self.edps = floor(((float(eValues[0]) * self.speed) + (float(eValues[1]) * self.speed)) / 2)
+
+
+        # Remove mods that affect weapon stats, and search for weapon stats instead
+        nMods = []
+        for mod in self.mods:
+            mod_text = mod[0].text
+            if ("Adds # to #" in mod_text and 
+            "to Spells" not in mod_text) or (
+                mod_text == "#% increased Critical Strike Chance"
+                ) or (
+                    "increased Attack Speed" in mod_text) or (
+                        "increased Physical Damage" in mod_text) or (
+                            "total Attack Speed" in mod_text):
+                continue
+            else:
+                nMods.append(mod)
+        
+        self.mods = nMods
+
+    def get_json(self):
+        json = super().get_json()
+        json["query"]["filters"]["weapon_filters"] = {
+            "filters": {
+                "aps":{ 
+                    "min":self.speed
+                    },
+                "crit":{
+                    "min":self.crit
+                    },
+                "edps":{
+                    "min":self.edps
+                },
+                "pdps":{
+                    "min":self.pdps
+                }
+            }
+        }
+        return json
+    
+    def get_weapon_stats(self):
+        s = f"Physical DPS: {self.pdps} \nElemental DPS: {self.edps} \nSpeed: {self.speed}\nCrit: {self.crit}"
+        return s
+
+            
 
 class Currency(BaseItem):
     def __init__(self, name):
@@ -958,6 +1042,26 @@ def parse_item_info(text: str):
 
     if rarity == "unique" and identified:
         name = name.replace(" " + base, "")
+
+    if category == 'weapon':
+        weapon = Weapon(
+            name,
+            base,
+            category,
+            rarity,
+            quality,
+            ilevel,
+            mods,
+            sockets,
+            influences,
+            identified,
+            corrupted,
+            mirrored,
+            veiled,
+            synthesised,
+        )
+        weapon.parse_weapon_stats(regions)
+        return weapon
 
     return Item(
         name,
