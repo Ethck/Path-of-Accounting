@@ -473,6 +473,18 @@ class Weapon(Item):
         
         self.mods = nMods
 
+    # Relax weapon stats
+    def relax_modifiers(self):
+        super().relax_modifiers()
+        if self.pdps:
+            self.pdps = self.pdps * 0.9
+        if self.edps:
+            self.edps = self.edps * 0.9
+        if self.speed:
+            self.speed = self.speed * 0.9
+        if self.crit:
+            self.crit = self.crit * 0.9
+
     def get_json(self):
         json = super().get_json()
         json["query"]["filters"]["weapon_filters"] = {
