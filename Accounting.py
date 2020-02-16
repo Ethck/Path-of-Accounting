@@ -5,8 +5,10 @@ import time
 from colorama import Fore, deinit, init
 
 from gui.gui import check_timeout_gui, close_all_windows, init_gui
-from item.generator import parse_item_info, Currency
+from item.generator import parse_item_info, Currency, Weapon
 from utils.config import LEAGUE, USE_HOTKEYS
+from utils import config
+from gui.windows import information
 from utils.input import (
     Keyboard,
     get_clipboard,
@@ -56,6 +58,15 @@ def hotkey_handler(keyboard, hotkey):
 
     elif hotkey == "alt+c":
         search_ninja_base(text)
+    
+    elif hotkey == "alt+f":
+        item = parse_item_info(text)
+        if isinstance(item, Weapon):
+            stats = item.get_weapon_stats()
+            logging.info(stats)
+            if config.USE_GUI:
+                information.add_info(stats)
+                information.create_at_cursor()
 
     else:  # alt+d, ctrl+c
         price_item(text)
@@ -84,6 +95,10 @@ def watch_keyboard(keyboard, use_hotkeys):
         # poe.ninja base check
         keyboard.add_hotkey(
             "<alt>+c", lambda: hotkey_handler(keyboard, "alt+c")
+        )
+
+        keyboard.add_hotkey(
+            "<alt>+f", lambda: hotkey_handler(keyboard, "alt+f")
         )
 
     # Clipboard
