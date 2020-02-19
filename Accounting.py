@@ -5,10 +5,10 @@ import time
 from colorama import Fore, deinit, init
 
 from gui.gui import check_timeout_gui, close_all_windows, init_gui
-from item.generator import parse_item_info, Currency, Weapon
-from utils.config import LEAGUE, USE_HOTKEYS
-from utils import config
 from gui.windows import information
+from item.generator import Currency, Weapon, parse_item_info
+from utils import config
+from utils.config import LEAGUE, USE_HOTKEYS
 from utils.input import (
     Keyboard,
     get_clipboard,
@@ -24,13 +24,18 @@ from utils.parse import (
 from utils.web import (
     find_latest_update,
     get_leagues,
-    open_trade_site,
     open_exchange_site,
+    open_trade_site,
     wiki_lookup,
 )
 
 
 def hotkey_handler(keyboard, hotkey):
+    """Based on the given hotkey, setup the logic for the triggered key
+
+    :param keyboard: Keyboard object to determine status of keys
+    :param hotkey: The triggered hotkey
+    """
     # Without this block, the clipboard's contents seem to always be from 1 before the current
     if hotkey != "clipboard":
         keyboard.press_and_release("ctrl+c")
@@ -58,7 +63,7 @@ def hotkey_handler(keyboard, hotkey):
 
     elif hotkey == "alt+c":
         search_ninja_base(text)
-    
+
     elif hotkey == "alt+f":
         item = parse_item_info(text)
         if isinstance(item, Weapon):
@@ -73,6 +78,11 @@ def hotkey_handler(keyboard, hotkey):
 
 
 def watch_keyboard(keyboard, use_hotkeys):
+    """Add all of the hotkeys to watch over
+
+    :param keyboard: Keyboard object to determine key status
+    :param use_hotkeys: config to determine whether hotkeys are established
+    """
     if use_hotkeys:
         # Use the "f5" key to go to hideout
         keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))

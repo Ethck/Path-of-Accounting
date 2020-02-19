@@ -56,6 +56,8 @@ def check_timeout_gui():
 
 
 class DisplayWindow:
+    """Base window to display and information"""
+
     def __init__(self):
         self.frame = None
         self.opened = time.time()  # When the window was created
@@ -192,6 +194,8 @@ class DisplayWindow:
 
 
 class ActiveWindow(DisplayWindow):
+    """Base window for setting up the overlay"""
+
     def close(self, event=None):
         if self.created:
             self.frame.unbind("<Escape>")

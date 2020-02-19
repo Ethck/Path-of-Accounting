@@ -7,6 +7,8 @@ from utils.config import MIN_RESULTS
 
 
 class BaseResults(DisplayWindow):
+    """Basic results window"""
+
     def __init__(self):
         super().__init__()
         self.base = None
@@ -54,6 +56,8 @@ class BaseResults(DisplayWindow):
 
 
 class NotEnoughInformation(DisplayWindow):
+    """Window to display when we determine there is not enough information to accurately price"""
+
     def __init__(self):
         super().__init__()
 
@@ -80,6 +84,8 @@ class Information(DisplayWindow):
 
 
 class PriceInformation(DisplayWindow):
+    """Window to display prices of found items"""
+
     def __init__(self):
         super().__init__()
         self.data = None

@@ -1,6 +1,7 @@
 import logging
 import re
 from math import floor
+
 from colorama import Fore
 
 from item.itemModifier import ItemModifierType
@@ -15,6 +16,8 @@ from utils.web import (
 
 
 class BaseItem:
+    """Base class that holds default values for all items."""
+
     def __init__(self, name):
         self.name = name
         self.online = "online"
@@ -26,6 +29,7 @@ class BaseItem:
         print("[!] Found: ", self.name)
 
     def get_json(self):
+        """Base JSON for all items"""
         json = {
             "query": {
                 "status": {"option": self.online},
@@ -43,6 +47,11 @@ class BaseItem:
         return json
 
     def add_mods(self, json, modifiers):
+        """Add the modifiers found in the given list.
+
+        :param json: JSON of the item to modify
+        :param modifiers: Modifier list to transform
+        """
         mods = []
         for e in modifiers:
             if e[1]:
@@ -119,6 +128,8 @@ class BaseItem:
 
 
 class Item(BaseItem):
+    """Representation of gear that can be equipped. Belts, Chests, Helmets, Weapons, etc."""
+
     def __init__(
         self,
         name,
@@ -218,6 +229,7 @@ class Item(BaseItem):
         return json
 
     def create_pseudo_mods(self):
+        """Turn certain modifiers into their pseudo variants to find more matches"""
         if self.rarity == "unique":
             return
 
@@ -372,6 +384,7 @@ class Item(BaseItem):
         self.mods = nMods
 
     def remove_bad_mods(self):
+        """Mods to remove first if found on any individual item if no matches are found before relaxing"""
 
         # TODO Add more, move to config ( config parse does not support multiple lines atm, prob need to write a custom one)
         bad_mod_list = [
@@ -416,18 +429,51 @@ class Item(BaseItem):
 
 
 class Weapon(Item):
-    def __init__(self, name, base, category, rarity, quality, ilevel, mods, sockets, influence, identified, corrupted, mirrored, veiled, synthesised):
-        super().__init__(name, base, category, rarity, quality, ilevel, mods, sockets, influence, identified, corrupted, mirrored, veiled, synthesised)
+    """Representation of weapons."""
+
+    def __init__(
+        self,
+        name,
+        base,
+        category,
+        rarity,
+        quality,
+        ilevel,
+        mods,
+        sockets,
+        influence,
+        identified,
+        corrupted,
+        mirrored,
+        veiled,
+        synthesised,
+    ):
+        super().__init__(
+            name,
+            base,
+            category,
+            rarity,
+            quality,
+            ilevel,
+            mods,
+            sockets,
+            influence,
+            identified,
+            corrupted,
+            mirrored,
+            veiled,
+            synthesised,
+        )
         self.pdps = None
         self.edps = None
         self.speed = None
         self.crit = None
-    
+
     def parse_weapon_stats(self, regions):
         pValues = None
         eValues = None
         for line in regions[1]:
-            line = line.replace(" (augmented)", '')
+            line = line.replace(" (augmented)", "")
             if "Physical Damage" in line:
                 line = line.replace("Physical Damage: ", "")
                 pValues = line.split("-")
@@ -449,28 +495,39 @@ class Weapon(Item):
                 self.crit = float(line)
             elif "Attacks per Second: " in line:
                 self.speed = float(line.replace("Attacks per Second: ", ""))
-        
-        if pValues and self.speed:
-            self.pdps = floor(((float(pValues[0]) * self.speed) + (float(pValues[1]) * self.speed)) / 2)
-        if eValues and self.speed:
-            self.edps = floor(((float(eValues[0]) * self.speed) + (float(eValues[1]) * self.speed)) / 2)
 
+        if pValues and self.speed:
+            self.pdps = floor(
+                (
+                    (float(pValues[0]) * self.speed)
+                    + (float(pValues[1]) * self.speed)
+                )
+                / 2
+            )
+        if eValues and self.speed:
+            self.edps = floor(
+                (
+                    (float(eValues[0]) * self.speed)
+                    + (float(eValues[1]) * self.speed)
+                )
+                / 2
+            )
 
         # Remove mods that affect weapon stats, and search for weapon stats instead
         nMods = []
         for mod in self.mods:
             mod_text = mod[0].text
-            if ("Adds # to #" in mod_text and 
-            "to Spells" not in mod_text) or (
-                mod_text == "#% increased Critical Strike Chance"
-                ) or (
-                    "increased Attack Speed" in mod_text) or (
-                        "increased Physical Damage" in mod_text) or (
-                            "total Attack Speed" in mod_text):
+            if (
+                ("Adds # to #" in mod_text and "to Spells" not in mod_text)
+                or (mod_text == "#% increased Critical Strike Chance")
+                or ("increased Attack Speed" in mod_text)
+                or ("increased Physical Damage" in mod_text)
+                or ("total Attack Speed" in mod_text)
+            ):
                 continue
             else:
                 nMods.append(mod)
-        
+
         self.mods = nMods
 
     # Relax weapon stats
@@ -489,29 +546,22 @@ class Weapon(Item):
         json = super().get_json()
         json["query"]["filters"]["weapon_filters"] = {
             "filters": {
-                "aps":{ 
-                    "min":self.speed
-                    },
-                "crit":{
-                    "min":self.crit
-                    },
-                "edps":{
-                    "min":self.edps
-                },
-                "pdps":{
-                    "min":self.pdps
-                }
+                "aps": {"min": self.speed},
+                "crit": {"min": self.crit},
+                "edps": {"min": self.edps},
+                "pdps": {"min": self.pdps},
             }
         }
         return json
-    
+
     def get_weapon_stats(self):
         s = f"Physical DPS: {self.pdps} \nElemental DPS: {self.edps} \nSpeed: {self.speed}\nCrit: {self.crit}"
         return s
 
-            
 
 class Currency(BaseItem):
+    """Representation of currency items"""
+
     def __init__(self, name):
         super().__init__(name)
 
@@ -527,6 +577,8 @@ class Currency(BaseItem):
 
 
 class Prophecy(BaseItem):
+    """Representation of Prophecy items"""
+
     def __init__(self, name):
         super().__init__(name)
 
@@ -539,6 +591,8 @@ class Prophecy(BaseItem):
 
 
 class Organ(BaseItem):
+    """Representation of Metamorph Organs"""
+
     def __init__(self, name, ilevel, mods):
         super().__init__(name)
         self.ilevel = ilevel
@@ -559,6 +613,8 @@ class Organ(BaseItem):
 
 
 class Flask(BaseItem):
+    """Representation of Flasks"""
+
     def __init__(self, name, base, rarity, quality, mods):
         super().__init__(name)
         self.base = base
@@ -583,6 +639,8 @@ class Flask(BaseItem):
 
 
 class Gem(BaseItem):
+    """Representation of Skill Gems"""
+
     def __init__(self, name, quality, level, corrupted):
         super().__init__(name)
         self.quality = quality
@@ -609,6 +667,8 @@ class Gem(BaseItem):
 
 
 class Map(BaseItem):
+    """Representation for Maps"""
+
     def __init__(
         self,
         name,
@@ -660,6 +720,8 @@ class Map(BaseItem):
 
 
 class Beast(BaseItem):
+    """Representation for itemized Beasts"""
+
     def __init__(self, name, base, ilevel):
         super().__init__(name)
         self.base = base
@@ -681,6 +743,12 @@ prev_mod = ""
 
 
 def parse_mod(mod_text: str, mod_values, category=""):
+    """Given the text of the mod, find the appropriate ItemModifier object
+
+    :param mod_text: Text of the mod
+    :param mod_values: Value of the referenced mod
+    :param category: Specific category of mods to check
+    """
     global prev_mod
 
     mod = None
@@ -764,6 +832,7 @@ def parse_mod(mod_text: str, mod_values, category=""):
 
 
 def isCurrency(name: str, rarity: str, regions: list):
+    """Determine if given item is a currency"""
     if rarity == "currency" or rarity == "divination card":
         return Currency(name)
     if name in currency_global:
@@ -777,6 +846,7 @@ def isCurrency(name: str, rarity: str, regions: list):
 
 
 def parse_map(regions: list, rarity, name):
+    """Parse map text and construct the Map object"""
     map_mods = []
     identified = True
     for i in range(2, len(regions)):
@@ -819,6 +889,7 @@ def parse_map(regions: list, rarity, name):
 
 
 def parse_organ(regions: list, name):
+    """Parse text and construct the Organ object"""
     mods = {}
     for line in regions[3]:
         line = line.lstrip(" ").rstrip(" ") + " (×#)"
@@ -837,6 +908,7 @@ def parse_organ(regions: list, name):
 
 
 def parse_flask(regions: list, rarity: str, quality: int, name: str):
+    """Parse text and construct Flask object"""
     mods = []
     for i in range(4, len(regions)):
         for line in regions[i]:
@@ -855,13 +927,14 @@ def parse_flask(regions: list, rarity: str, quality: int, name: str):
 
 
 def parse_beast(name: str, regions: str):
+    """Parse text and construct Beast object"""
     base = get_base("Itemised Monsters", name + " " + regions[0][2])
     ilevel = int(regions[2][0][12:])
     return Beast(name, base, ilevel)
 
 
 def parse_item_info(text: str):
-
+    """Parse given text and construct the approriate object."""
     regions = text.split("--------")
 
     if len(regions) < 2:
@@ -1055,7 +1128,7 @@ def parse_item_info(text: str):
     if rarity == "unique" and identified:
         name = name.replace(" " + base, "")
 
-    if category == 'weapon':
+    if category == "weapon":
         weapon = Weapon(
             name,
             base,
