@@ -49,6 +49,10 @@ if not is_keyboard_module_available:
 
 
 def get_clipboard():
+    """Retrieves the current value in the clipboard
+
+    :return: Value in clipboard
+    """
     return pyperclip.paste()
 
 

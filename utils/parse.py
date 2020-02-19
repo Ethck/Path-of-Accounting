@@ -26,6 +26,11 @@ from utils.web import (
 
 
 def get_response(item):
+    """Based on the item given, get the response from the API
+
+    :param item: Item to get response for
+    :return: Response from approriate API
+    """
     json = item.get_json()
 
     if isinstance(item, Currency):
@@ -37,9 +42,10 @@ def get_response(item):
 
 
 def get_trade_data(item):
-    """
-    Returns a directory with price as key and value as list[time,count] or None if there where no items
-    Returns dict{price: [count , time]}
+    """For the given item, find current listings and retrieve prices & times
+
+    :param item: Item to process
+    :return: dict of count and prices, length of prices
     """
 
     def pretty_currency(curr):
@@ -115,6 +121,10 @@ def get_trade_data(item):
 
 
 def price_item(text):
+    """Pricing utility. Tries to price items by searching the API and gradually relaxing modifiers
+
+    :param text: The raw text of the item to search
+    """
     try:
         item = parse_item_info(text)
         if not item:
@@ -222,6 +232,10 @@ def price_item(text):
 
 
 def search_ninja_base(text):
+    """Search the ninja_bases cache for a match for the given item.
+
+    :param text: raw text of the item to be searched for
+    """
     NINJA_BASES = get_ninja_bases(LEAGUE)
     real_item = parse_item_info(text)
     if not isinstance(real_item, Item):
