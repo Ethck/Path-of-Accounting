@@ -266,7 +266,7 @@ def find_latest_update():
                 )
 
 
-def get_ninja_bases(league: str) -> list[dict]:
+def get_ninja_bases(league: str):
     """Retrieve all of the bases and their respective prices listed on poe.ninja
 
     :return ninja_bases: list of all availabe bases and their properties
