@@ -22,15 +22,18 @@ mod_list_dict_text = {}
 
 
 def search_url(league: str) -> str:
+    """Returns the URL needed to make the POST request to the API"""
     return f"https://www.pathofexile.com/api/trade/search/{league}"
 
 
 def exchange_url(league: str) -> str:
+    """Returns the URL needed to make the POST request to the Exchange API"""
     return f"https://www.pathofexile.com/api/trade/exchange/{league}"
 
 
 def exchange_currency(query: dict, league: str) -> dict:
-    """
+    """Queries the Exchange API and returns the results
+
     :param query: A JSON query to send to the currency trade api
     :param league: the league to search in
     :return results: return a JSON object with the amount of items found and a key to get
@@ -45,7 +48,8 @@ def exchange_currency(query: dict, league: str) -> dict:
 
 
 def query_item(query: dict, league: str) -> dict:
-    """
+    """Queries the API and returns the results
+
     :param query: A JSON query to send to the trade api
     :param league: the league to search in
     :return results: return a JSON object with the amount of items found and a key to get
@@ -60,20 +64,17 @@ def query_item(query: dict, league: str) -> dict:
     return results
 
 
-def fetch(q_res: dict, exchange: bool = False):
-    """
-    Fetch is the last step of the API. The item's attributes have already been decided, and this function checks to see if
-    there are any similar items like it listed.
+def fetch(q_res: dict, exchange: bool = False) -> dict:
+    """Based on results of the POST requests construct the GET request(s)
 
-    returns JSON of all available similar items.
+    :param q_res: Results of the POST request
+    :param exchange: Whether or not to use the exchange API
+    :return results: Results of the GET request
     """
-
-    # TODO: Bring back debug statement
 
     results = []
-    # Limited to crawling by 10 results at a time due to API restrictions, so check first 50
-    # TODO: This doesn't work...
-    DEFAULT_CAP = 50
+    # Limited to crawling by 10 results at a time due to API restrictions
+    DEFAULT_CAP = 10
     DEFAULT_INTERVAL = 10
     cap = DEFAULT_CAP
     interval = DEFAULT_INTERVAL
@@ -107,9 +108,10 @@ def fetch(q_res: dict, exchange: bool = False):
     return results
 
 
-def get_leagues():
-    """
-    Get all valid leagues from the PoE API and put them into a tuple
+def get_leagues() -> tuple:
+    """Query the API to get all current running leagues
+
+    :return: Tuple of league ids
     """
     leagues = requests.get(
         url="https://www.pathofexile.com/api/trade/data/leagues"
@@ -118,6 +120,14 @@ def get_leagues():
 
 
 def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
+    """Search all available ItemModifier objects by their text attribute.
+
+    If this is the first time being used, construct a cache so that we
+    can search faster on subsequent versions
+
+    :param element: (text, type) of the requested ItemModifier
+    :return: ItemModifier that matches
+    """
     global mod_list_dict_text
     if len(mod_list_dict_text) == 0:
         item_modifiers = get_item_modifiers()
@@ -127,6 +137,14 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
 
 
 def get_item_modifiers_by_id(element: str) -> ItemModifier:
+    """Search all available ItemModifier objects by their id attribute.
+
+    If this is the first time being used, construct a cache so that we
+    can search faster on subsequent versions
+
+    :param element: id of the requested ItemModifier
+    :return: ItemModifier that matches
+    """
     global mod_list_dict_id
     if len(mod_list_dict_id) == 0:
         item_modifiers = get_item_modifiers()
@@ -136,28 +154,37 @@ def get_item_modifiers_by_id(element: str) -> ItemModifier:
 
 
 def build_from_json(blob: dict) -> ItemModifier:
+    """From the stats API construct ItemModifier objects for given entry
+
+    :param blob: A modifier found in the stats API
+    :return: ItemModifier object for the given modifier
+    """
     if "option" in blob:
+        # If the given modifier has an option section, add it.
+        # This is necessary for the "Allocates #" modifier that
+        # is present on Annointed items
         if "options" in blob["option"]:
             options = {}
             for i in blob["option"]["options"]:
                 options[i["text"]] = i["id"]
             return ItemModifier(
-                    id=blob["id"], 
-                    text=blob["text"], 
-                    options=options, 
-                    type=ItemModifierType(blob["type"].lower())
-                )
+                id=blob["id"],
+                text=blob["text"],
+                options=options,
+                type=ItemModifierType(blob["type"].lower()),
+            )
     return ItemModifier(
         id=blob["id"],
         text=blob["text"],
         type=ItemModifierType(blob["type"].lower()),
-        options={}
+        options={},
     )
 
 
 def get_item_modifiers() -> tuple:
-    """
-    Get all valid Item Modifiers (affixes) from the PoE API
+    """Query the stats API to retrieve all current stats
+
+    :return: tuple of all available modifiers
     """
     global mod_list
     if mod_list:
@@ -179,10 +206,7 @@ def get_item_modifiers() -> tuple:
 
 
 def find_latest_update():
-    """
-    Find the latest version of the software both locally and remote. If not the newest version,
-    prompt for an upgrade.
-    """
+    """Search both local and remote versions, if different, prompt for update."""
     # Get the list of releases from github, choose newest (even pre-release)
     remote = requests.get(url=RELEASE_URL).json()[0]
     # local version
@@ -242,11 +266,10 @@ def find_latest_update():
                 )
 
 
-def get_ninja_bases(league: str):
-    """
-    Retrieve all of the bases and their respective prices listed on poe.ninja
+def get_ninja_bases(league: str) -> list[dict]:
+    """Retrieve all of the bases and their respective prices listed on poe.ninja
 
-    Returns list[dict]
+    :return ninja_bases: list of all availabe bases and their properties
     """
     global ninja_bases
     if not ninja_bases:
@@ -273,7 +296,14 @@ def get_ninja_bases(league: str):
     return ninja_bases
 
 
-def get_items():
+def get_items() -> dict:
+    """Query item API to find all current items.
+
+    If this is the first time being used, construct a cache so that we
+    can search faster on subsequent versions
+
+    :return: cache that contains all items
+    """
     global item_cache
     if not item_cache:
         query = requests.get(
@@ -285,6 +315,12 @@ def get_items():
 
 
 def get_base(category, name):
+    """Find the base type of a given item.
+
+    :param category: cateogory of given item (Belt, Flask, etc.)
+    :param name: name of the given item
+    :return: Found base type, or None
+    """
     items = get_items()
     for i in items:
         if i["label"] == category:
@@ -295,6 +331,10 @@ def get_base(category, name):
 
 
 def wiki_lookup(item):
+    """Given an item, load its webpage
+
+    :param item: Item object to be used
+    """
     base_url = "https://pathofexile.gamepedia.com/"
 
     base_rarities = {"rare", "gem", "divination card", "normal", "currency"}
@@ -319,12 +359,22 @@ def wiki_lookup(item):
 
 
 def open_trade_site(rid, league):
+    """Open up the web browser to the site we search
+
+    :param rid: Unique ID given from the POST response
+    :param league: League to search
+    """
     trade_url = f"https://pathofexile.com/trade/search/{league}/{rid}"
     logging.debug("Opening trade site with url: %s" % trade_url)
     webbrowser.open(trade_url)
 
 
 def open_exchange_site(rid, league):
+    """Open up the web browser to the exchange site we search
+
+    :param rid: Unique ID given from the POST response
+    :param league: League to search
+    """
     url = f"https://www.pathofexile.com/trade/exchange/{league}/{rid}"
     logging.debug("Opening exchange site with url: %s" % url)
     webbrowser.open(url)
