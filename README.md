@@ -39,7 +39,7 @@ The program reads what is entered into your clipboard in real time and determine
 
 Hotkeys!
 
-|Global   | Hotkeys  |
+|Hotkey   | Description  |
 |---|---|
 | alt+d  | Search for item.  |
 |  F5 | Go to hideout  |
