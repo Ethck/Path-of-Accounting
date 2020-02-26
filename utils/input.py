@@ -64,10 +64,6 @@ class HotkeyWatcher:
     def __init__(self, combination_to_function):
         self.queue = Queue()
         self.combination_to_function = combination_to_function
-        self.processed = False
-
-    def is_processing(self):
-        return not self.processed
 
     def is_empty(self):
         return self.queue.unfinished_tasks == 0 and self.queue.qsize() == 0
@@ -77,11 +73,8 @@ class HotkeyWatcher:
             self.queue.put(hotkey)
 
     def poll(self):
-        self.processed = False
-
         try:
             hotkey = self.queue.get_nowait()
-            self.processed = True
             self.combination_to_function[hotkey]()
         except Empty:
             return
@@ -119,7 +112,6 @@ class Keyboard:
     def start(self):
         # Create hotkey watcher with all our hotkey callbacks
         self.hotkey_watcher = HotkeyWatcher(self.combination_to_function)
-        # self.clipboard_watcher = ClipboardWatcher(self.combination_to_function, self.hotkey_watcher.is_processing)
         combination_to_queue = {}
 
         def to_watcher(watcher, hotkey):
@@ -143,7 +135,6 @@ class Keyboard:
 
     def poll(self):
         self.hotkey_watcher.poll()
-        # self.clipboard_watcher.poll()
 
     def write(self, string):
         if is_keyboard_module_available:
@@ -181,14 +172,29 @@ class Keyboard:
                 safe_press(self.controller, keys[0], False)
 
     def enable_hook(self, keyboard_callback, mouse_callback):
+        """ Registers a keyboard callback and a mouse callback
+            with windows os, if its not already enabled.
+            
+            Also unregisters the callbacks incase of program crash
+
+            :param: keyboard_callback
+                    callback function for keyboard events, 
+                    must be in a c function format
+            :param: mouse_callback
+                    callback function for mouse events, 
+                    must be in a c function format
+        """
         if self.enabled:
             return
         self.enabled = True
         GetModuleHandleW = windll.kernel32.GetModuleHandleW
         GetModuleHandleW.restype = HMODULE
         GetModuleHandleW.argtypes = [LPCWSTR]
+        # If we are running the program (Python interpreter)
+        # in 64 bits mode, we need to handle 64 bit addresses
         if bits == 64:
             handle = ctypes.c_longlong(GetModuleHandleW(None))
+        # Else 32 bit addresses
         else:
             handle = GetModuleHandleW(None)
         self.keyboard_hook = windll.user32.SetWindowsHookExA(
@@ -201,6 +207,9 @@ class Keyboard:
         atexit.register(windll.user32.UnhookWindowsHookEx, self.mouse_hook)
 
     def disable_hook(self):
+        """ Removes the keyboard and mouse hooks / callbacks
+
+        """
         if not self.enabled:
             return
         self.enabled = False
@@ -210,6 +219,9 @@ class Keyboard:
         self.mouse_hook = None
 
     def run_stash_macro(self):
+        """ Loop that gets messages from windows os and dispatch them
+
+        """
         while self.enabled:
             try:
                 msg = ctypes.wintypes.MSG()
@@ -224,29 +236,49 @@ class Keyboard:
 if os.name == "nt" and STASHTAB_SCROLLING:
 
     class KBDLLHOOKSTRUCT(Structure):
+        """ A structure representing a keyboard input event on Windows
+            used to convert the data pointed to by lparam
+            into a easier readable format
+            https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-kbdllhookstruct
+        """
         _fields_ = [
-            ("vkCode", DWORD),
-            ("scanCode", DWORD),
-            ("flags", DWORD),
-            ("time", DWORD),
-            ("dwExtraInfo", ULONG),
+            ("vkCode", DWORD), # virtual key-code
+            ("scanCode", DWORD), # hardware scan code
+            ("flags", DWORD), # flags for the event
+            ("time", DWORD), # time of message
+            ("dwExtraInfo", ULONG), # pointer to extra info
         ]
 
     kb_macro = Keyboard()
 
     def keyboard_callback(ncode, wparam, lparam):
-        if not GetWindowText(GetForegroundWindow()) == "Path of Exile":
-            kb_macro.ctrl_pressed = False
+        """ Callback function windows calls
+            when a keyboard event is triggered
+
+        :param ncode: 
+            Set by the os, if less than 0 call next hook immediately
+            (Technically its always 0 for keyboard callback)
+        :param wparam: 
+            Identifies the keyboard message
+            can be WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, or WM_SYSKEYUP.
+        :param lparam: 
+            Pointer to a KBDLLHOOKSTRUCT struct
+
+        :return: CallNextHookEx()
+        """
         if (
             ncode >= 0
-            and GetWindowText(GetForegroundWindow()) == "Path of Exile"
         ):
             key = KBDLLHOOKSTRUCT.from_address(lparam)
             if key.vkCode == win32con.VK_LCONTROL:
-                if wparam == win32con.WM_KEYDOWN:
+                if (
+                    wparam == win32con.WM_KEYDOWN
+                    ):
+                    # If PoE is in focus and ctrl is pressed down
                     kb_macro.ctrl_pressed = True
-                elif wparam == win32con.WM_KEYUP:
+                else:
                     kb_macro.ctrl_pressed = False
+        # If we are running on 64 bits, make sure we dont lose data
         if bits == 64:
             return windll.user32.CallNextHookEx(
                 ctypes.c_longlong(kb_macro.keyboard_hook),
@@ -260,31 +292,53 @@ if os.name == "nt" and STASHTAB_SCROLLING:
             )
 
     class MSLLHOOKSTRUCT(Structure):
+        """ A structure representing a mouse input event on Windows
+            used to convert the data pointed to by lparam
+            into a easier readable format
+            https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-msllhookstruct
+        """
         _fields_ = [
-            ("pt", POINT),
-            ("mouseData", DWORD),
-            ("flags", DWORD),
-            ("time", DWORD),
-            ("dwExtraInfo", ULONG),
+            ("pt", POINT), # mouse coordinates
+            ("mouseData", DWORD), # flags for which button and what state it entered
+            ("flags", DWORD), # flags for the event
+            ("time", DWORD), # time the event happened
+            ("dwExtraInfo", ULONG), # pointer to extra info
         ]
 
     def mouse_callback(ncode, wparam, lparam):
-        if (
+        """ Callback function windows calls
+            when a mouse event is triggered
+
+        :param ncode: 
+            Set by the os, if less than 0 call next hook immediately
+            (Technically its always 0 for mouse callback)
+        :param wparam: 
+            Identifies the mouse message
+            can be WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, 
+            WM_MOUSEWHEEL, WM_MOUSEHWHEEL, WM_RBUTTONDOWN, or WM_RBUTTONUP.
+        :param lparam: 
+            Pointer to a MSLLHOOKSTRUCT struct
+
+        :return: CallNextHookEx(), or 1 if its blocking the input
+        """
+        if ( # If we are in Path of Exile 
+            # and mouse wheel is scrolled
+            # and ctrl is down
             ncode >= 0
             and kb_macro.ctrl_pressed
             and GetWindowText(GetForegroundWindow()) == "Path of Exile"
             and wparam == win32con.WM_MOUSEWHEEL
         ):
             data = MSLLHOOKSTRUCT.from_address(lparam)
+            # get mouse wheel delta
             a = ctypes.c_short(data.mouseData >> 16).value
-            if a > 0:  # up
+            if a > 0:  # mouse wheel up
                 kb_macro.press_and_release("left")
-                return 1
-            elif a < 0:  # down
+                return 1 # Block the input from going to PoE
+            elif a < 0:  # mouse wheel down
                 kb_macro.press_and_release("right")
-                return 1
-        if not GetWindowText(GetForegroundWindow()) == "Path of Exile":
-            kb_macro.ctrl_pressed = False
+                return 1 # Block the input from going to PoE
+        # If we are running on 64 bits, make sure we dont lose data
         if bits == 64:
             return windll.user32.CallNextHookEx(
                 ctypes.c_longlong(kb_macro.mouse_hook),
@@ -298,23 +352,34 @@ if os.name == "nt" and STASHTAB_SCROLLING:
             )
 
     def setup():
-        #                               (this, ncode, wparam, lparam)
+        """ Registers the keyboard and mouse callbacks
+            with the windows os and starts the message loop
+
+        """
+        # Helper to convert python function to a c function with args (this,ncode, wparam,lparam)
         c_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, WPARAM, LPARAM)
+        # Convert keyboard and mouse callback
         kc = c_func(keyboard_callback)
         mc = c_func(mouse_callback)
+        # Set the hooks, register callback with os
         kb_macro.enable_hook(kc, mc)
+        # Handle message loop
         kb_macro.run_stash_macro()
 
     p = Process(target=setup, args=())
 
 
 def start_stash_scroll():
+    """ Starts a new daemon thread and calls setup
+    """
     if os.name == "nt" and STASHTAB_SCROLLING:
         p.daemon = True
         p.start()
 
 
 def stop_stash_scroll():
+    """ Disables the hooks and stops the thread
+    """
     if os.name == "nt" and STASHTAB_SCROLLING:
         kb_macro.disable_hook()
         p.terminate()
