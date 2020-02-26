@@ -1,4 +1,3 @@
-![Logo](/images/logo.png)
 # Path of Accounting [![Travis](https://img.shields.io/travis/Ethck/Path-of-Accounting.svg)](https://travis-ci.org/Ethck/Path-of-Accounting) [![Discord](https://img.shields.io/discord/667548003820634132.svg)](https://discord.gg/BUV2x6N)
 
 Path of Accounting is a replacement of POE TradeMacro that utilizes Path of Exile's Official API. Built from the ground up, Path of Accounting is lightning fast and has support for just about every item in the game.
