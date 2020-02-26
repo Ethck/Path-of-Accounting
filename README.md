@@ -2,7 +2,6 @@
 
 Path of Accounting is a replacement of POE TradeMacro that utilizes Path of Exile's Official API. Built from the ground up, Path of Accounting is lightning fast and has support for just about every item in the game.
 
-Path of Accounting is undergoing a complete rewrite currently (End of Jan 2020). Please be patient as we work to bring a better experience to the community.
 Path of Accounting supports the following features right now:
 * Currency Evaluation
 * Unique Item Evaluation
