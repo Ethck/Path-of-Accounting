@@ -146,7 +146,7 @@ class TestItemLookup(unittest.TestCase):
 
                     # Callout to API and price the item
                     with self.assertLogs(level="INFO") as logger:
-                        Accounting.price_item(items[i])
+                        Accounting.basic_search(items[i])
                         [output] = logger.output[-1:]
 
                         # Get the expected condition
