@@ -61,6 +61,7 @@ Hotkeys!
 | alt+w | Open item in wiki |
 | alt+c | Base price check |
 | alt+f | Weapon stat check |
+| alt+v | Advanced price check |
 
 
 For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
