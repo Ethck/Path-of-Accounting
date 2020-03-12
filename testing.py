@@ -15,8 +15,8 @@ from tests.mocks import *
 from tests.sampleItems import items
 from utils import config, web
 
-LOOKUP_URL = "https://www.pathofexile.com/api/trade/search/Metamorph"
-EXCHANGE_URL = "https://www.pathofexile.com/api/trade/exchange/Metamorph"
+LOOKUP_URL = "https://www.pathofexile.com/api/trade/search/Standard"
+EXCHANGE_URL = "https://www.pathofexile.com/api/trade/exchange/Standard"
 
 
 class TestItemLookup(unittest.TestCase):
