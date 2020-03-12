@@ -14,6 +14,13 @@ from utils.web import (
     get_ninja_bases,
 )
 
+class ModInfo:
+    def __init__(self,mod, m_min,m_max,option):
+        self.mod = mod
+        self.min = m_min
+        self.max = m_max
+        self.option = option
+        
 
 class BaseItem:
     """Base class that holds default values for all items."""
@@ -21,6 +28,7 @@ class BaseItem:
     def __init__(self, name):
         self.name = name
         self.online = "online"
+        self.mods = []
 
     def set_offline(self):
         self.online = "any"
@@ -54,26 +62,15 @@ class BaseItem:
         """
         mods = []
         for e in modifiers:
-            if e[1]:
-                if e[0].id == "enchant.stat_2954116742":
-                    mods.append({"id": e[0].id, "value": {"option": e[1]}})
-                else:
-                    try:
-                        if float(e[1]) < 0:
-                            mods.append(
-                                {"id": e[0].id, "value": {"max": float(e[1])}}
-                            )
-                        else:
-                            mods.append(
-                                {"id": e[0].id, "value": {"min": float(e[1])}}
-                            )
-                    except ValueError:
-                        if e[1]:
-                            mods.append(
-                                {"id": e[0].id, "value": {"option": e[1]}}
-                            )
-            else:
-                mods.append({"id": e[0].id})
+            data = {
+                "id": e.mod.id, 
+                "value": {
+                    "option": e.option,
+                    "max": e.max,
+                    "min": e.min,
+                    }
+                }
+            mods.append(data)
         json["query"]["stats"][0]["filters"] = mods
         return json
 
@@ -168,12 +165,13 @@ class Item(BaseItem):
         print(f"[Item Level] {self.ilevel}")
         print(f"[Quality] {self.quality}")
         for mod in self.mods:
-            if mod[1]:
-                print(
-                    f"[Mod] {mod[0].text}: [{Fore.YELLOW}{mod[1]}{Fore.RESET}]"
-                )
-            else:
-                print(f"[Mod] {mod[0].text}")
+            t = f"[Mod] {mod.mod.text}"
+            if mod.min:
+                t += f": [{Fore.YELLOW}{mod.min}{Fore.RESET}]"
+            if mod.max:
+                t += f": [{Fore.YELLOW}{mod.max}{Fore.RESET}]"
+
+            print(t)
 
     def get_json(self):
         json = super().get_json()
@@ -288,31 +286,30 @@ class Item(BaseItem):
         nMods = []
         for mod in self.mods:
 
-            if mod[0].id in solo_resist_ids:
-                total_ele_resists += float(mod[1])
-            elif mod[0].id in dual_resist_ids:
-                total_ele_resists += 2 * float(mod[1])
-            elif mod[0].id in triple_resist_ids:
-                total_ele_resists += 3 * float(mod[1])
-            elif mod[0].id in solo_chaos_resist_ids:
-                total_chaos_resist += float(mod[1])
-            elif mod[0].id in dual_chaos_resist_ids:
-                total_ele_resists += float(mod[1])
-                total_chaos_resist += float(mod[1])
-            elif mod[0].id in life_ids:
-                total_life += float(mod[1])
+            if mod.mod.id in solo_resist_ids:
+                total_ele_resists += float(mod.min)
+            elif mod.mod.id in dual_resist_ids:
+                total_ele_resists += 2 * float(mod.min)
+            elif mod.mod.id in triple_resist_ids:
+                total_ele_resists += 3 * float(mod.min)
+            elif mod.mod.id in solo_chaos_resist_ids:
+                total_chaos_resist += float(mod.min)
+            elif mod.mod.id in dual_chaos_resist_ids:
+                total_ele_resists += float(mod.min)
+                total_chaos_resist += float(mod.min)
+            elif mod.mod.id in life_ids:
+                total_life += float(mod.min)
             else:
                 nMods.append(mod)
         self.mods = nMods
 
         if total_ele_resists > 0:
-            mod = (
-                get_item_modifiers_by_id(
+            modType = get_item_modifiers_by_id(
                     "pseudo.pseudo_total_elemental_resistance"
-                ),
-                total_ele_resists,
-            )
+                )
+            mod = ModInfo(modType, total_ele_resists, None, None)
             self.mods.append(mod)
+
             logging.info(
                 "[o] Combining the "
                 + Fore.CYAN
@@ -328,13 +325,12 @@ class Item(BaseItem):
             )
 
         if total_chaos_resist > 0:
-            mod = (
-                get_item_modifiers_by_id(
+            modType = get_item_modifiers_by_id(
                     "pseudo.pseudo_total_chaos_resistance"
-                ),
-                total_chaos_resist,
-            )
+                )
+            mod = ModInfo(modType, total_chaos_resist, None, None)
             self.mods.append(mod)
+
             logging.info(
                 "[o] Combining the "
                 + Fore.CYAN
@@ -349,10 +345,10 @@ class Item(BaseItem):
             )
 
         if total_life > 0:
-            mod = (
-                get_item_modifiers_by_id("pseudo.pseudo_total_life"),
-                total_life,
-            )
+            modType = get_item_modifiers_by_id(
+                    "pseudo.pseudo_total_life"
+                )
+            mod = ModInfo(modType, total_life, None, None)
             self.mods.append(mod)
             logging.info(
                 "[o] Combining the "
@@ -371,17 +367,18 @@ class Item(BaseItem):
     def relax_modifiers(self):
         if self.rarity == "unique":  # dont do this on uniques
             return
-        nMods = []
+            
         for mod in self.mods:
-            if mod[0].type == ItemModifierType.ENCHANT:
-                nMods.append(mod)
-                continue
-            try:
-                n = (mod[0], float(mod[1]) - (float(mod[1]) * 0.1))
-                nMods.append(n)
-            except ValueError:
-                nMods.append(mod)
-        self.mods = nMods
+            if mod.max:
+                if mod.max > 0:
+                    mod.max = mod.max * 1.1
+                else:
+                    mod.max = mod.max * 0.9
+            if mod.min:
+                if mod.min > 0:
+                    mod.min = mod.min * 0.9
+                else:
+                    mod.min = mod.min * 1.1
 
     def remove_bad_mods(self):
         """Mods to remove first if found on any individual item if no matches are found before relaxing"""
@@ -415,9 +412,9 @@ class Item(BaseItem):
         found = False
         for mod in self.mods:
             for bad in bad_mod_list:
-                if bad in mod[0].text:
+                if bad in mod.mod.text:
                     found = True
-                    logging.info(f"[!] Removed {mod[0].text} From Search")
+                    logging.info(f"[!] Removed {mod.mod.text} From Search")
             if not found:
                 nMods.append(mod)
             found = False
@@ -516,7 +513,7 @@ class Weapon(Item):
         # Remove mods that affect weapon stats, and search for weapon stats instead
         nMods = []
         for mod in self.mods:
-            mod_text = mod[0].text
+            mod_text = mod.mod.text
             if (
                 ("Adds # to #" in mod_text and "to Spells" not in mod_text)
                 or (mod_text == "#% increased Critical Strike Chance")
@@ -602,7 +599,7 @@ class Organ(BaseItem):
         super().print()
         print(f"[Item Level] {self.ilevel}")
         for mod in self.mods:
-            print(f"[Mod] {mod[0].text}")
+            print(f"[Mod] {mod.mod.text}")
 
     def get_json(self):
         json = super().get_json()
@@ -627,7 +624,7 @@ class Flask(BaseItem):
         print(f"[Base] {self.base}")
         print(f"[Quality] {self.quality}")
         for mod in self.mods:
-            print(f"[Mod] {mod[0].text}")
+            print(f"[Mod] {mod.mod.text}")
 
     def get_json(self):
         json = super().get_json()
@@ -696,7 +693,7 @@ class Map(BaseItem):
         print(f"[Base] {self.base}")
         print(f"[Item Level] {self.ilevel}")
         for mod in self.map_mods:
-            print(f"[Mod] {mod[0].text}")
+            print(f"[Mod] {mod.mod.text}")
 
     def get_json(self):
         json = super().get_json()
@@ -754,6 +751,9 @@ def parse_mod(mod_text: str, mod_values, category=""):
     mod = None
     mod_type = ItemModifierType.EXPLICIT
 
+    if mod_values == []:
+        mod_values = ""
+
     if mod_text.startswith("Allocates"):
         mod_values = mod_text[10:]
         element = ("Allocates #", ItemModifierType.ENCHANT)
@@ -807,8 +807,9 @@ def parse_mod(mod_text: str, mod_values, category=""):
 
     if not mod:
         if not mod_values:
-            mod_text = "#% chance to " + mod_text
-        mod = get_item_modifiers_by_text((mod_text, ItemModifierType.ENCHANT))
+            mod = get_item_modifiers_by_text(("#% chance to " + mod_text, ItemModifierType.ENCHANT))
+        else:
+            mod = get_item_modifiers_by_text((mod_text, ItemModifierType.ENCHANT))
 
     if (
         not mod
@@ -825,10 +826,30 @@ def parse_mod(mod_text: str, mod_values, category=""):
                 mod_values = str(float(mod_values) * (-1))
             mod = get_item_modifiers_by_text((mod_text, mod_type))
     except ValueError:
-        return None, ""
+        pass
+
+    m_min = None
+    m_max = None
+    option = None
+
+    if not mod:
+        return None
+    # Atunements is a number but it needs to be in options
+    if mod.id == "enchant.stat_2954116742":
+        option = mod_values
+    else:
+        try:
+            if float(mod_values) < 0:
+                m_max = float(mod_values)
+            else:
+                m_min = float(mod_values)
+        except ValueError:
+            if mod_values:
+                option = mod_values
 
     prev_mod = mod_text
-    return mod, mod_values
+    m = ModInfo(mod, m_min, m_max, option)
+    return m
 
 
 def isCurrency(name: str, rarity: str, regions: list):
@@ -915,9 +936,9 @@ def parse_flask(regions: list, rarity: str, quality: int, name: str):
             mod_values = re.findall(r"[+-]?\d+\.?\d?\d?", line)
             mod_values = ",".join(["".join(v) for v in mod_values])
             mod_text = re.sub(r"[+-]?\d+\.?\d?\d?", "#", line)
-            mod, mod_values = parse_mod(mod_text, mod_values)
+            mod = parse_mod(mod_text, mod_values)
             if mod:
-                mods.append((mod, mod_values))
+                mods.append(mod)
 
     if rarity != "Unique":
         base = get_base("Flasks", name)
@@ -1071,13 +1092,10 @@ def parse_item_info(text: str):
         ):
             continue
         elif first_line.count(" ") == 1 and first_line.endswith("Item"):
-            if first_line[:-5] in influenceText:
-                influences.append(first_line[:-5].lower())
-                if regions[i][1].count(" ") == 1 and regions[i][1].endswith(
-                    "Item"
-                ):
-                    if regions[i][1][:-5] in influenceText:
-                        influences.append(regions[i][1][:-5].lower())
+            for line in region[i]:
+                if line[:-5] in influenceText:
+                    influences.append(line[:-5].lower())
+        
         elif i > 1 and not foundExplicit:
             for line in regions[i]:
                 if "Veiled Prefix" in line or "Veiled Suffix" in line:
@@ -1122,10 +1140,10 @@ def parse_item_info(text: str):
                     mod = None
                     if not mod_text:
                         mod_text = line
-                    mod, mod_values = parse_mod(mod_text, mod_values, category)
+                    mod = parse_mod(mod_text, mod_values, category)
                     if mod:
-                        mods.append((mod, mod_values))
-                        if mod.type == ItemModifierType.EXPLICIT:
+                        mods.append(mod)
+                        if mod.mod.type == ItemModifierType.EXPLICIT:
                             foundExplicit = True  # Dont parse flavor text
                     else:
                         logging.info(f"Unable to find mod: {line}")

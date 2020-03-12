@@ -28,15 +28,12 @@ from utils.web import (
 
 
 def adv_search(text):
-    try:
-        item = parse_item_info(text)
-        if not item:
-            return
-        if config.USE_GUI:
-            advancedSearch.add_item(item)
-            advancedSearch.create_at_cursor()
-    except:
-        pass
+    item = parse_item_info(text)
+    if not item:
+        return
+    if config.USE_GUI:
+        advancedSearch.add_item(item)
+        advancedSearch.create_at_cursor()
 
 
 def basic_search(text):
