@@ -17,10 +17,11 @@ from utils.input import (
 )
 from utils.parse import (
     get_ninja_bases,
-    get_response,
-    price_item,
+    basic_search,
     search_ninja_base,
+    adv_search,
 )
+from utils.common import get_response
 from utils.web import (
     find_latest_update,
     get_leagues,
@@ -73,8 +74,11 @@ def hotkey_handler(keyboard, hotkey):
                 information.add_info(stats)
                 information.create_at_cursor()
 
+    elif hotkey == "alt+v":
+        adv_search(text)
+
     else:  # alt+d, ctrl+c
-        price_item(text)
+        basic_search(text)
 
 
 def watch_keyboard(keyboard, use_hotkeys):
@@ -109,6 +113,10 @@ def watch_keyboard(keyboard, use_hotkeys):
 
         keyboard.add_hotkey(
             "<alt>+f", lambda: hotkey_handler(keyboard, "alt+f")
+        )
+
+        keyboard.add_hotkey(
+            "<alt>+v", lambda: hotkey_handler(keyboard, "alt+v")
         )
 
     # Clipboard

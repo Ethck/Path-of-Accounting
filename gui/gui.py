@@ -210,6 +210,11 @@ class ActiveWindow(DisplayWindow):
     def run(self):
         self.frame.mainloop()
 
+    def create_at_cursor(self):
+        super().create_at_cursor()
+        set_foreground_window(self.frame.winfo_id())
+        self.run()
+
     def add_callbacks(self):
         self.frame.bind("<Escape>", self.close)
         self.frame.bind("<FocusOut>", self.close)
