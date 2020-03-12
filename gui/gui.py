@@ -217,6 +217,10 @@ class ActiveWindow(DisplayWindow):
         set_foreground_window(self.frame.winfo_id())
         self.run()
 
+    def lost_focus(self, event=None):
+        if not self.frame.focus_get():
+            self.close()
+            
     def add_callbacks(self):
         self.frame.bind("<Escape>", self.close)
-        self.frame.bind("<FocusOut>", self.close)
+        self.frame.bind("<FocusOut>", self.lost_focus)
