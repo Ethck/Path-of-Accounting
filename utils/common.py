@@ -157,11 +157,15 @@ def price_item(item):
             if config.USE_GUI:
                 priceInformation.add_price_information(data, offline)
                 priceInformation.create_at_cursor()
+            
+            return results
 
         else:
             logging.info("[!] No results!")
             if config.USE_GUI:
                 notEnoughInformation.create_at_cursor()
+            
+            return 0
 
     except InvalidAPIResponseException:
         logging.info(

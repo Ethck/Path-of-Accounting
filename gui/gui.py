@@ -46,7 +46,9 @@ def init_gui():
 def close_all_windows():
     if USE_GUI:
         for x in components:
-            x.close()
+            # Should be AdvancedSearch but circ ref atm..
+            if not isinstance(x, ActiveWindow):
+                x.close()
 
 
 def check_timeout_gui():
