@@ -280,7 +280,7 @@ class TestBaseLookup(unittest.TestCase):
         with requests_mock.Mocker(real_http=True) as mock:
             web.ninja_bases = []
             mock.get(
-                "https://poe.ninja/api/data/itemoverview?league=Metamorph&type=BaseType&language=en",
+                "https://poe.ninja/api/data/itemoverview?league=Standard&type=BaseType&language=en",
                 json=data,
             )
             mock.get(
