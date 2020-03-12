@@ -49,13 +49,19 @@ Hotkeys!
 | alt+f | Weapon stat check |
 
 Sample searches:
+
 ![Basic Search 1](/images/sampleSearch1.png)
+
 ![Basic Search 2](/images/sampleSearch2.png)
 
+
 Base Search
+
 ![Base Search](/images/baseSearch.png)
 
+
 Advanced Search
+
 ![Advanced Search](/images/advancedSearch.png)
 
 For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
