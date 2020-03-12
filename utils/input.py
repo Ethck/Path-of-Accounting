@@ -78,12 +78,12 @@ class HotkeyWatcher:
             self.combination_to_function[hotkey]()
         except Empty:
             return
-        except Exception as e:
+        #except Exception as e:
             # Do not fail
-            print(
-                "Unexpected exception occurred while handling hotkey: "
-                + str(e)
-            )
+            #print(
+            #    "Unexpected exception occurred while handling hotkey: "
+            #    + str(e)
+            #)
 
         self.queue.task_done()
 
