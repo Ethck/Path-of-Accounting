@@ -1,4 +1,5 @@
 import os
+import traceback
 from queue import Empty, Queue
 from tkinter import TclError
 
@@ -78,12 +79,10 @@ class HotkeyWatcher:
             self.combination_to_function[hotkey]()
         except Empty:
             return
-        #except Exception as e:
+        except Exception:
             # Do not fail
-            #print(
-            #    "Unexpected exception occurred while handling hotkey: "
-            #    + str(e)
-            #)
+            print("Unexpected exception occurred while handling hotkey: ")
+            traceback.print_exc()
 
         self.queue.task_done()
 
@@ -174,14 +173,14 @@ class Keyboard:
     def enable_hook(self, keyboard_callback, mouse_callback):
         """ Registers a keyboard callback and a mouse callback
             with windows os, if its not already enabled.
-            
+
             Also unregisters the callbacks incase of program crash
 
             :param: keyboard_callback
-                    callback function for keyboard events, 
+                    callback function for keyboard events,
                     must be in a c function format
             :param: mouse_callback
-                    callback function for mouse events, 
+                    callback function for mouse events,
                     must be in a c function format
         """
         if self.enabled:
@@ -241,12 +240,13 @@ if os.name == "nt" and STASHTAB_SCROLLING:
             into a easier readable format
             https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-kbdllhookstruct
         """
+
         _fields_ = [
-            ("vkCode", DWORD), # virtual key-code
-            ("scanCode", DWORD), # hardware scan code
-            ("flags", DWORD), # flags for the event
-            ("time", DWORD), # time of message
-            ("dwExtraInfo", ULONG), # pointer to extra info
+            ("vkCode", DWORD),  # virtual key-code
+            ("scanCode", DWORD),  # hardware scan code
+            ("flags", DWORD),  # flags for the event
+            ("time", DWORD),  # time of message
+            ("dwExtraInfo", ULONG),  # pointer to extra info
         ]
 
     kb_macro = Keyboard()
@@ -255,25 +255,21 @@ if os.name == "nt" and STASHTAB_SCROLLING:
         """ Callback function windows calls
             when a keyboard event is triggered
 
-        :param ncode: 
+        :param ncode:
             Set by the os, if less than 0 call next hook immediately
             (Technically its always 0 for keyboard callback)
-        :param wparam: 
+        :param wparam:
             Identifies the keyboard message
             can be WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, or WM_SYSKEYUP.
-        :param lparam: 
+        :param lparam:
             Pointer to a KBDLLHOOKSTRUCT struct
 
         :return: CallNextHookEx()
         """
-        if (
-            ncode >= 0
-        ):
+        if ncode >= 0:
             key = KBDLLHOOKSTRUCT.from_address(lparam)
             if key.vkCode == win32con.VK_LCONTROL:
-                if (
-                    wparam == win32con.WM_KEYDOWN
-                    ):
+                if wparam == win32con.WM_KEYDOWN:
                     # If PoE is in focus and ctrl is pressed down
                     kb_macro.ctrl_pressed = True
                 else:
@@ -297,31 +293,35 @@ if os.name == "nt" and STASHTAB_SCROLLING:
             into a easier readable format
             https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-msllhookstruct
         """
+
         _fields_ = [
-            ("pt", POINT), # mouse coordinates
-            ("mouseData", DWORD), # flags for which button and what state it entered
-            ("flags", DWORD), # flags for the event
-            ("time", DWORD), # time the event happened
-            ("dwExtraInfo", ULONG), # pointer to extra info
+            ("pt", POINT),  # mouse coordinates
+            (
+                "mouseData",
+                DWORD,
+            ),  # flags for which button and what state it entered
+            ("flags", DWORD),  # flags for the event
+            ("time", DWORD),  # time the event happened
+            ("dwExtraInfo", ULONG),  # pointer to extra info
         ]
 
     def mouse_callback(ncode, wparam, lparam):
         """ Callback function windows calls
             when a mouse event is triggered
 
-        :param ncode: 
+        :param ncode:
             Set by the os, if less than 0 call next hook immediately
             (Technically its always 0 for mouse callback)
-        :param wparam: 
+        :param wparam:
             Identifies the mouse message
-            can be WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE, 
+            can be WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSEMOVE,
             WM_MOUSEWHEEL, WM_MOUSEHWHEEL, WM_RBUTTONDOWN, or WM_RBUTTONUP.
-        :param lparam: 
+        :param lparam:
             Pointer to a MSLLHOOKSTRUCT struct
 
         :return: CallNextHookEx(), or 1 if its blocking the input
         """
-        if ( # If we are in Path of Exile 
+        if (  # If we are in Path of Exile
             # and mouse wheel is scrolled
             # and ctrl is down
             ncode >= 0
@@ -334,10 +334,10 @@ if os.name == "nt" and STASHTAB_SCROLLING:
             a = ctypes.c_short(data.mouseData >> 16).value
             if a > 0:  # mouse wheel up
                 kb_macro.press_and_release("left")
-                return 1 # Block the input from going to PoE
+                return 1  # Block the input from going to PoE
             elif a < 0:  # mouse wheel down
                 kb_macro.press_and_release("right")
-                return 1 # Block the input from going to PoE
+                return 1  # Block the input from going to PoE
         # If we are running on 64 bits, make sure we dont lose data
         if bits == 64:
             return windll.user32.CallNextHookEx(

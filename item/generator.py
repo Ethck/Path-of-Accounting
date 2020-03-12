@@ -14,13 +14,14 @@ from utils.web import (
     get_ninja_bases,
 )
 
+
 class ModInfo:
-    def __init__(self,mod, m_min,m_max,option):
+    def __init__(self, mod, m_min, m_max, option):
         self.mod = mod
         self.min = m_min
         self.max = m_max
         self.option = option
-        
+
 
 class BaseItem:
     """Base class that holds default values for all items."""
@@ -63,13 +64,9 @@ class BaseItem:
         mods = []
         for e in modifiers:
             data = {
-                "id": e.mod.id, 
-                "value": {
-                    "option": e.option,
-                    "max": e.max,
-                    "min": e.min,
-                    }
-                }
+                "id": e.mod.id,
+                "value": {"option": e.option, "max": e.max, "min": e.min,},
+            }
             mods.append(data)
         json["query"]["stats"][0]["filters"] = mods
         return json
@@ -143,6 +140,7 @@ class Item(BaseItem):
         mirrored,
         veiled,
         synthesised,
+        text,
     ):
         super().__init__(name)
         self.rarity = rarity
@@ -158,6 +156,7 @@ class Item(BaseItem):
         self.mirrored = mirrored
         self.veiled = veiled
         self.synthesised = synthesised
+        self.text = text
 
     def print(self):
         super().print()
@@ -305,8 +304,8 @@ class Item(BaseItem):
 
         if total_ele_resists > 0:
             modType = get_item_modifiers_by_id(
-                    "pseudo.pseudo_total_elemental_resistance"
-                )
+                "pseudo.pseudo_total_elemental_resistance"
+            )
             mod = ModInfo(modType, total_ele_resists, None, None)
             self.mods.append(mod)
 
@@ -326,8 +325,8 @@ class Item(BaseItem):
 
         if total_chaos_resist > 0:
             modType = get_item_modifiers_by_id(
-                    "pseudo.pseudo_total_chaos_resistance"
-                )
+                "pseudo.pseudo_total_chaos_resistance"
+            )
             mod = ModInfo(modType, total_chaos_resist, None, None)
             self.mods.append(mod)
 
@@ -345,9 +344,7 @@ class Item(BaseItem):
             )
 
         if total_life > 0:
-            modType = get_item_modifiers_by_id(
-                    "pseudo.pseudo_total_life"
-                )
+            modType = get_item_modifiers_by_id("pseudo.pseudo_total_life")
             mod = ModInfo(modType, total_life, None, None)
             self.mods.append(mod)
             logging.info(
@@ -367,7 +364,7 @@ class Item(BaseItem):
     def relax_modifiers(self):
         if self.rarity == "unique":  # dont do this on uniques
             return
-            
+
         for mod in self.mods:
             if mod.max:
                 if mod.max > 0:
@@ -444,6 +441,7 @@ class Weapon(Item):
         mirrored,
         veiled,
         synthesised,
+        text,
     ):
         super().__init__(
             name,
@@ -460,6 +458,7 @@ class Weapon(Item):
             mirrored,
             veiled,
             synthesised,
+            text,
         )
         self.pdps = None
         self.edps = None
@@ -807,9 +806,13 @@ def parse_mod(mod_text: str, mod_values, category=""):
 
     if not mod:
         if not mod_values:
-            mod = get_item_modifiers_by_text(("#% chance to " + mod_text, ItemModifierType.ENCHANT))
+            mod = get_item_modifiers_by_text(
+                ("#% chance to " + mod_text, ItemModifierType.ENCHANT)
+            )
         else:
-            mod = get_item_modifiers_by_text((mod_text, ItemModifierType.ENCHANT))
+            mod = get_item_modifiers_by_text(
+                (mod_text, ItemModifierType.ENCHANT)
+            )
 
     if (
         not mod
@@ -1092,10 +1095,15 @@ def parse_item_info(text: str):
         ):
             continue
         elif first_line.count(" ") == 1 and first_line.endswith("Item"):
-            for line in region[i]:
-                if line[:-5] in influenceText:
-                    influences.append(line[:-5].lower())
-        
+            if first_line[:-5] in influenceText:
+                influences.append(first_line[:-5].lower())
+                if len(regions[i]) > 1:
+                    if regions[i][1].count(" ") == 1 and regions[i][
+                        1
+                    ].endswith("Item"):
+                        if regions[i][1][:-5] in influenceText:
+                            influences.append(regions[i][1][:-5].lower())
+
         elif i > 1 and not foundExplicit:
             for line in regions[i]:
                 if "Veiled Prefix" in line or "Veiled Suffix" in line:
@@ -1167,6 +1175,7 @@ def parse_item_info(text: str):
             mirrored,
             veiled,
             synthesised,
+            text,
         )
         weapon.parse_weapon_stats(regions)
         return weapon
@@ -1186,4 +1195,5 @@ def parse_item_info(text: str):
         mirrored,
         veiled,
         synthesised,
+        text,
     )
