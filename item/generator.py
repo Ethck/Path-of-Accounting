@@ -1073,6 +1073,11 @@ def parse_item_info(text: str):
         elif first_line.count(" ") == 1 and first_line.endswith("Item"):
             if first_line[:-5] in influenceText:
                 influences.append(first_line[:-5].lower())
+                if regions[i][1].count(" ") == 1 and regions[i][1].endswith(
+                    "Item"
+                ):
+                    if regions[i][1][:-5] in influenceText:
+                        influences.append(regions[i][1][:-5].lower())
         elif i > 1 and not foundExplicit:
             for line in regions[i]:
                 if "Veiled Prefix" in line or "Veiled Suffix" in line:
