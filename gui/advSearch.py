@@ -87,7 +87,7 @@ class AdvancedSearch(ActiveWindow):
 
                 # Entry
                 if mod[1]:  # If mod has values
-                    val = tkinter.IntVar()
+                    val = tkinter.StringVar()
                     val.set(mod[1])
                     e = tkinter.Entry(
                         self.frame,
@@ -98,7 +98,7 @@ class AdvancedSearch(ActiveWindow):
                         exportselection=0,
                     )
                     e.grid(row=j + 1, column=4, sticky="E", columnspan=1)
-                    val2 = tkinter.IntVar()
+                    val2 = tkinter.StringVar()
                     val2.set("max")
                     e2 = tkinter.Entry(
                         self.frame,
