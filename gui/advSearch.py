@@ -1,6 +1,6 @@
 import tkinter
-
-from gui.gui import ActiveWindow
+import time
+from gui.gui import ActiveWindow, close_all_windows
 from item.generator import Currency, Item
 from utils.common import get_response, price_item
 from utils.config import (
@@ -37,8 +37,12 @@ class AdvancedSearch(ActiveWindow):
 
     def search(self):
         self.edit_item()
-        price_item(self.item)
-        self.close()
+        results = price_item(self.item)
+        if results > 0:
+            self.close()
+        else:
+            time.sleep(1)
+            close_all_windows()
 
     def open_trade(self):
         self.edit_item()
