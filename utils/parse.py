@@ -5,15 +5,16 @@ from typing import Dict
 
 from colorama import Fore
 
+from gui.advSearch import advancedSearch
 from gui.windows import (
     baseResults,
     information,
     notEnoughInformation,
     priceInformation,
 )
-from gui.advSearch import advancedSearch
 from item.generator import *
 from utils import config
+from utils.common import get_trade_data, price_item
 from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL
 from utils.exceptions import InvalidAPIResponseException
 from utils.web import (
@@ -23,11 +24,6 @@ from utils.web import (
     open_exchange_site,
     open_trade_site,
     query_item,
-)
-
-from utils.common import (
-    price_item,
-    get_trade_data,
 )
 
 
@@ -41,7 +37,7 @@ def adv_search(text):
             advancedSearch.create_at_cursor()
     except:
         pass
-        
+
 
 def basic_search(text):
     """Pricing utility. Tries to price items by searching the API and gradually relaxing modifiers
@@ -49,6 +45,7 @@ def basic_search(text):
     :param text: The raw text of the item to search
     """
     item = parse_item_info(text)
+    logging.debug(item.get_json())
     if not item:
         return
     item.create_pseudo_mods()
@@ -64,7 +61,7 @@ def basic_search(text):
             )
             information.create_at_cursor()
         item.remove_bad_mods()
-    
+
     price_item(item)
 
 
@@ -75,6 +72,7 @@ def search_ninja_base(text):
     """
     NINJA_BASES = get_ninja_bases(LEAGUE)
     real_item = parse_item_info(text)
+    # logging.info(real_item.get_json())
     if not isinstance(real_item, Item):
         return
 
