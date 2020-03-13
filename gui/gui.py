@@ -46,7 +46,9 @@ def init_gui():
 def close_all_windows():
     if USE_GUI:
         for x in components:
-            x.close()
+            # Should be AdvancedSearch but circ ref atm..
+            if not isinstance(x, ActiveWindow):
+                x.close()
 
 
 def check_timeout_gui():
@@ -210,6 +212,15 @@ class ActiveWindow(DisplayWindow):
     def run(self):
         self.frame.mainloop()
 
+    def create_at_cursor(self):
+        super().create_at_cursor()
+        set_foreground_window(self.frame.winfo_id())
+        self.run()
+
+    def lost_focus(self, event=None):
+        if not self.frame.focus_get():
+            self.close()
+            
     def add_callbacks(self):
         self.frame.bind("<Escape>", self.close)
-        self.frame.bind("<FocusOut>", self.close)
+        self.frame.bind("<FocusOut>", self.lost_focus)

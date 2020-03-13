@@ -35,7 +35,21 @@ In order to change settings (like `league` and whether or not to use the `hotkey
 
 The program reads what is entered into your clipboard in real time and determines whether or not it is Path of Exile related, if it is not the info is immediately discarded. If it is a PoE item, it then queries the official API to determine pricing based on what everyone else has listed that item for.
 
-*Images coming soon*
+Sample searches:
+
+![Basic Search 1](/images/sampleSearch1.png)
+
+![Basic Search 2](/images/sampleSearch2.png)
+
+
+Base Search
+
+![Base Search](/images/baseSearch.png)
+
+
+Advanced Search
+
+![Advanced Search](/images/advancedSearch.png)
 
 Hotkeys!
 
@@ -47,6 +61,8 @@ Hotkeys!
 | alt+w | Open item in wiki |
 | alt+c | Base price check |
 | alt+f | Weapon stat check |
+| alt+v | Advanced price check |
+
 
 For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
 For those of you who want to help but don't know how to program, feel free to offer suggestions on the issues page! I can't make this tool better without knowing what everyone want.

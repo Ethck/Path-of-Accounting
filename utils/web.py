@@ -1,5 +1,7 @@
+import base64
 import logging
 import pathlib
+import traceback
 import webbrowser
 import zipfile
 from itertools import chain
@@ -7,6 +9,7 @@ from itertools import chain
 import requests
 from tqdm import tqdm
 
+import item.generator as ig
 from item.itemModifier import ItemModifier, ItemModifierType
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
@@ -378,3 +381,22 @@ def open_exchange_site(rid, league):
     url = f"https://www.pathofexile.com/trade/exchange/{league}/{rid}"
     logging.debug("Opening exchange site with url: %s" % url)
     webbrowser.open(url)
+
+
+def get_poe_prices_info(item):
+    try:
+        if isinstance(item, ig.Item):
+            league = bytes(LEAGUE, "utf-8")
+            results = requests.post(
+                b"http://poeprices.info/api?l="
+                + league
+                + b"&i="
+                + base64.b64encode(bytes(item.text, "utf-8"))
+            )
+            return results.json()
+        else:
+            return {}
+    except Exception:
+        logging.error("Could not retrieve data from poeprices.info")
+        logging.error(item.text)
+        logging.error(traceback.print_exc())

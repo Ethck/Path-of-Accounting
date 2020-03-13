@@ -8,7 +8,7 @@ from gui.gui import check_timeout_gui, close_all_windows, init_gui
 from gui.windows import information
 from item.generator import Currency, Weapon, parse_item_info
 from utils import config
-from utils.config import LEAGUE, USE_HOTKEYS
+from utils.config import USE_HOTKEYS
 from utils.input import (
     Keyboard,
     get_clipboard,
@@ -17,10 +17,11 @@ from utils.input import (
 )
 from utils.parse import (
     get_ninja_bases,
-    get_response,
-    price_item,
+    basic_search,
     search_ninja_base,
+    adv_search,
 )
+from utils.common import get_response
 from utils.web import (
     find_latest_update,
     get_leagues,
@@ -36,9 +37,8 @@ def hotkey_handler(keyboard, hotkey):
     :param keyboard: Keyboard object to determine status of keys
     :param hotkey: The triggered hotkey
     """
-    # Without this block, the clipboard's contents seem to always be from 1 before the current
-    if hotkey != "clipboard":
-        keyboard.press_and_release("ctrl+c")
+
+    keyboard.press_and_release("ctrl+c")
 
     time.sleep(0.1)
     text = get_clipboard()
@@ -53,9 +53,9 @@ def hotkey_handler(keyboard, hotkey):
         response = get_response(item)
         if response:
             if isinstance(item, Currency):
-                open_exchange_site(response["id"], LEAGUE)
+                open_exchange_site(response["id"], config.LEAGUE)
             else:
-                open_trade_site(response["id"], LEAGUE)
+                open_trade_site(response["id"], config.LEAGUE)
 
     elif hotkey == "alt+w":
         item = parse_item_info(text)
@@ -73,8 +73,11 @@ def hotkey_handler(keyboard, hotkey):
                 information.add_info(stats)
                 information.create_at_cursor()
 
+    elif hotkey == "alt+v":
+        adv_search(text)
+
     else:  # alt+d, ctrl+c
-        price_item(text)
+        basic_search(text)
 
 
 def watch_keyboard(keyboard, use_hotkeys):
@@ -111,11 +114,9 @@ def watch_keyboard(keyboard, use_hotkeys):
             "<alt>+f", lambda: hotkey_handler(keyboard, "alt+f")
         )
 
-    # Clipboard
-    # keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
-    keyboard.add_hotkey(
-        "<ctrl>+c", lambda: hotkey_handler(keyboard, "clipboard")
-    )
+        keyboard.add_hotkey(
+            "<alt>+v", lambda: hotkey_handler(keyboard, "alt+v")
+        )
 
     # Fetch the item's approximate price
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
@@ -141,17 +142,27 @@ if __name__ == "__main__":
     logging.info(
         f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}."
     )
+    if config.LEAGUE == "League" or config.LEAGUE == "League-Hardcore":
+        for league in valid_leagues:
+            if league != "Standard" and league != "Hardcore":
+                if config.LEAGUE == "League-Hardcore":
+                    if "Hardcore" in league:
+                        config.LEAGUE = league
+                if config.LEAGUE == "League":
+                    if not "Hardcore" in league:
+                        config.LEAGUE = league
 
-    if LEAGUE not in valid_leagues:
+
+    if config.LEAGUE not in valid_leagues:
         logging.info(
-            f"Unable to locate {Fore.MAGENTA}{LEAGUE}{Fore.RESET}, please check settings.cfg."
+            f"Unable to locate {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET}, please check settings.cfg."
         )
         logging.info(f"[!] Exiting, no valid league.")
     else:
-        NINJA_BASES = get_ninja_bases(LEAGUE)
+        NINJA_BASES = get_ninja_bases(config.LEAGUE)
         logging.info(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
         logging.info(
-            f"All values will be from the {Fore.MAGENTA}{LEAGUE}{Fore.RESET} league"
+            f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
         )
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
