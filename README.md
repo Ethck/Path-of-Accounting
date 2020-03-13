@@ -3,21 +3,13 @@
 Path of Accounting is a replacement of POE TradeMacro that utilizes Path of Exile's Official API. Built from the ground up, Path of Accounting is lightning fast and has support for just about every item in the game.
 
 Path of Accounting supports the following features right now:
-* Currency Evaluation
-* Unique Item Evaluation
-* non-Unique item support (including mod evaluations)
-* In game GUI (still developing, taking suggestions)
-* Global Hotkeys! (hideout, other copy, still working on more!)
-* League Selection!
-
-Support is currently being developed for:
-* Better logic on pricing items with many mods.
-* More hotkeys!
-
+* poeprices.info Machine-Learning algorithm for pricing Rares!
+* poeninja cached info for quick results!
+* Global Hotkeys! (hideout, ctrl+scroll, simple search, advanced search, and MORE!)
 
 If there is something that you want to see included in Path of Accounting, leave an issue here in GitHub.
 
-In order to use Path of Accounting right now follow these steps:
+In order to use Path of Accounting follow these steps:
 
 For WINDOWS:
 * Head over to the [releases](https://github.com/Ethck/Path-of-Accounting/releases) page, download the newest release, unzip, and execute the `Path of Accounting.exe` file found inside the unzipped folder..
@@ -31,7 +23,7 @@ For *NIX:
 For Everyone!
 * Copy an item you want to price into your clipboard (control+c or alt+d) and watch the output from the script and the GUI popup!
 
-In order to change settings (like `league` and whether or not to use the `hotkeys` and/or `gui`) go to where PoA is downloaded and open up the `settings.cfg` file.
+In order to change settings (like `league`and/or `gui`) go to where PoA is downloaded and open up the `settings.cfg` file.
 
 The program reads what is entered into your clipboard in real time and determines whether or not it is Path of Exile related, if it is not the info is immediately discarded. If it is a PoE item, it then queries the official API to determine pricing based on what everyone else has listed that item for.
 
