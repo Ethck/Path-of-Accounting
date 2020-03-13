@@ -11,7 +11,8 @@ from tqdm import tqdm
 
 import item.generator as ig
 from item.itemModifier import ItemModifier, ItemModifierType
-from utils.config import LEAGUE, RELEASE_URL, VERSION
+from utils import config
+from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
 ninja_bases = []
@@ -387,7 +388,7 @@ def open_exchange_site(rid, league):
 def get_poe_prices_info(item):
     try:
         if isinstance(item, ig.Item):
-            league = bytes(LEAGUE, "utf-8")
+            league = bytes(config.LEAGUE, "utf-8")
             try:
                 results = requests.post(
                     b"http://poeprices.info/api?l="
