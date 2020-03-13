@@ -51,7 +51,7 @@ def basic_search(text):
     data, results = get_trade_data(item)
 
     if results < MIN_RESULTS:
-        print(f"[!] Limited Results, Removing some item stats")
+        logging.info(f"[!] Limited Results, Removing some item stats")
         if config.USE_GUI:
             information.add_info(
                 "[!] Limited Results, Removing some item stats"
