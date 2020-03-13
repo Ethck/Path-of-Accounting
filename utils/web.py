@@ -1,5 +1,7 @@
+import base64
 import logging
 import pathlib
+import traceback
 import webbrowser
 import zipfile
 from itertools import chain
@@ -378,3 +380,19 @@ def open_exchange_site(rid, league):
     url = f"https://www.pathofexile.com/trade/exchange/{league}/{rid}"
     logging.debug("Opening exchange site with url: %s" % url)
     webbrowser.open(url)
+
+
+def get_poe_prices_info(item):
+    try:
+        results = requests.post(
+            b"http://poeprices.info/api?l="
+            + b"Standard"
+            + b"&i="
+            + base64.b64encode(bytes(item.text, "utf-8"))
+        )
+        logging.info(results.text)
+        return results.text
+    except Exception:
+        logging.error("Could not retrieve data from poeprices.info")
+        logging.error(item.text)
+        logging.error(traceback.print_exc())

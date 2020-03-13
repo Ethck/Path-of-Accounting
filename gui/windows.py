@@ -64,10 +64,7 @@ class NotEnoughInformation(DisplayWindow):
     def add_components(self):
         self.create_label_header("Not Enough Data", 0, 0, "WE")
         self.create_label_header(
-            "Could not find enough data to confidently price this item.",
-            0,
-            1,
-            "WE",
+            "Relying on data from PoEPrices", 0, 1, "WE",
         )
 
 

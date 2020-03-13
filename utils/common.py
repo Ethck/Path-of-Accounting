@@ -18,6 +18,7 @@ from utils.exceptions import InvalidAPIResponseException
 from utils.web import (
     exchange_currency,
     fetch,
+    get_poe_prices_info,
     open_exchange_site,
     open_trade_site,
     query_item,
@@ -141,7 +142,7 @@ def price_item(item):
 
         if data:
             item.print()
-            
+
             print_text = "[$] Prices: "
             for price, values in data.items():
                 print_text += (
@@ -157,14 +158,17 @@ def price_item(item):
             if config.USE_GUI:
                 priceInformation.add_price_information(data, offline)
                 priceInformation.create_at_cursor()
-            
+
             return results
 
         else:
             logging.info("[!] No results!")
+            price = get_poe_prices_info(item)
             if config.USE_GUI:
                 notEnoughInformation.create_at_cursor()
-            
+                if price:
+                    notEnoughInformation.add_poe_info_price(price)
+
             return 0
 
     except InvalidAPIResponseException:
@@ -208,7 +212,7 @@ def price_item(item):
         logging.info(f"{Fore.GREEN}Body:{Fore.RESET}")
         logging.info("Here is the item in question.")
         logging.info("====== ITEM DATA=====")
-        logging.info(f"{text}")
+        logging.info(f"{item.text}")
         logging.info("====== TRACEBACK =====")
         logging.info(exception)
         logging.info(
