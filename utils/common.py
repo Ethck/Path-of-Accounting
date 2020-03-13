@@ -40,7 +40,6 @@ def get_response(item):
 
     return response
 
-
 def get_trade_data(item):
     """For the given item, find current listings and retrieve prices & times
 
