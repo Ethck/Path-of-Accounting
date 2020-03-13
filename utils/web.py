@@ -10,7 +10,7 @@ import requests
 from tqdm import tqdm
 
 from item.itemModifier import ItemModifier, ItemModifierType
-from utils.config import LEAGUE, RELEASE_URL, VERSION
+from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
 ninja_bases = []
@@ -384,14 +384,13 @@ def open_exchange_site(rid, league):
 
 def get_poe_prices_info(item):
     try:
-        league = bytes(LEAGUE, "utf-8")
+        league = bytes(config.LEAGUE, "utf-8")
         results = requests.post(
             b"http://poeprices.info/api?l="
             + league
             + b"&i="
             + base64.b64encode(bytes(item.text, "utf-8"))
         )
-        logging.info(results.text)
         return results.json()
     except Exception:
         logging.error("Could not retrieve data from poeprices.info")

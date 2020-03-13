@@ -5,7 +5,6 @@ from math import floor
 from colorama import Fore
 
 from item.itemModifier import ItemModifierType
-from utils.config import LEAGUE
 from utils.currency import currency_global
 from utils.web import (
     get_base,

@@ -13,7 +13,7 @@ from gui.windows import (
 )
 from item.generator import *
 from utils import config
-from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL
+from utils.config import MIN_RESULTS, PROJECT_URL
 from utils.exceptions import InvalidAPIResponseException
 from utils.web import (
     exchange_currency,
@@ -34,9 +34,9 @@ def get_response(item):
     json = item.get_json()
 
     if isinstance(item, Currency):
-        response = exchange_currency(json, LEAGUE)
+        response = exchange_currency(json, config.LEAGUE)
     else:
-        response = query_item(json, LEAGUE)
+        response = query_item(json, config.LEAGUE)
 
     return response
 
@@ -165,9 +165,9 @@ def price_item(item):
             logging.info("[!] No results!")
             price = get_poe_prices_info(item)
             if config.USE_GUI:
-                notEnoughInformation.create_at_cursor()
                 if price:
                     notEnoughInformation.add_poe_info_price(price)
+                notEnoughInformation.create_at_cursor()
 
             return 0
 
