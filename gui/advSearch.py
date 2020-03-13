@@ -9,7 +9,6 @@ from utils.config import (
     GUI_FONT,
     GUI_FONT_COLOR,
     GUI_FONT_SIZE,
-    LEAGUE,
     MIN_RESULTS,
 )
 from utils.web import open_exchange_site, open_trade_site
@@ -58,9 +57,9 @@ class AdvancedSearch(ActiveWindow):
         response = get_response(self.item)
         if response:
             if isinstance(self.item, Currency):
-                open_exchange_site(response["id"], LEAGUE)
+                open_exchange_site(response["id"], config.LEAGUE)
             else:
-                open_trade_site(response["id"], LEAGUE)
+                open_trade_site(response["id"], config.LEAGUE)
         self.close()
 
     def add_components(self):

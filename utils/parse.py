@@ -15,7 +15,7 @@ from gui.windows import (
 from item.generator import *
 from utils import config
 from utils.common import get_trade_data, price_item
-from utils.config import LEAGUE, MIN_RESULTS, PROJECT_URL
+from utils.config import MIN_RESULTS, PROJECT_URL
 from utils.exceptions import InvalidAPIResponseException
 from utils.web import (
     exchange_currency,
@@ -67,7 +67,7 @@ def search_ninja_base(text):
 
     :param text: raw text of the item to be searched for
     """
-    NINJA_BASES = get_ninja_bases(LEAGUE)
+    NINJA_BASES = get_ninja_bases(config.LEAGUE)
     real_item = parse_item_info(text)
     # logging.info(real_item.get_json())
     if not isinstance(real_item, Item):

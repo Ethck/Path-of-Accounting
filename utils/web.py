@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import item.generator as ig
 from item.itemModifier import ItemModifier, ItemModifierType
-from utils.config import LEAGUE, RELEASE_URL, VERSION
+from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
 ninja_bases = []
