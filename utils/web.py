@@ -391,7 +391,6 @@ def get_poe_prices_info(item):
             + b"&i="
             + base64.b64encode(bytes(item.text, "utf-8"))
         )
-        logging.info(results.text)
         return results.json()
     except Exception:
         logging.error("Could not retrieve data from poeprices.info")
