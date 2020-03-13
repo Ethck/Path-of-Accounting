@@ -158,8 +158,6 @@ class Item(BaseItem):
         self.synthesised = synthesised
         self.text = text
 
-        logging.info(self.text)
-
     def print(self):
         super().print()
         print(f"[Base] {self.base}")
