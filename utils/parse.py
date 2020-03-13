@@ -67,7 +67,12 @@ def search_ninja_base(text):
 
     :param text: raw text of the item to be searched for
     """
-    NINJA_BASES = get_ninja_bases(config.LEAGUE)
+    try:
+        NINJA_BASES = get_ninja_bases(config.LEAGUE)
+    except Exception:
+        logging.info("Poe.ninja is unavailable right now.")
+        return 0
+
     real_item = parse_item_info(text)
     # logging.info(real_item.get_json())
     if not isinstance(real_item, Item):

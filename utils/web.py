@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import item.generator as ig
 from item.itemModifier import ItemModifier, ItemModifierType
-from utils.config import RELEASE_URL, VERSION
+from utils.config import LEAGUE, RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
 
 ninja_bases = []
@@ -214,8 +214,9 @@ def find_latest_update():
     remote = requests.get(url=RELEASE_URL).json()[0]
     # local version
     local = VERSION
-    # Check if the same
-    if remote["tag_name"] != local:
+    # Check if the same-
+    print(remote["tag_name"], local)
+    if remote["tag_name"] <= local:
         logging.info(
             "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
         )
@@ -387,13 +388,17 @@ def get_poe_prices_info(item):
     try:
         if isinstance(item, ig.Item):
             league = bytes(LEAGUE, "utf-8")
-            results = requests.post(
-                b"http://poeprices.info/api?l="
-                + league
-                + b"&i="
-                + base64.b64encode(bytes(item.text, "utf-8"))
-            )
-            return results.json()
+            try:
+                results = requests.post(
+                    b"http://poeprices.info/api?l="
+                    + league
+                    + b"&i="
+                    + base64.b64encode(bytes(item.text, "utf-8"))
+                )
+                return results.json()
+            except Exception:
+                logging.info("poeprices.info is not available.")
+                return {}
         else:
             return {}
     except Exception:

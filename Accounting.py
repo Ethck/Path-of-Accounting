@@ -8,6 +8,7 @@ from gui.gui import check_timeout_gui, close_all_windows, init_gui
 from gui.windows import information
 from item.generator import Currency, Weapon, parse_item_info
 from utils import config
+from utils.common import get_response
 from utils.config import USE_HOTKEYS
 from utils.input import (
     Keyboard,
@@ -16,12 +17,11 @@ from utils.input import (
     stop_stash_scroll,
 )
 from utils.parse import (
-    get_ninja_bases,
-    basic_search,
-    search_ninja_base,
     adv_search,
+    basic_search,
+    get_ninja_bases,
+    search_ninja_base,
 )
-from utils.common import get_response
 from utils.web import (
     find_latest_update,
     get_leagues,
@@ -129,7 +129,7 @@ if __name__ == "__main__":
         loglevel = logging.DEBUG
     logging.basicConfig(format="%(message)s", level=loglevel)
 
-    find_latest_update()
+    # find_latest_update()
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff
@@ -149,9 +149,8 @@ if __name__ == "__main__":
                     if "Hardcore" in league:
                         config.LEAGUE = league
                 if config.LEAGUE == "League":
-                    if not "Hardcore" in league:
+                    if "Hardcore" not in league:
                         config.LEAGUE = league
-
 
     if config.LEAGUE not in valid_leagues:
         logging.info(
@@ -159,8 +158,14 @@ if __name__ == "__main__":
         )
         logging.info(f"[!] Exiting, no valid league.")
     else:
-        NINJA_BASES = get_ninja_bases(config.LEAGUE)
-        logging.info(f"[*] Loaded {len(NINJA_BASES)} bases and their prices.")
+        try:
+            NINJA_BASES = get_ninja_bases(config.LEAGUE)
+            logging.info(
+                f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
+            )
+        except Exception:
+            logging.info("Poe.ninja is unavailable right now.")
+            NINJA_BASES = None
         logging.info(
             f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
         )
