@@ -165,9 +165,9 @@ def price_item(item):
             logging.info("[!] No results!")
             price = get_poe_prices_info(item)
             if config.USE_GUI:
-                notEnoughInformation.create_at_cursor()
                 if price:
                     notEnoughInformation.add_poe_info_price(price)
+                notEnoughInformation.create_at_cursor()
 
             return 0
 

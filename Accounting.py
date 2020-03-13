@@ -37,9 +37,8 @@ def hotkey_handler(keyboard, hotkey):
     :param keyboard: Keyboard object to determine status of keys
     :param hotkey: The triggered hotkey
     """
-    # Without this block, the clipboard's contents seem to always be from 1 before the current
-    if hotkey != "clipboard":
-        keyboard.press_and_release("ctrl+c")
+    
+    keyboard.press_and_release("ctrl+c")
 
     time.sleep(0.1)
     text = get_clipboard()
@@ -118,12 +117,6 @@ def watch_keyboard(keyboard, use_hotkeys):
         keyboard.add_hotkey(
             "<alt>+v", lambda: hotkey_handler(keyboard, "alt+v")
         )
-
-    # Clipboard
-    # keyboard.add_hotkey("clipboard", lambda: hotkey_handler(keyboard, "clipboard"))
-    keyboard.add_hotkey(
-        "<ctrl>+c", lambda: hotkey_handler(keyboard, "clipboard")
-    )
 
     # Fetch the item's approximate price
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")

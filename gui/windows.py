@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 import timeago
-
+from math import floor
 from gui.gui import DisplayWindow
 from utils.config import MIN_RESULTS
 
@@ -60,12 +60,31 @@ class NotEnoughInformation(DisplayWindow):
 
     def __init__(self):
         super().__init__()
+        self.price = None
+
+    def add_poe_info_price(self, price):
+        self.price = price
 
     def add_components(self):
-        self.create_label_header("Not Enough Data", 0, 0, "WE")
-        self.create_label_header(
-            "Relying on data from PoEPrices", 0, 1, "WE",
-        )
+        self.create_label_header("No matching results found!", 0, 0, "WE")
+        
+
+        if self.price:
+            self.create_label_header(
+            "PoEPrices machine learning result:", 0, 1, "WE",
+            )
+            txt = ""
+            if "min" in self.price:
+                txt = txt + "Min: ["+str(self.price["min"]) + "] "
+            if "max" in self.price:
+                txt = txt + "Max: ["+str(self.price["max"]) + "] "
+            if "currency" in self.price:
+                txt = txt + "[" +self.price["currency"] + "] "
+            if "pred_confidence_score" in self.price:
+                txt = txt + "Confidence: " +str(floor(self.price["pred_confidence_score"])) + "% "
+            
+            self.create_label_header(txt, 0, 2)
+        self.price = None
 
 
 class Information(DisplayWindow):

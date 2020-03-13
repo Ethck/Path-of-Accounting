@@ -42,9 +42,9 @@ def basic_search(text):
     :param text: The raw text of the item to search
     """
     item = parse_item_info(text)
-    logging.debug(item.get_json())
     if not item:
         return
+    logging.debug(item.get_json())
     item.create_pseudo_mods()
     item.relax_modifiers()
 
