@@ -12,7 +12,7 @@ If there is something that you want to see included in Path of Accounting, leave
 In order to use Path of Accounting follow these steps:
 
 For WINDOWS:
-* Head over to the [releases](https://github.com/Ethck/Path-of-Accounting/releases) page, download the newest release, unzip, and execute the `Path of Accounting.exe` file found inside the unzipped folder..
+* Head over to the [releases](https://github.com/Ethck/Path-of-Accounting/releases) page, download the newest release, unzip, and execute the `Accounting.exe` file found inside the unzipped folder..
 * If that doesn't work, install python and follow the below instructions:
 
 For *NIX:
