@@ -3,6 +3,7 @@ import time
 from gui.gui import ActiveWindow, close_all_windows
 from item.generator import Currency, Item, ModInfo
 from utils.common import get_response, price_item
+from utils import config
 from utils.config import (
     GUI_BG1,
     GUI_BG2,
