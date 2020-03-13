@@ -164,6 +164,24 @@ def price_item(item):
         else:
             logging.info("[!] No results!")
             price = get_poe_prices_info(item)
+
+            txt = ""
+
+            if "min" in price:
+                txt = txt + "Min: [" + str(round(price["min"], 2)) + "] "
+            if "max" in price:
+                txt = txt + "Max: [" + str(round(price["max"], 2)) + "] "
+            if "currency" in price:
+                txt = txt + "[" + price["currency"] + "] "
+            if "pred_confidence_score" in price:
+                txt = (
+                    txt
+                    + "Confidence: "
+                    + str(floor(price["pred_confidence_score"]))
+                    + "% "
+                )
+
+            logging.info(txt)
             if config.USE_GUI:
                 if price:
                     notEnoughInformation.add_poe_info_price(price)
@@ -188,7 +206,10 @@ def price_item(item):
             "Macro failed to lookup item from POE trade API. Here is the item in question."
         )
         logging.info("====== ITEM DATA=====")
-        logging.info(f"{text}")
+        if isinstance(item, Item):
+            logging.info(item)
+        else:
+            logging.info(text)
         logging.info(
             f"{Fore.GREEN}================== END ISSUE DATA =================={Fore.RESET}"
         )
@@ -212,7 +233,10 @@ def price_item(item):
         logging.info(f"{Fore.GREEN}Body:{Fore.RESET}")
         logging.info("Here is the item in question.")
         logging.info("====== ITEM DATA=====")
-        logging.info(f"{item.text}")
+        if isinstance(item, Item):
+            logging.info(item.text)
+        else:
+            logging.info(text)
         logging.info("====== TRACEBACK =====")
         logging.info(exception)
         logging.info(
