@@ -2,6 +2,8 @@ from datetime import datetime, timezone
 from math import floor
 
 import timeago
+from timeago import locales
+from timeago.locales import en
 
 from gui.gui import DisplayWindow
 from utils.config import MIN_RESULTS
