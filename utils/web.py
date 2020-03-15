@@ -2,6 +2,8 @@ import base64
 import logging
 import os
 import pathlib
+import subprocess
+import sys
 import traceback
 import webbrowser
 import zipfile
@@ -260,11 +262,11 @@ def find_latest_update():
                         ) as zip_file:
                             zip_file.extractall()
                         logging.info(
-                            f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting"
+                            f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
                         )
 
-                    # subprocess.Popen(f"{pathlib.Path().absolute()}\\Path\\ of\\Accounting\\parse.exe")
-                    # sys.exit()
+                    # subprocess.Popen(f"{pathlib.Path().absolute()}\\Accounting.exe")
+                    sys.exit()
                 else:
                     logging.info(
                         "Auto updates are not supported on non windows systems at the moment."
