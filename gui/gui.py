@@ -73,6 +73,14 @@ class DisplayWindow:
     def create_label_BG2(
         self, text, column=0, row=0, sticky="E", columnspan=1
     ):
+
+        label = tkinter.Label(
+            self.frame, text="", bg=GUI_BG2, fg=GUI_FONT_COLOR
+        )
+        label.grid(
+            column=column, row=row, sticky="WE", columnspan=columnspan
+        )
+
         label = tkinter.Label(
             self.frame, text=text, bg=GUI_BG2, fg=GUI_FONT_COLOR
         )
@@ -85,6 +93,13 @@ class DisplayWindow:
         self, text, column=0, row=0, sticky="E", columnspan=1
     ):
         label = tkinter.Label(
+            self.frame, text="", bg=GUI_BG1, fg=GUI_FONT_COLOR
+        )
+        label.grid(
+            column=column, row=row, sticky="WE", columnspan=columnspan
+        )
+
+        label = tkinter.Label(
             self.frame, text=text, bg=GUI_BG1, fg=GUI_FONT_COLOR
         )
         label.grid(
@@ -92,9 +107,19 @@ class DisplayWindow:
         )
         label.config(font=(GUI_FONT, GUI_FONT_SIZE))
 
+        
+
     def create_label_header(
         self, text, column=0, row=0, sticky="E", columnspan=1
     ):
+
+        label = tkinter.Label(
+            self.frame, text="", bg=GUI_HEADER_COLOR, fg=GUI_FONT_COLOR
+        )
+        label.grid(
+            column=column, row=row, sticky="WE", columnspan=columnspan
+        )
+
         label = tkinter.Label(
             self.frame, text=text, bg=GUI_HEADER_COLOR, fg=GUI_FONT_COLOR
         )
@@ -102,6 +127,7 @@ class DisplayWindow:
             column=column, row=row, sticky=sticky, columnspan=columnspan
         )
         label.config(font=(GUI_FONT, GUI_FONT_SIZE))
+
 
     def prepare_window(self):
         frame = tkinter.Toplevel()

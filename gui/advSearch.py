@@ -50,7 +50,7 @@ class AdvancedSearch(ActiveWindow):
         if results > 0:
             self.close()
         else:
-            time.sleep(1)
+            time.sleep(1.2)
             close_all_windows()
 
     def open_trade(self):

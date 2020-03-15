@@ -29,3 +29,14 @@ MIN_RESULTS = 10
 STASHTAB_SCROLLING = (
     True if config["GENERAL"]["stashtabMacro"] == "yes" else False
 )
+
+
+BASIC_SEARCH = config["HOTKEYS"]["basicSearch"]
+ADV_SEARCH = config["HOTKEYS"]["advSearch"]
+BASE_SEARCH = config["HOTKEYS"]["searchBase"]
+
+OPEN_WIKI = config["HOTKEYS"]["openWiki"]
+OPEN_TRADE = config["HOTKEYS"]["openTrade"]
+
+SHOW_INFO = config["HOTKEYS"]["showInfo"]
+HIDEOUT = config["HOTKEYS"]["hideout"]

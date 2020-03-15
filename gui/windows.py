@@ -7,6 +7,7 @@ from timeago.locales import en
 
 from gui.gui import DisplayWindow
 from utils.config import MIN_RESULTS
+from item.generator import Weapon
 
 
 class BaseResults(DisplayWindow):
@@ -57,6 +58,12 @@ class BaseResults(DisplayWindow):
             "Price: %d %s" % (self.price, self.currency), 0, row + 2, "WE"
         )
 
+        self.base = None
+        self.influence = None
+        self.ilvl = None
+        self.price = None
+        self.currency = None
+
 
 class NotEnoughInformation(DisplayWindow):
     """Window to display when we determine there is not enough information to accurately price"""
@@ -103,7 +110,33 @@ class Information(DisplayWindow):
         self.info = info
 
     def add_components(self):
-        self.create_label_header(self.info, 0, 1, "WE")
+        if self.info:
+            self.create_label_header(self.info, 0, 1, "WE")
+        
+        self.info = None
+
+class GearInformation(DisplayWindow):
+    def __init__(self):
+        super().__init__()
+        self.item = None
+
+    def add_info(self, item):
+        self.item = item
+
+    def add_components(self):
+        
+        if self.item:
+            self.create_label_header(self.item.name, 0, 0, "W")
+        if isinstance(self.item, Weapon):
+            self.create_label_BG2("Phys DPS: " + str(self.item.pdps), 0, 1, "W")
+            self.create_label_BG1("Ele DPS: " + str(self.item.edps), 0, 2, "W")
+            self.create_label_BG2("Total DPS: " + str(self.item.pdps + self.item.edps), 0, 3, "W")
+            self.create_label_BG1("Speed: " + str(self.item.speed), 0, 4, "W")
+            self.create_label_BG2("Crit: " + str(self.item.crit), 0, 5, "W")
+        else:
+            self.create_label_header("No extra info yet!", 0, 1, "W")
+
+        self.item = None
 
 
 class PriceInformation(DisplayWindow):
@@ -167,9 +200,12 @@ class PriceInformation(DisplayWindow):
             self.create_label_header(
                 "Use alt+t to search manually", 0, counter + 1, "WE", 3
             )
+        self.data = None
+        self.offline = False
 
 
 priceInformation = PriceInformation()
 notEnoughInformation = NotEnoughInformation()
 baseResults = BaseResults()
 information = Information()
+gearInformation = GearInformation()

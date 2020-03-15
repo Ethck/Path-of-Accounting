@@ -6,11 +6,24 @@ import time
 from colorama import Fore, deinit, init
 
 from gui.gui import check_timeout_gui, close_all_windows, init_gui
-from gui.windows import information
+from gui.windows import (
+    information,
+    gearInformation,
+)
 from item.generator import Currency, Weapon, parse_item_info
 from utils import config
 from utils.common import get_response
-from utils.config import USE_HOTKEYS
+from utils.config import (
+    USE_HOTKEYS,
+    BASIC_SEARCH,
+    ADV_SEARCH,
+    BASE_SEARCH,
+    OPEN_WIKI,
+    OPEN_TRADE,
+    SHOW_INFO,
+    HIDEOUT,
+)
+
 from utils.input import (
     Keyboard,
     get_clipboard,
@@ -44,7 +57,7 @@ def hotkey_handler(keyboard, hotkey):
     time.sleep(0.1)
     text = get_clipboard()
 
-    if hotkey == "alt+t":
+    if hotkey == "Trade":
         item = parse_item_info(text)
         if not item:
             return
@@ -58,26 +71,26 @@ def hotkey_handler(keyboard, hotkey):
             else:
                 open_trade_site(response["id"], config.LEAGUE)
 
-    elif hotkey == "alt+w":
+    elif hotkey == "Wiki":
         item = parse_item_info(text)
         wiki_lookup(item)
 
-    elif hotkey == "alt+c":
+    elif hotkey == "Base":
         search_ninja_base(text)
 
-    elif hotkey == "alt+f":
+    elif hotkey == "Adv":
+        adv_search(text)
+
+    elif hotkey == "Info":
         item = parse_item_info(text)
         if isinstance(item, Weapon):
             stats = item.get_weapon_stats()
             logging.info(stats)
             if config.USE_GUI:
-                information.add_info(stats)
-                information.create_at_cursor()
+                gearInformation.add_info(item)
+                gearInformation.create_at_cursor()
 
-    elif hotkey == "alt+v":
-        adv_search(text)
-
-    else:  # alt+d, ctrl+c
+    elif hotkey == "Basic":  # alt+d, ctrl+c
         basic_search(text)
 
 
@@ -88,35 +101,38 @@ def watch_keyboard(keyboard, use_hotkeys):
     :param use_hotkeys: config to determine whether hotkeys are established
     """
     if use_hotkeys:
+        
         # Use the "f5" key to go to hideout
-        keyboard.add_hotkey("<f5>", lambda: keyboard.write("\n/hideout\n"))
+        keyboard.add_hotkey(HIDEOUT, lambda: keyboard.write("\n/hideout\n"))
 
-        # Use the alt+d key as an alternative to ctrl+c
+        # Basic search
         keyboard.add_hotkey(
-            "<alt>+d", lambda: hotkey_handler(keyboard, "alt+d")
+            BASIC_SEARCH, lambda: hotkey_handler(keyboard, "Basic")
         )
 
         # Open item in the Path of Exile Wiki
         keyboard.add_hotkey(
-            "<alt>+w", lambda: hotkey_handler(keyboard, "alt+w")
+            OPEN_WIKI, lambda: hotkey_handler(keyboard, "Wiki")
         )
 
         # Open item search in pathofexile.com/trade
         keyboard.add_hotkey(
-            "<alt>+t", lambda: hotkey_handler(keyboard, "alt+t")
+            OPEN_TRADE, lambda: hotkey_handler(keyboard, "Trade")
         )
 
         # poe.ninja base check
         keyboard.add_hotkey(
-            "<alt>+c", lambda: hotkey_handler(keyboard, "alt+c")
+            BASE_SEARCH, lambda: hotkey_handler(keyboard, "Base")
         )
 
+        # Show item info
         keyboard.add_hotkey(
-            "<alt>+f", lambda: hotkey_handler(keyboard, "alt+f")
+            SHOW_INFO, lambda: hotkey_handler(keyboard, "Info")
         )
 
+        # Adv Search
         keyboard.add_hotkey(
-            "<alt>+v", lambda: hotkey_handler(keyboard, "alt+v")
+            ADV_SEARCH, lambda: hotkey_handler(keyboard, "Adv")
         )
 
     # Fetch the item's approximate price
