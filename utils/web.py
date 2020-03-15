@@ -1,5 +1,6 @@
 import base64
 import logging
+import os
 import pathlib
 import traceback
 import webbrowser
@@ -215,8 +216,10 @@ def find_latest_update():
     # local version
     local = VERSION
     # Check if the same-
-    print(remote["tag_name"], local)
-    if remote["tag_name"] <= local:
+    # print(remote["tag_name"], local)
+    if float(local.replace("v", "")) < float(
+        remote["tag_name"].replace("v", "")
+    ):
         logging.info(
             "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
         )
@@ -226,41 +229,49 @@ def find_latest_update():
             user_choice = input()
             if user_choice.lower() == "y":
                 choice_made = True
-                # Get the sole zip url
-                r = requests.get(
-                    url=remote["assets"][0]["browser_download_url"],
-                    stream=True,
-                )
-
-                # Set up a progress bar
-                total_size = int(r.headers.get("content-length", 0))
-                block_size = 1024
-                timer = tqdm(total=total_size, unit="iB", unit_scale=True)
-
-                # Write the file
-                with open("Path-of-Accounting.zip", "wb") as f:
-                    for data in r.iter_content(block_size):
-                        timer.update(len(data))
-                        f.write(data)
-                timer.close()
-
-                # This means data got lost somewhere...
-                if total_size != 0 and timer.n != total_size:
-                    logging.error(
-                        "[!] Error, something went wrong while downloading the file."
+                if os.name == "nt":
+                    # Get the sole zip url
+                    r = requests.get(
+                        url=remote["assets"][0]["browser_download_url"],
+                        stream=True,
                     )
+
+                    # Set up a progress bar
+                    total_size = int(r.headers.get("content-length", 0))
+                    block_size = 1024
+                    timer = tqdm(total=total_size, unit="iB", unit_scale=True)
+
+                    # Write the file
+                    with open("Path-of-Accounting.zip", "wb") as f:
+                        for data in r.iter_content(block_size):
+                            timer.update(len(data))
+                            f.write(data)
+                    timer.close()
+
+                    # This means data got lost somewhere...
+                    if total_size != 0 and timer.n != total_size:
+                        logging.error(
+                            "[!] Error, something went wrong while downloading the file."
+                        )
+                    else:
+                        # Unzip it and tell the user where we unzipped it to.
+                        with zipfile.ZipFile(
+                            "Path-of-Accounting.zip", "r"
+                        ) as zip_file:
+                            zip_file.extractall()
+                        logging.info(
+                            f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting"
+                        )
+
+                    # subprocess.Popen(f"{pathlib.Path().absolute()}\\Path\\ of\\Accounting\\parse.exe")
+                    # sys.exit()
                 else:
-                    # Unzip it and tell the user where we unzipped it to.
-                    with zipfile.ZipFile(
-                        "Path-of-Accounting.zip", "r"
-                    ) as zip_file:
-                        zip_file.extractall()
                     logging.info(
-                        f"[*] Extracted zip file to: {pathlib.Path().absolute()}\\Path of Accounting"
+                        "Auto updates are not supported on non windows systems at the moment."
                     )
-
-                # subprocess.Popen(f"{pathlib.Path().absolute()}\\Path\\ of\\Accounting\\parse.exe")
-                # sys.exit()
+                    logging.info(
+                        "Please clone/pull the repo at https://github.com/Ethck/Path-of-Accounting.git"
+                    )
 
             elif user_choice.lower() == "n":
                 choice_made = True

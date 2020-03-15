@@ -1,29 +1,25 @@
-from multiprocessing import freeze_support
 import logging
 import sys
 import time
+from multiprocessing import freeze_support
 
 from colorama import Fore, deinit, init
 
 from gui.gui import check_timeout_gui, close_all_windows, init_gui
-from gui.windows import (
-    information,
-    gearInformation,
-)
+from gui.windows import gearInformation, information
 from item.generator import Currency, Weapon, parse_item_info
 from utils import config
 from utils.common import get_response
 from utils.config import (
-    USE_HOTKEYS,
-    BASIC_SEARCH,
     ADV_SEARCH,
     BASE_SEARCH,
-    OPEN_WIKI,
-    OPEN_TRADE,
-    SHOW_INFO,
+    BASIC_SEARCH,
     HIDEOUT,
+    OPEN_TRADE,
+    OPEN_WIKI,
+    SHOW_INFO,
+    USE_HOTKEYS,
 )
-
 from utils.input import (
     Keyboard,
     get_clipboard,
@@ -101,7 +97,7 @@ def watch_keyboard(keyboard, use_hotkeys):
     :param use_hotkeys: config to determine whether hotkeys are established
     """
     if use_hotkeys:
-        
+
         # Use the "f5" key to go to hideout
         keyboard.add_hotkey(HIDEOUT, lambda: keyboard.write("\n/hideout\n"))
 
@@ -147,7 +143,7 @@ if __name__ == "__main__":
         loglevel = logging.DEBUG
     logging.basicConfig(format="%(message)s", level=loglevel)
 
-    # find_latest_update()
+    find_latest_update()
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff

@@ -23,7 +23,8 @@ GUI_FONT_SIZE = config["GUI"]["fontSize"]
 GUI_FONT_COLOR = config["GUI"]["fontColor"]
 GUI_HEADER_COLOR = config["GUI"]["headerColor"]
 
-
+# This is what the API returns, so we can only be confident with
+# these 10 results.
 MIN_RESULTS = 10
 
 STASHTAB_SCROLLING = (
