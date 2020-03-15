@@ -45,6 +45,8 @@ Advanced Search
 
 Hotkeys!
 
+Can be changed in settings.cfg!
+
 |Hotkey   | Description  |
 |---|---|
 | alt+d  | Search for item.  |
@@ -54,6 +56,12 @@ Hotkeys!
 | alt+c | Base price check |
 | alt+f | Weapon stat check |
 | alt+v | Advanced price check |
+
+Windows Only:
+
+|Hotkey   | Description  |
+|---|---|
+| ctrl+MouseWheel  | Scroll stash tabs without having to hover over it.  |
 
 
 For anyone interested in helping, Path of Accounting is built with Python 3.6+ and is super easy to understand. Feel free to message me if you have any questions.
