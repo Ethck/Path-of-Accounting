@@ -459,10 +459,10 @@ class Weapon(Item):
             synthesised,
             text,
         )
-        self.pdps = None
-        self.edps = None
-        self.speed = None
-        self.crit = None
+        self.pdps = 0
+        self.edps = 0
+        self.speed = 0
+        self.crit = 0
 
     def parse_weapon_stats(self, regions):
         pValues = None
