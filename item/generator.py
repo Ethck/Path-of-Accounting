@@ -695,14 +695,13 @@ class Map(BaseItem):
 
     def get_json(self):
         json = super().get_json()
-
         json["query"]["filters"]["map_filters"] = {
             "filters": {
                 "map_tier": {"min": self.ilevel},
                 "map_iiq": {"min": self.iiq},
                 "map_iir": {"min": self.iir},
                 "map_packsize": {"min": self.pack_size},
-                "map_blighted": {"option": self.base.startswith("Blighted")},
+                "map_blighted": {"option": self.name.startswith("Blighted")},
             }
         }
         if self.rarity == "unique" and self.identified:
