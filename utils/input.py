@@ -21,7 +21,9 @@ if os.name == "nt" and STASHTAB_SCROLLING:
         HMODULE,
         LPCWSTR,
     )
-    from multiprocessing import Process
+    user32 = ctypes.WinDLL('user32', use_last_error=False)
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=False)
+    from threading import Thread
     from win32gui import GetWindowText, GetForegroundWindow
     import struct
 
@@ -186,7 +188,7 @@ class Keyboard:
         if self.enabled:
             return
         self.enabled = True
-        GetModuleHandleW = windll.kernel32.GetModuleHandleW
+        GetModuleHandleW = kernel32.GetModuleHandleW
         GetModuleHandleW.restype = HMODULE
         GetModuleHandleW.argtypes = [LPCWSTR]
         # If we are running the program (Python interpreter)
@@ -196,14 +198,14 @@ class Keyboard:
         # Else 32 bit addresses
         else:
             handle = GetModuleHandleW(None)
-        self.keyboard_hook = windll.user32.SetWindowsHookExA(
+        self.keyboard_hook = user32.SetWindowsHookExA(
             win32con.WH_KEYBOARD_LL, keyboard_callback, handle, 0
         )
-        self.mouse_hook = windll.user32.SetWindowsHookExA(
+        self.mouse_hook = user32.SetWindowsHookExA(
             win32con.WH_MOUSE_LL, mouse_callback, handle, 0
         )
-        atexit.register(windll.user32.UnhookWindowsHookEx, self.keyboard_hook)
-        atexit.register(windll.user32.UnhookWindowsHookEx, self.mouse_hook)
+        atexit.register(user32.UnhookWindowsHookEx, self.keyboard_hook)
+        atexit.register(user32.UnhookWindowsHookEx, self.mouse_hook)
 
     def disable_hook(self):
         """ Removes the keyboard and mouse hooks / callbacks
@@ -212,8 +214,8 @@ class Keyboard:
         if not self.enabled:
             return
         self.enabled = False
-        windll.user32.UnhookWindowsHookEx(self.keyboard_hook)
-        windll.user32.UnhookWindowsHookEx(self.mouse_hook)
+        user32.UnhookWindowsHookEx(self.keyboard_hook)
+        user32.UnhookWindowsHookEx(self.mouse_hook)
         self.keyboard_hook = None
         self.mouse_hook = None
 
@@ -224,9 +226,9 @@ class Keyboard:
         while self.enabled:
             try:
                 msg = ctypes.wintypes.MSG()
-                windll.user32.GetMessageA(byref(msg), 0, 0, 0)
-                windll.user32.TranslateMessage(msg)
-                windll.user32.DispatchMessageA(msg)
+                user32.GetMessageA(byref(msg), 0, 0, 0)
+                user32.TranslateMessage(msg)
+                user32.DispatchMessageA(msg)
             except:
                 pass
         disable_hook()
@@ -276,14 +278,14 @@ if os.name == "nt" and STASHTAB_SCROLLING:
                     kb_macro.ctrl_pressed = False
         # If we are running on 64 bits, make sure we dont lose data
         if bits == 64:
-            return windll.user32.CallNextHookEx(
+            return user32.CallNextHookEx(
                 ctypes.c_longlong(kb_macro.keyboard_hook),
                 ctypes.c_longlong(ncode),
                 ctypes.c_longlong(wparam),
                 ctypes.c_longlong(lparam),
             )
         else:
-            return windll.user32.CallNextHookEx(
+            return user32.CallNextHookEx(
                 kb_macro.keyboard_hook, ncode, wparam, lparam
             )
 
@@ -340,14 +342,14 @@ if os.name == "nt" and STASHTAB_SCROLLING:
                 return 1  # Block the input from going to PoE
         # If we are running on 64 bits, make sure we dont lose data
         if bits == 64:
-            return windll.user32.CallNextHookEx(
+            return user32.CallNextHookEx(
                 ctypes.c_longlong(kb_macro.mouse_hook),
                 ctypes.c_longlong(ncode),
                 ctypes.c_longlong(wparam),
                 ctypes.c_longlong(lparam),
             )
         else:
-            return windll.user32.CallNextHookEx(
+            return user32.CallNextHookEx(
                 kb_macro.mouse_hook, ncode, wparam, lparam
             )
 
@@ -357,7 +359,7 @@ if os.name == "nt" and STASHTAB_SCROLLING:
 
         """
         # Helper to convert python function to a c function with args (this,ncode, wparam,lparam)
-        c_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, WPARAM, LPARAM)
+        c_func = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, WPARAM, LPARAM, use_errno=False, use_last_error=False)
         # Convert keyboard and mouse callback
         kc = c_func(keyboard_callback)
         mc = c_func(mouse_callback)
@@ -366,14 +368,13 @@ if os.name == "nt" and STASHTAB_SCROLLING:
         # Handle message loop
         kb_macro.run_stash_macro()
 
-    p = Process(target=setup, args=())
+    p = Thread(target=setup, daemon=True)
 
 
 def start_stash_scroll():
     """ Starts a new daemon thread and calls setup
     """
     if os.name == "nt" and STASHTAB_SCROLLING:
-        p.daemon = True
         p.start()
 
 
@@ -382,4 +383,3 @@ def stop_stash_scroll():
     """
     if os.name == "nt" and STASHTAB_SCROLLING:
         kb_macro.disable_hook()
-        p.terminate()

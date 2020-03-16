@@ -1,7 +1,6 @@
 import logging
 import sys
 import time
-from multiprocessing import freeze_support
 
 from colorama import Fore, deinit, init
 
@@ -137,7 +136,6 @@ def watch_keyboard(keyboard, use_hotkeys):
 
 
 if __name__ == "__main__":
-    freeze_support()
     loglevel = logging.INFO
     if len(sys.argv) > 1 and sys.argv[1] in ("-d", "--debug"):
         loglevel = logging.DEBUG
