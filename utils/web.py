@@ -258,7 +258,7 @@ def find_latest_update():
                     else:
                         # Unzip it and tell the user where we unzipped it to.
                         with zipfile.ZipFile(
-                            "Path-of-Accounting.zip", "r"
+                            "Path-of-Accounting.zip", "wb+"
                         ) as zip_file:
                             zip_file.extractall()
                         logging.info(
@@ -405,7 +405,7 @@ def get_poe_prices_info(item):
                 b"http://poeprices.info/api?l="
                 + league
                 + b"&i="
-                + base64.b64encode(bytes(item.text, "utf-8"))
+                + base64.b64encode(bytes(item.text, "utf-8"), timeout=1)
             )
             return results.json()
         except Exception:
