@@ -745,6 +745,11 @@ def parse_mod(mod_text: str, mod_values, category=""):
     """
     global prev_mod
 
+    if "Chance to Block Spell Damage" in mod_text:
+        logging.info("[!] Chance to Block Spell Damage currently unsupported")
+        return None
+
+
     mod = None
     mod_type = ItemModifierType.EXPLICIT
 
