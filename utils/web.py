@@ -290,24 +290,33 @@ def get_ninja_bases(league: str):
     """
     global ninja_bases
     if not ninja_bases:
-        query = requests.get(
-            f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
-        )
-        tbases = query.json()
+        try:
+            results = requests.post(b"https://poe.ninja/",timeout=0.5)
+        except Exception:
+            logging.info("poe.ninja is not available.")
+            return None
 
-        ninja_bases = [
-            {
-                "base": b["baseType"],
-                "ilvl": b["levelRequired"],
-                "influence": b["variant"],
-                "corrupted": b["corrupted"],
-                "exalt": b["exaltedValue"],
-                "chaos": b["chaosValue"],
-                "type": b["itemType"],
-            }
-            for b in tbases["lines"]
-        ]
+        try:
+            query = requests.get(
+                f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
+            )
+            tbases = query.json()
 
+            ninja_bases = [
+                {
+                    "base": b["baseType"],
+                    "ilvl": b["levelRequired"],
+                    "influence": b["variant"],
+                    "corrupted": b["corrupted"],
+                    "exalt": b["exaltedValue"],
+                    "chaos": b["chaosValue"],
+                    "type": b["itemType"],
+                }
+                for b in tbases["lines"]
+            ]
+        except Exception:
+            logging.info("poe.ninja is not available.")
+            return None
         # unique_ninja_bases = [e for e in ninja_bases if not e["influence"]]
 
     return ninja_bases
@@ -399,13 +408,18 @@ def open_exchange_site(rid, league):
 
 def get_poe_prices_info(item):
     try:
+        results = requests.post(b"http://poeprices.info",timeout=0.5)
+    except Exception:
+        logging.info("poeprices.info is not available.")
+        return {}
+    try:
         league = bytes(config.LEAGUE, "utf-8")
         try:
             results = requests.post(
                 b"http://poeprices.info/api?l="
                 + league
                 + b"&i="
-                + base64.b64encode(bytes(item.text, "utf-8"), timeout=1)
+                + base64.b64encode(bytes(item.text, "utf-8"), timeout=5)
             )
             return results.json()
         except Exception:

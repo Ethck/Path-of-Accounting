@@ -170,14 +170,13 @@ if __name__ == "__main__":
         )
         logging.info(f"[!] Exiting, no valid league.")
     else:
-        try:
-            NINJA_BASES = get_ninja_bases(config.LEAGUE)
+
+        NINJA_BASES = get_ninja_bases(config.LEAGUE)
+        if NINJA_BASES:
             logging.info(
                 f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
             )
-        except Exception:
-            logging.info("Poe.ninja is unavailable right now.")
-            NINJA_BASES = None
+            
         logging.info(
             f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
         )
