@@ -175,9 +175,9 @@ class Item(BaseItem):
         json = super().get_json()
         json = self.set_type(json, self.base)
         json = self.set_rarity(json, self.rarity)
-        json = self.set_ilevel(json, self.ilevel)
+        #json = self.set_ilevel(json, self.ilevel)
         json = self.set_category(json, self.category)
-        json = self.set_quality(json, self.quality)
+        #json = self.set_quality(json, self.quality)
         json = self.set_influence(json, self.influence)
         json = self.add_mods(json, self.mods)
 

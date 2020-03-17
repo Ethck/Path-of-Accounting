@@ -192,7 +192,7 @@ if __name__ == "__main__":
                 while True:
                     keyboard.poll()
                     check_timeout_gui()
-                    time.sleep(0.25)
+                    time.sleep(0.2)
             except KeyboardInterrupt:
                 pass
 
