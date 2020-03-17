@@ -2,10 +2,11 @@ import configparser
 import json
 
 
-VERSION = "v0.93"
+VERSION = "0.94"
 
 default_config = {
     "GENERAL" : {
+        "version" : VERSION,
         "useHotKeys" : "yes",
         "league" : "League",
         "stashtabMacro" : "yes",
@@ -37,15 +38,28 @@ config = configparser.ConfigParser()
 config.read("settings.cfg")
 config2 = configparser.ConfigParser()
 
-try:
-    old = config["GENERAL","VERSION"]
-    settings = open("settings.cfg",'w')
-    settings.truncate(0)
-    settings.close()
-except Exception:
-    pass
-
 needs_write = False
+
+try:
+    config2.set("GENERAL", "version", VERSION)
+except configparser.NoSectionError:
+    config2.add_section("GENERAL")
+    config2.set("GENERAL", "version", VERSION)
+
+try:
+    v = config["GENERAL"]["version"]
+    v.replace("v", "")
+    if float(v) <= 0.93: # Incase of major change, delete settings
+        settings = open("settings.cfg",'w')
+        settings.truncate(0)
+        settings.close()
+        v = 0
+    if v != VERSION:
+        needs_write = True
+except Exception:
+    needs_write = True
+
+
 
 def read_config(section, key):
     global needs_write
