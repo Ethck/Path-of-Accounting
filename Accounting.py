@@ -171,16 +171,16 @@ if __name__ == "__main__":
             )
             logging.info(f"[!] Exiting, no valid league.")
         else:
-
+            logging.info(
+                f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
+            )
+            
             NINJA_BASES = get_ninja_bases(config.LEAGUE)
             if NINJA_BASES:
                 logging.info(
                     f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
                 )
                 
-            logging.info(
-                f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
-            )
             keyboard = Keyboard()
             watch_keyboard(keyboard, USE_HOTKEYS)
 
