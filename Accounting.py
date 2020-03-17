@@ -132,7 +132,6 @@ def watch_keyboard(keyboard, use_hotkeys):
 
     # Fetch the item's approximate price
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
-    keyboard.start()
 
 
 if __name__ == "__main__":
@@ -147,56 +146,59 @@ if __name__ == "__main__":
     # Get some basic setup stuff
     valid_leagues = get_leagues()
 
-    # Inform user of choices
-    logging.info(
-        f"If you wish to change the selected league you may do so in settings.cfg."
-    )
-    logging.info(
-        f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}."
-    )
-    if config.LEAGUE == "League" or config.LEAGUE == "League-Hardcore":
-        for league in valid_leagues:
-            if league != "Standard" and league != "Hardcore":
-                if config.LEAGUE == "League-Hardcore":
-                    if "Hardcore" in league:
-                        config.LEAGUE = league
-                if config.LEAGUE == "League":
-                    if "Hardcore" not in league:
-                        config.LEAGUE = league
+    if valid_leagues:
 
-    if config.LEAGUE not in valid_leagues:
+        # Inform user of choices
         logging.info(
-            f"Unable to locate {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET}, please check settings.cfg."
+            f"If you wish to change the selected league you may do so in settings.cfg."
         )
-        logging.info(f"[!] Exiting, no valid league.")
-    else:
+        logging.info(
+            f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}."
+        )
+        if config.LEAGUE == "League" or config.LEAGUE == "League-Hardcore":
+            for league in valid_leagues:
+                if league != "Standard" and league != "Hardcore":
+                    if config.LEAGUE == "League-Hardcore":
+                        if "Hardcore" in league:
+                            config.LEAGUE = league
+                    if config.LEAGUE == "League":
+                        if "Hardcore" not in league:
+                            config.LEAGUE = league
 
-        NINJA_BASES = get_ninja_bases(config.LEAGUE)
-        if NINJA_BASES:
+        if config.LEAGUE not in valid_leagues:
             logging.info(
-                f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
+                f"Unable to locate {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET}, please check settings.cfg."
             )
-            
-        logging.info(
-            f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
-        )
-        keyboard = Keyboard()
-        watch_keyboard(keyboard, USE_HOTKEYS)
+            logging.info(f"[!] Exiting, no valid league.")
+        else:
 
-        start_stash_scroll()
+            NINJA_BASES = get_ninja_bases(config.LEAGUE)
+            if NINJA_BASES:
+                logging.info(
+                    f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
+                )
+                
+            logging.info(
+                f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
+            )
+            keyboard = Keyboard()
+            watch_keyboard(keyboard, USE_HOTKEYS)
 
-        init_gui()
+            start_stash_scroll()
 
-        try:
-            while True:
-                keyboard.poll()
-                check_timeout_gui()
-        except KeyboardInterrupt:
-            pass
+            init_gui()
 
-        stop_stash_scroll()
-        close_all_windows()
-        logging.info(f"[!] Exiting, user requested termination.")
+            try:
+                while True:
+                    keyboard.poll()
+                    check_timeout_gui()
+                    time.sleep(0.25)
+            except KeyboardInterrupt:
+                pass
+
+            stop_stash_scroll()
+            close_all_windows()
+            logging.info(f"[!] Exiting, user requested termination.")
 
     # Apparently things go bad if we don't call this, so here it is!
     deinit()  # Colorama

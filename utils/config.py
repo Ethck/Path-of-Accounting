@@ -23,19 +23,27 @@ default_config = {
         "fontSize" : "12",
     },
     "HOTKEYS" : {
-        "basicSearch" : "<alt>+d",
-        "advSearch" : "<alt>+v",
-        "openWiki" : "<alt>+w",
-        "openTrade" : "<alt>+t",
-        "searchBase" : "<alt>+c",
-        "showInfo" : "<alt>+f",
-        "hideout" : "<f5>",
+        "basicSearch" : "alt+d",
+        "advSearch" : "alt+v",
+        "openWiki" : "alt+w",
+        "openTrade" : "alt+t",
+        "searchBase" : "alt+c",
+        "showInfo" : "alt+f",
+        "hideout" : "f5",
     }
 }
 
 config = configparser.ConfigParser()
 config.read("settings.cfg")
 config2 = configparser.ConfigParser()
+
+try:
+    old = config["GENERAL","VERSION"]
+    settings = open("settings.cfg",'w')
+    settings.truncate(0)
+    settings.close()
+except Exception:
+    pass
 
 needs_write = False
 

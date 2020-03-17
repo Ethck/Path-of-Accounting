@@ -119,10 +119,16 @@ def get_leagues() -> tuple:
 
     :return: Tuple of league ids
     """
-    leagues = requests.get(
-        url="https://www.pathofexile.com/api/trade/data/leagues"
-    ).json()
-    return tuple(x["id"] for x in leagues["result"])
+    try:
+        leagues = requests.get(
+            url="https://www.pathofexile.com/api/trade/data/leagues",
+            timeout=1
+        
+        ).json()
+        return tuple(x["id"] for x in leagues["result"])
+    except Exception:
+        logging.info("Pathofexile.com seems to be down!")
+        return None
 
 
 def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
