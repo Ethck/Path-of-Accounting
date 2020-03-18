@@ -338,11 +338,15 @@ def get_items() -> dict:
     """
     global item_cache
     if not item_cache:
-        query = requests.get(
-            "https://www.pathofexile.com/api/trade/data/items"
-        )
-        items = query.json()
-        item_cache = items["result"]
+        try:
+            query = requests.get(
+                "https://www.pathofexile.com/api/trade/data/items",
+                timeout=2
+            )
+            items = query.json()
+            item_cache = items["result"]
+        except Exception:
+            return None
     return item_cache
 
 
@@ -354,11 +358,14 @@ def get_base(category, name):
     :return: Found base type, or None
     """
     items = get_items()
-    for i in items:
-        if i["label"] == category:
-            for l in i["entries"]:
-                if l["type"] in name:
-                    return l["type"]
+    try:
+        for i in items:
+            if i["label"] == category:
+                for l in i["entries"]:
+                    if l["type"] in name:
+                        return l["type"]
+    except Exception:
+        pass
     return None
 
 

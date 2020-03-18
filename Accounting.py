@@ -134,20 +134,11 @@ def watch_keyboard(keyboard, use_hotkeys):
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
 
 
-if __name__ == "__main__":
-    loglevel = logging.INFO
-    if len(sys.argv) > 1 and sys.argv[1] in ("-d", "--debug"):
-        loglevel = logging.DEBUG
-    logging.basicConfig(format="%(message)s", level=loglevel)
 
-    find_latest_update()
-
-    init(autoreset=True)  # Colorama
-    # Get some basic setup stuff
+def check_league():
     valid_leagues = get_leagues()
 
     if valid_leagues:
-
         # Inform user of choices
         logging.info(
             f"If you wish to change the selected league you may do so in settings.cfg."
@@ -170,35 +161,50 @@ if __name__ == "__main__":
                 f"Unable to locate {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET}, please check settings.cfg."
             )
             logging.info(f"[!] Exiting, no valid league.")
+            return False
         else:
             logging.info(
                 f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
             )
+        return True
+    return True
+
+if __name__ == "__main__":
+    loglevel = logging.INFO
+    if len(sys.argv) > 1 and sys.argv[1] in ("-d", "--debug"):
+        loglevel = logging.DEBUG
+    logging.basicConfig(format="%(message)s", level=loglevel)
+
+    find_latest_update()
+
+    init(autoreset=True)  # Colorama
+    # Get some basic setup stuff
+    valid_league = check_league()
+    if valid_league: 
+        NINJA_BASES = get_ninja_bases(config.LEAGUE)
+        if NINJA_BASES:
+            logging.info(
+                f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
+            )
             
-            NINJA_BASES = get_ninja_bases(config.LEAGUE)
-            if NINJA_BASES:
-                logging.info(
-                    f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
-                )
-                
-            keyboard = Keyboard()
-            watch_keyboard(keyboard, USE_HOTKEYS)
+        keyboard = Keyboard()
+        watch_keyboard(keyboard, USE_HOTKEYS)
 
-            start_stash_scroll()
+        start_stash_scroll()
 
-            init_gui()
+        init_gui()
 
-            try:
-                while True:
-                    keyboard.poll()
-                    check_timeout_gui()
-                    time.sleep(0.2)
-            except KeyboardInterrupt:
-                pass
+        try:
+            while True:
+                keyboard.poll()
+                check_timeout_gui()
+                time.sleep(0.2)
+        except KeyboardInterrupt:
+            pass
 
-            stop_stash_scroll()
-            close_all_windows()
-            logging.info(f"[!] Exiting, user requested termination.")
+        stop_stash_scroll()
+        close_all_windows()
+        logging.info(f"[!] Exiting, user requested termination.")
 
     # Apparently things go bad if we don't call this, so here it is!
     deinit()  # Colorama

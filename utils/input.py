@@ -33,6 +33,8 @@ class Keyboard:
             traceback.print_exc()
         self.queue.task_done()
 
+    def write(self, string):
+        keyboard.write(string)
 
     def add_hotkey(self, key, func):
         self.hotkeys[key] = func

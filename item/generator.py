@@ -14,6 +14,9 @@ from utils.web import (
 )
 
 
+def round_mod(number):
+    return round(number, 2)
+
 class ModInfo:
     def __init__(self, mod, m_min, m_max, option):
         self.mod = mod
@@ -367,14 +370,14 @@ class Item(BaseItem):
         for mod in self.mods:
             if mod.max:
                 if mod.max > 0:
-                    mod.max = mod.max * 1.1
+                    mod.max = round_mod(mod.max * 1.1)
                 else:
-                    mod.max = mod.max * 0.9
+                    mod.max = round_mod(mod.max * 0.9)
             if mod.min:
                 if mod.min > 0:
-                    mod.min = mod.min * 0.9
+                    mod.min = round_mod(mod.min * 0.9)
                 else:
-                    mod.min = mod.min * 1.1
+                    mod.min = round_mod(mod.min * 1.1)
 
     def remove_bad_mods(self):
         """Mods to remove first if found on any individual item if no matches are found before relaxing"""
@@ -529,13 +532,13 @@ class Weapon(Item):
     def relax_modifiers(self):
         super().relax_modifiers()
         if self.pdps:
-            self.pdps = self.pdps * 0.9
+            self.pdps = round_mod(self.pdps * 0.9)
         if self.edps:
-            self.edps = self.edps * 0.9
+            self.edps = round_mod(self.edps * 0.9)
         if self.speed:
-            self.speed = self.speed * 0.9
+            self.speed = round_mod(self.speed * 0.9)
         if self.crit:
-            self.crit = self.crit * 0.9
+            self.crit = round_mod(self.crit * 0.9)
 
     def get_json(self):
         json = super().get_json()
@@ -1066,6 +1069,7 @@ def parse_item_info(text: str):
         category = "jewel"
     if not base:
         logging.info("Item not found")
+        logging.info("Pathofexile.com might be down")
         return None
 
     influenceText = {
