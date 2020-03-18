@@ -1068,8 +1068,8 @@ def parse_item_info(text: str):
         base = get_base("Jewels", name)
         category = "jewel"
     if not base:
-        logging.info("Item not found")
-        logging.info("Pathofexile.com might be down")
+        logging.info("[!] Item not found")
+        logging.info("[!] Pathofexile.com might be down")
         return None
 
     influenceText = {

@@ -167,6 +167,8 @@ def check_league():
                 f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
             )
         return True
+    logging.info("[!] Pathofexile.com seems to be down!")
+    logging.info("[!] Please restart the program when website is back up")
     return True
 
 if __name__ == "__main__":

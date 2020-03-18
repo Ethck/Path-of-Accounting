@@ -127,7 +127,6 @@ def get_leagues() -> tuple:
         ).json()
         return tuple(x["id"] for x in leagues["result"])
     except Exception:
-        logging.info("Pathofexile.com seems to be down!")
         return None
 
 
