@@ -33,77 +33,34 @@ class TestItemLookup(unittest.TestCase):
         # Required to do the gui creation step in tests. We need to
         # create it here, after we patch our python modules.
         init_gui()
+        config.LEAGUE = "Standard"
 
         # Mockups of response data from pathofexile.com/trade
         expected = [
             # (mocked up json response, expected condition, search url)
-            # (mockResponse(11), lambda v: r"[$]" in v, LOOKUP_URL),
-            # (mockResponse(12), lambda v: "INFO:root:[$]" in v, LOOKUP_URL),
+            (mockResponse(11), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(12), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
             (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
+                mockResponse(1),
+                lambda v: "INFO:root:[!] Not enough data to confidently price this item"
+                in v,
                 LOOKUP_URL,
             ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            # (
-            #    mockResponse(1),
-            #    lambda v: "INFO:root:[!] Not enough data to confidently price this item"
-            #    in v,
-            #    LOOKUP_URL,
-            # ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            # (mockResponse(66), lambda v: "INFO:root:[$]" in v, LOOKUP_URL),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(66), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
             # 14th item in sampleItems is a divination card, which is looked
             # up via exchange URL instead of search.
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                EXCHANGE_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            # (mockResponse(10), lambda v: "INFO:root:[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "INFO:root:" in v, EXCHANGE_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(10), lambda v: "[$]" in v, LOOKUP_URL),
         ]
 
         # Mocked up prices to return when searching. We only take the first
@@ -150,7 +107,7 @@ class TestItemLookup(unittest.TestCase):
                 sys.stdout = out
 
                 # Mockup response
-                with requests_mock.Mocker(real_http=True) as mock:
+                with requests_mock.Mocker() as mock:
                     mock.post(expected[i][2], json=expected[i][0])
                     with open("tests/mockModifiers.txt") as f:
                         mock.get(
@@ -241,15 +198,13 @@ class TestItemLookup(unittest.TestCase):
                     # Callout to API and price the item
                     with self.assertLogs(level="INFO") as logger:
                         Accounting.basic_search(items[i])
-                        # [output] = logger.output[-2]
-                        # print(logger.output)
+                        [output] = logger.output[-1:]
 
                         # Get the expected condition
                         currentExpected = expected[i][1]
-                        # print(currentExpected)
 
                         # Expect that our truthy condition is true
-                        self.assertTrue(currentExpected(logger.output))
+                        self.assertTrue(currentExpected(output))
 
                         if len(expected[i][0]["result"]) >= config.MIN_RESULTS:
                             # Expect that the currency is output properly, including
@@ -265,8 +220,10 @@ class TestItemLookup(unittest.TestCase):
                                     ("%s" + fmt + " %s" + Fore.RESET + " x %d")
                                     % (Fore.YELLOW, k[0], k[1], v)
                                 )
-                            expectedStr = (", ").join(priceList)
-                            self.assertTrue(expectedStr in logger.output)
+                            expectedStr = "INFO:root:[$] Prices: " + (
+                                ", "
+                            ).join(priceList)
+                            self.assertTrue(expectedStr in logger.output[-1:])
         close_all_windows()
 
 
