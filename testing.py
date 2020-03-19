@@ -158,7 +158,10 @@ class TestItemLookup(unittest.TestCase):
                         "error_msg": "",
                     }
 
-                    mock.get("http://poeprices.info/api", json=poePricesRes)
+                    mock.get(
+                        "http://poeprices.info/api?l=Standard&i=",
+                        json=poePricesRes,
+                    )
 
                     response = {
                         "result": [
