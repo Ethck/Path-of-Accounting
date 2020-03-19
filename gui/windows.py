@@ -6,8 +6,9 @@ from timeago import locales
 from timeago.locales import en
 
 from gui.gui import DisplayWindow
-from utils.config import MIN_RESULTS
 from item.generator import Weapon
+from utils import config
+from utils.config import MIN_RESULTS
 
 
 class BaseResults(DisplayWindow):
@@ -112,8 +113,9 @@ class Information(DisplayWindow):
     def add_components(self):
         if self.info:
             self.create_label_header(self.info, 0, 1, "WE")
-        
+
         self.info = None
+
 
 class GearInformation(DisplayWindow):
     def __init__(self):
@@ -124,13 +126,17 @@ class GearInformation(DisplayWindow):
         self.item = item
 
     def add_components(self):
-        
+
         if self.item:
             self.create_label_header(self.item.name, 0, 0, "W")
         if isinstance(self.item, Weapon):
-            self.create_label_BG2("Phys DPS: " + str(self.item.pdps), 0, 1, "W")
+            self.create_label_BG2(
+                "Phys DPS: " + str(self.item.pdps), 0, 1, "W"
+            )
             self.create_label_BG1("Ele DPS: " + str(self.item.edps), 0, 2, "W")
-            self.create_label_BG2("Total DPS: " + str(self.item.pdps + self.item.edps), 0, 3, "W")
+            self.create_label_BG2(
+                "Total DPS: " + str(self.item.pdps + self.item.edps), 0, 3, "W"
+            )
             self.create_label_BG1("Speed: " + str(self.item.speed), 0, 4, "W")
             self.create_label_BG2("Crit: " + str(self.item.crit), 0, 5, "W")
         else:
@@ -198,7 +204,11 @@ class PriceInformation(DisplayWindow):
                 "Found limited search results", 0, counter, "WE", 3
             )
             self.create_label_header(
-                "Use alt+t to search manually", 0, counter + 1, "WE", 3
+                "Use " + config.ADV_SEARCH + " to search manually",
+                0,
+                counter + 1,
+                "WE",
+                3,
             )
         self.data = None
         self.offline = False
