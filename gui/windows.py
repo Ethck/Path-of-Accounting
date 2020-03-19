@@ -12,7 +12,7 @@ from utils.config import MIN_RESULTS
 
 
 class BaseResults(DisplayWindow):
-    """Basic results window"""
+    """DisplayWindow for the poe.ninja base check results."""
 
     def __init__(self):
         super().__init__()
@@ -40,16 +40,8 @@ class BaseResults(DisplayWindow):
         row = 0
         if self.influence is not None:
             row += 1
-            conversion = {
-                "elder": "Elder",
-                "shaper": "Shaper",
-                "redeemer": "Redeemer",
-                "crusader": "Crusader",
-                "warlord": "Warlord",
-                "hunter": "Hunter",
-            }
             self.create_label_header(
-                "Influence: %s" % conversion[self.influence], 0, row, "WE"
+                "Influence: %s" % self.influence.title(), 0, row, "WE"
             )
 
         self.create_label_header(
@@ -118,6 +110,8 @@ class Information(DisplayWindow):
 
 
 class GearInformation(DisplayWindow):
+    """DisplayWindow for the stat check feature for weapons."""
+
     def __init__(self):
         super().__init__()
         self.item = None
@@ -186,11 +180,6 @@ class PriceInformation(DisplayWindow):
                     time + " (" + str(values[0]) + ")", 1, counter + 2, "E", 2
                 )
             counter += 1
-
-        # self.create_label_header("", 0, counter + 3, "WE", 3)
-        # self.create_label_header("Low:" + str(self.price[0]), 0, counter + 3, "W")
-        # self.create_label_header("Avg:" + str(self.price[1]), 1, counter + 3, "WE")
-        # self.create_label_header("High:" + str(self.price[2]), 2, counter + 3, "E")
 
         counter = counter + 4
         if self.offline:
