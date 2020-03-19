@@ -1,7 +1,6 @@
 import logging
 import sys
 import time
-from multiprocessing import freeze_support
 
 from colorama import Fore, deinit, init
 
@@ -133,11 +132,46 @@ def watch_keyboard(keyboard, use_hotkeys):
 
     # Fetch the item's approximate price
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
-    keyboard.start()
 
+
+
+def check_league():
+    valid_leagues = get_leagues()
+
+    if valid_leagues:
+        # Inform user of choices
+        logging.info(
+            f"If you wish to change the selected league you may do so in settings.cfg."
+        )
+        logging.info(
+            f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}."
+        )
+        if config.LEAGUE == "League" or config.LEAGUE == "League-Hardcore":
+            for league in valid_leagues:
+                if league != "Standard" and league != "Hardcore":
+                    if config.LEAGUE == "League-Hardcore":
+                        if "Hardcore" in league:
+                            config.LEAGUE = league
+                    if config.LEAGUE == "League":
+                        if "Hardcore" not in league:
+                            config.LEAGUE = league
+
+        if config.LEAGUE not in valid_leagues:
+            logging.info(
+                f"Unable to locate {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET}, please check settings.cfg."
+            )
+            logging.info(f"[!] Exiting, no valid league.")
+            return False
+        else:
+            logging.info(
+                f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
+            )
+        return True
+    logging.info("[!] Pathofexile.com seems to be down!")
+    logging.info("[!] Please restart the program when website is back up")
+    return True
 
 if __name__ == "__main__":
-    freeze_support()
     loglevel = logging.INFO
     if len(sys.argv) > 1 and sys.argv[1] in ("-d", "--debug"):
         loglevel = logging.DEBUG
@@ -147,42 +181,14 @@ if __name__ == "__main__":
 
     init(autoreset=True)  # Colorama
     # Get some basic setup stuff
-    valid_leagues = get_leagues()
-
-    # Inform user of choices
-    logging.info(
-        f"If you wish to change the selected league you may do so in settings.cfg."
-    )
-    logging.info(
-        f"Valid league values are {Fore.MAGENTA}{', '.join(valid_leagues)}{Fore.RESET}."
-    )
-    if config.LEAGUE == "League" or config.LEAGUE == "League-Hardcore":
-        for league in valid_leagues:
-            if league != "Standard" and league != "Hardcore":
-                if config.LEAGUE == "League-Hardcore":
-                    if "Hardcore" in league:
-                        config.LEAGUE = league
-                if config.LEAGUE == "League":
-                    if "Hardcore" not in league:
-                        config.LEAGUE = league
-
-    if config.LEAGUE not in valid_leagues:
-        logging.info(
-            f"Unable to locate {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET}, please check settings.cfg."
-        )
-        logging.info(f"[!] Exiting, no valid league.")
-    else:
-        try:
-            NINJA_BASES = get_ninja_bases(config.LEAGUE)
+    valid_league = check_league()
+    if valid_league: 
+        NINJA_BASES = get_ninja_bases(config.LEAGUE)
+        if NINJA_BASES:
             logging.info(
                 f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
             )
-        except Exception:
-            logging.info("Poe.ninja is unavailable right now.")
-            NINJA_BASES = None
-        logging.info(
-            f"All values will be from the {Fore.MAGENTA}{config.LEAGUE}{Fore.RESET} league"
-        )
+            
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
 
@@ -194,6 +200,7 @@ if __name__ == "__main__":
             while True:
                 keyboard.poll()
                 check_timeout_gui()
+                time.sleep(0.2)
         except KeyboardInterrupt:
             pass
 

@@ -1,4 +1,62 @@
 items = [
+    # 1
+    f"""Rarity: Rare
+Corruption Spiker
+Boot Blade
+--------
+Rune Dagger
+Quality: +20% (augmented)
+Physical Damage: 18-71 (augmented)
+Elemental Damage: 20-33 (augmented)
+Critical Strike Chance: 6.30%
+Attacks per Second: 1.40
+Weapon Range: 10
+--------
+Requirements:
+Level: 68
+Str: 62
+Dex: 63
+Int: 151
+--------
+Sockets: B-B-B 
+--------
+Item Level: 75
+--------
+30% increased Global Critical Strike Chance (implicit)
+--------
+71% increased Spell Damage
+Adds 20 to 33 Fire Damage
+Adds 25 to 47 Cold Damage to Spells
+25% chance to Poison on Hit
+35% increased Damage with Poison
+Gain 5% of Non-Chaos Damage as extra Chaos Damage
++27% to Global Critical Strike Multiplier (crafted)
+""",
+    # 2
+    f"""Rarity: Rare
+Skull Pelt
+Destroyer Regalia
+--------
+Quality: +15% (augmented)
+Energy Shield: 179 (augmented)
+--------
+Requirements:
+Level: 68
+Dex: 106
+Int: 151
+--------
+Sockets: B-G-B-B-B-B 
+--------
+Item Level: 82
+--------
+57% increased Energy Shield
++91 to maximum Life
++24% to Fire Resistance
++24% to Chaos Resistance
+17% increased Stun and Block Recovery
+--------
+Corrupted
+""",
     # 3
     f"""Rarity: Rare
 Gloom Vise
@@ -52,6 +110,35 @@ Item Level: 79
 --------
 There was no hero made out of Starkonja's death,
 but merely a long sleep made eternal.
+""",
+    # 5
+    f"""Rarity: Rare
+Dread Hunger
+Karui Chopper
+--------
+Two Handed Axe
+Physical Damage: 80-125
+Elemental Damage: 21-40 (augmented)
+Critical Strike Chance: 5.00%
+Attacks per Second: 1.15
+Weapon Range: 13
+--------
+Requirements:
+Level: 58
+Str: 151 (unmet)
+Dex: 43
+--------
+Sockets: G R 
+--------
+Item Level: 74
+--------
+Adds 21 to 40 Cold Damage
+9% increased Global Accuracy Rating
+11% reduced Enemy Stun Threshold
+5% increased Light Radius
+16% chance to Blind Enemies on Hit with Attacks
+--------
+Redeemer Item
 """,
     # 6
     f"""Rarity: Rare
@@ -152,6 +239,18 @@ This is a Support Gem. It does not grant a bonus to your character, but to skill
 --------
 Corrupted
 """,
+    # 11
+    f"""Rarity: Normal
+The Jeweller's Touch
+--------
+The Jeweller leaves five fingerprints and connects them with a single thread.
+--------
+You will create a fully-linked five-socket item with a single Jeweller's Orb
+--------
+Right-click to add this prophecy to your character.
+--------
+Note: ~price 9 chaos
+""",
     # 12
     f"""Rarity: Rare
 Cataclysm Brow
@@ -236,5 +335,29 @@ Can have up to 5 Implicit Modifiers while Item has this Modifier
 The laws of the faith do not apply to its leader.
 --------
 Corrupted
+""",
+    # 16
+    f"""Rarity: Rare
+Dread Knot
+Synthesised Ruby Ring
+--------
+Requirements:
+Level: 48
+--------
+Item Level: 82
+--------
+13% reduced Reflected Damage taken (implicit)
+20% increased Damage if Corrupted (implicit)
+--------
+7% increased Cold Damage
+Adds 1 to 22 Lightning Damage to Attacks
++293 to Accuracy Rating
++13 to maximum Energy Shield
++65 to maximum Life
++1 Mana gained on Kill
+--------
+Corrupted
+--------
+Synthesised Item
 """,
 ]

@@ -33,77 +33,34 @@ class TestItemLookup(unittest.TestCase):
         # Required to do the gui creation step in tests. We need to
         # create it here, after we patch our python modules.
         init_gui()
+        config.LEAGUE = "Standard"
 
         # Mockups of response data from pathofexile.com/trade
         expected = [
             # (mocked up json response, expected condition, search url)
-            # (mockResponse(11), lambda v: r"[$]" in v, LOOKUP_URL),
-            # (mockResponse(12), lambda v: "INFO:root:[$]" in v, LOOKUP_URL),
+            (mockResponse(11), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(12), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
             (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
+                mockResponse(1),
+                lambda v: "INFO:root:[!] Not enough data to confidently price this item"
+                in v,
                 LOOKUP_URL,
             ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            # (
-            #    mockResponse(1),
-            #    lambda v: "INFO:root:[!] Not enough data to confidently price this item"
-            #    in v,
-            #    LOOKUP_URL,
-            # ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            # (mockResponse(66), lambda v: "INFO:root:[$]" in v, LOOKUP_URL),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(66), lambda v: "[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
             # 14th item in sampleItems is a divination card, which is looked
             # up via exchange URL instead of search.
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                EXCHANGE_URL,
-            ),
-            (
-                mockResponse(0),
-                lambda v: "INFO:root:[!] No results!" in v,
-                LOOKUP_URL,
-            ),
-            # (mockResponse(10), lambda v: "INFO:root:[$]" in v, LOOKUP_URL),
+            (mockResponse(0), lambda v: "INFO:root:" in v, EXCHANGE_URL,),
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(10), lambda v: "[$]" in v, LOOKUP_URL),
         ]
 
         # Mocked up prices to return when searching. We only take the first
@@ -150,7 +107,7 @@ class TestItemLookup(unittest.TestCase):
                 sys.stdout = out
 
                 # Mockup response
-                with requests_mock.Mocker(real_http=True) as mock:
+                with requests_mock.Mocker() as mock:
                     mock.post(expected[i][2], json=expected[i][0])
                     with open("tests/mockModifiers.txt") as f:
                         mock.get(
@@ -201,7 +158,10 @@ class TestItemLookup(unittest.TestCase):
                         "error_msg": "",
                     }
 
-                    mock.get("http://poeprices.info/api", json=poePricesRes)
+                    mock.get(
+                        "http://poeprices.info/api?l=Standard&i=",
+                        json=poePricesRes,
+                    )
 
                     response = {
                         "result": [
@@ -241,15 +201,13 @@ class TestItemLookup(unittest.TestCase):
                     # Callout to API and price the item
                     with self.assertLogs(level="INFO") as logger:
                         Accounting.basic_search(items[i])
-                        # [output] = logger.output[-2]
-                        # print(logger.output)
+                        [output] = logger.output[-1:]
 
                         # Get the expected condition
                         currentExpected = expected[i][1]
-                        # print(currentExpected)
 
                         # Expect that our truthy condition is true
-                        self.assertTrue(currentExpected(logger.output))
+                        self.assertTrue(currentExpected(output))
 
                         if len(expected[i][0]["result"]) >= config.MIN_RESULTS:
                             # Expect that the currency is output properly, including
@@ -265,8 +223,143 @@ class TestItemLookup(unittest.TestCase):
                                     ("%s" + fmt + " %s" + Fore.RESET + " x %d")
                                     % (Fore.YELLOW, k[0], k[1], v)
                                 )
-                            expectedStr = (", ").join(priceList)
-                            self.assertTrue(expectedStr in logger.output)
+                            expectedStr = "INFO:root:[$] Prices: " + (
+                                ", "
+                            ).join(priceList)
+                            self.assertTrue(expectedStr in logger.output[-1:])
+        close_all_windows()
+
+
+class TestBaseLookup(unittest.TestCase):
+    @patch("tkinter.Tk", TkMock)
+    @patch("tkinter.Toplevel", ToplevelMock)
+    @patch("tkinter.Frame", FrameMock)
+    @patch("tkinter.Label", LabelMock)
+    @patch("tkinter.Button", ButtonMock)
+    @patch("screeninfo.get_monitors", mock_get_monitors)
+    @patch("time.sleep", lambda s: s)
+    @patch("utils.config.USE_GUI", True)
+    @patch("os.name", "Mock")
+    def test_base_lookups(self):
+        # Required to do the gui creation step in tests. We need to
+        # create it here, after we patch our python modules.
+        init_gui()
+        config.LEAGUE = "Standard"
+
+        # Mock json data for poe.ninja bases
+        data = {
+            "lines": [
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": None,
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Elder",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Shaper",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Warlord",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Redeemer",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Crusader",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Hunter",
+                    "corrupted": False,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+            ]
+        }
+
+        expected = [lambda v: "[$]" in v, lambda v: "[!]" in v]
+
+        with requests_mock.Mocker(real_http=True) as mock:
+            web.ninja_bases = []
+            mock.get(
+                "https://poe.ninja/api/data/itemoverview?league=Standard&type=BaseType&language=en",
+                json=data,
+            )
+            with open("tests/mockModifiers.txt") as f:
+                mock.get(
+                    "https://www.pathofexile.com/api/trade/data/stats",
+                    json=json.load(f),
+                )
+            with open("tests/mockItems.txt") as f:
+                mock.get(
+                    "https://www.pathofexile.com/api/trade/data/items",
+                    json=json.load(f),
+                )
+
+            for i in range(len(items[:2])):
+                item = items[i]
+                with self.assertLogs(level="INFO") as logger:
+                    Accounting.search_ninja_base(item)
+                    [output] = logger.output[-1:]
+                    self.assertTrue(expected[i](output))
+
+            # We'll take the first sample item and modify it so that we
+            # can match against all types of influences we support.
+            item = items[0]
+
+            supportedInfluence = [
+                "Elder",
+                "Shaper",
+                "Warlord",
+                "Redeemer",
+                "Crusader",
+                "Hunter",
+            ]
+
+            for inf in supportedInfluence:
+                current = item + ("\n--------\n%s Item\n" % inf)
+                with self.assertLogs(level="INFO") as logger:
+                    Accounting.search_ninja_base(current)
+                    [output] = logger.output[-1:]
+                    self.assertTrue(expected[0](output))
         close_all_windows()
 
 
