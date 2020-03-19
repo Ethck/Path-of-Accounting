@@ -250,6 +250,9 @@ SCARABS = {
     "Rusted Legion Scarab": "rusted-legion-scarab",
     "Polished Legion Scarab": "polished-legion-scarab",
     "Gilded Legion Scarab": "gilded-legion-scarab",
+    "Rusted Metamorph Scarab": "rusted-metamorph-scarab",
+    "Polished Metamorph Scarab": "polished-metamorph-scarab",
+    "Gilded Metamorph Scarab": "gilded-metamorph-scarab",
 }
 
 RESONATORS = {
