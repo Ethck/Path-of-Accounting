@@ -416,6 +416,10 @@ def open_exchange_site(rid, league):
 
 
 def get_poe_prices_info(item):
+    """Query the poeprice.info API with the item's text.
+
+    :param item: The item whose info we will query
+    """
     try:
         results = requests.post(b"http://poeprices.info", timeout=0.5)
     except Exception:

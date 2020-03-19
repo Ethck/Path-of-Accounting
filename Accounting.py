@@ -134,7 +134,6 @@ def watch_keyboard(keyboard, use_hotkeys):
     logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
 
 
-
 def check_league():
     valid_leagues = get_leagues()
 
@@ -171,6 +170,7 @@ def check_league():
     logging.info("[!] Please restart the program when website is back up")
     return True
 
+
 if __name__ == "__main__":
     loglevel = logging.INFO
     if len(sys.argv) > 1 and sys.argv[1] in ("-d", "--debug"):
@@ -180,15 +180,16 @@ if __name__ == "__main__":
     find_latest_update()
 
     init(autoreset=True)  # Colorama
+
     # Get some basic setup stuff
     valid_league = check_league()
-    if valid_league: 
+    if valid_league:
         NINJA_BASES = get_ninja_bases(config.LEAGUE)
         if NINJA_BASES:
             logging.info(
                 f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
             )
-            
+
         keyboard = Keyboard()
         watch_keyboard(keyboard, USE_HOTKEYS)
 

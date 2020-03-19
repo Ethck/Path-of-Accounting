@@ -28,6 +28,12 @@ from utils.web import (
 
 
 def adv_search(text):
+    """Advanced pricing utiltity. User gets choice on values to search.
+
+    User gets choice on inclusion and value of mods.
+
+    :param text: The text of the item to be searched.
+    """
     item = parse_item_info(text)
     if not item:
         return
@@ -74,18 +80,20 @@ def search_ninja_base(text):
         return 0
 
     real_item = parse_item_info(text)
-    # logging.info(real_item.get_json())
+    logging.debug(real_item.get_json())
     if not isinstance(real_item, Item):
         return
 
     influences = real_item.influence
     ilvl = real_item.ilevel if real_item.ilevel >= 84 else 84
     base = real_item.base
-    # base = info["itype"] if info["itype"] != None else info["base"]
 
     logging.info(
         f"[*] Searching for base {base}. Item Level: {ilvl}, Influences: {influences}"
     )
+
+    # This is just a really long generator expression to grab the first match
+    # based on all of the variables.
     result = None
     try:
         result = next(
