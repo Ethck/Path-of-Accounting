@@ -227,6 +227,139 @@ class TestItemLookup(unittest.TestCase):
         close_all_windows()
 
 
+class TestBaseLookup(unittest.TestCase):
+    @patch("tkinter.Tk", TkMock)
+    @patch("tkinter.Toplevel", ToplevelMock)
+    @patch("tkinter.Frame", FrameMock)
+    @patch("tkinter.Label", LabelMock)
+    @patch("tkinter.Button", ButtonMock)
+    @patch("screeninfo.get_monitors", mock_get_monitors)
+    @patch("time.sleep", lambda s: s)
+    @patch("utils.config.USE_GUI", True)
+    @patch("os.name", "Mock")
+    def test_base_lookups(self):
+        # Required to do the gui creation step in tests. We need to
+        # create it here, after we patch our python modules.
+        init_gui()
+        config.LEAGUE = "Standard"
+
+        # Mock json data for poe.ninja bases
+        data = {
+            "lines": [
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": None,
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Elder",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Shaper",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Warlord",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Redeemer",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Crusader",
+                    "corrupted": True,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+                {
+                    "baseType": "Boot Blade",
+                    "levelRequired": 84,
+                    "variant": "Hunter",
+                    "corrupted": False,
+                    "exaltedValue": 0.5,
+                    "chaosValue": 80.0,
+                    "itemType": "Dagger",
+                },
+            ]
+        }
+
+        expected = [lambda v: "[$]" in v, lambda v: "[!]" in v]
+
+        with requests_mock.Mocker(real_http=True) as mock:
+            web.ninja_bases = []
+            mock.get(
+                "https://poe.ninja/api/data/itemoverview?league=Standard&type=BaseType&language=en",
+                json=data,
+            )
+            with open("tests/mockModifiers.txt") as f:
+                mock.get(
+                    "https://www.pathofexile.com/api/trade/data/stats",
+                    json=json.load(f),
+                )
+            with open("tests/mockItems.txt") as f:
+                mock.get(
+                    "https://www.pathofexile.com/api/trade/data/items",
+                    json=json.load(f),
+                )
+
+            for i in range(len(items[:2])):
+                item = items[i]
+                with self.assertLogs(level="INFO") as logger:
+                    Accounting.search_ninja_base(item)
+                    [output] = logger.output[-1:]
+                    self.assertTrue(expected[i](output))
+
+            # We'll take the first sample item and modify it so that we
+            # can match against all types of influences we support.
+            item = items[0]
+
+            supportedInfluence = [
+                "Elder",
+                "Shaper",
+                "Warlord",
+                "Redeemer",
+                "Crusader",
+                "Hunter",
+            ]
+
+            for inf in supportedInfluence:
+                current = item + ("\n--------\n%s Item\n" % inf)
+                with self.assertLogs(level="INFO") as logger:
+                    Accounting.search_ninja_base(current)
+                    [output] = logger.output[-1:]
+                    self.assertTrue(expected[0](output))
+        close_all_windows()
+
+
 if __name__ == "__main__":
     init(autoreset=True)  # Colorama
     unittest.main(failfast=True)
