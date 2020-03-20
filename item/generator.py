@@ -207,7 +207,20 @@ class Item(BaseItem):
             g_sockets = sockets.count("g")
             w_sockets = sockets.count("w")
             a_sockets = sockets.count("a")
-            links = sockets.count("-") - sockets.count(" ") + 1
+            #links = sockets.count("-") - sockets.count(" ") + 1
+
+            links = 0
+            counter = 0
+            for c in sockets:
+                if c == ' ':
+                    if counter > links:
+                        links = counter
+                    counter = 0
+                elif c == '-':
+                    counter += 1
+            if counter > links:
+                links = counter
+            links = links + 1
             sockets = r_sockets + b_sockets + g_sockets + w_sockets + a_sockets
 
             json["query"]["filters"]["socket_filters"]["filters"]
