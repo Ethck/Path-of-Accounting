@@ -174,7 +174,7 @@ class DisplayWindow:
         self.frame.deiconify()
         self.frame.update()
         m_x = self.frame.winfo_pointerx()
-        m_y = self.frame.winfo_pointery()
+        m_y = self.frame.winfo_pointery() + 10
 
         def get_monitor_from_coord(x, y):
             monitors = screeninfo.get_monitors()
