@@ -22,14 +22,16 @@ class AdvancedSearch(ActiveWindow):
         super().__init__()
         self.item = None
         self.selected = []
+        self.searchable_mods = []
 
     def add_item(self, item):
         self.item = item
         self.selected = []
+        self.searchable_mods = []
 
     def edit_item(self):
         nMods = []
-        for mod in self.item.mods:
+        for mod in self.searchable_mods:
             if self.selected[mod.mod.id].get():
                 min_val = mod.min
                 max_val = mod.max
@@ -76,7 +78,62 @@ class AdvancedSearch(ActiveWindow):
         j = 0
         self.selected = {}
         self.entries = {}
+
+        for mod in self.item.create_pseudo_mods():
+
+            self.searchable_mods.append(mod)
+            self.selected[mod.mod.id] = tkinter.IntVar()
+            # CheckButton
+            bgColor = GUI_BG2 if j % 2 else GUI_BG1
+            cb = tkinter.Checkbutton(
+                self.frame,
+                text=mod.mod.text,
+                variable=self.selected[mod.mod.id],
+                bg=bgColor,
+                fg=GUI_FONT_COLOR,
+                activebackground=bgColor,
+                activeforeground=GUI_FONT_COLOR,
+            )
+            #cb.select()
+            cb.grid(row=j + 2, sticky="W", columnspan=3)
+            cb.config(font=(GUI_FONT, GUI_FONT_SIZE))
+
+            # Entry
+            if mod.min or mod.max:  # If mod has values
+                val = tkinter.StringVar()
+                if mod.min:
+                    val.set(mod.min)
+                else:
+                    val.set("Min")
+                e = tkinter.Entry(
+                    self.frame,
+                    bg=bgColor,
+                    fg=GUI_FONT_COLOR,
+                    width=5,
+                    textvariable=val,
+                    exportselection=0,
+                )
+                e.grid(row=j + 2, column=4, sticky="E", columnspan=1)
+                val2 = tkinter.StringVar()
+                if mod.max:
+                    val2.set(mod.max)
+                else:
+                    val2.set("Max")
+                e2 = tkinter.Entry(
+                    self.frame,
+                    bg=bgColor,
+                    fg=GUI_FONT_COLOR,
+                    width=5,
+                    textvariable=val2,
+                    exportselection=0,
+                )
+                e2.grid(row=j + 2, column=5, sticky="E", columnspan=1)
+                self.entries[mod.mod.id] = [e,e2]
+
+                j += 1
+
         for mod in self.item.mods:
+            self.searchable_mods.append(mod)
             self.selected[mod.mod.id] = tkinter.IntVar()
 
             # CheckButton
