@@ -17,6 +17,7 @@ from utils.web import (
 def round_mod(number):
     return round(number, 2)
 
+
 class ModInfo:
     def __init__(self, mod, m_min, m_max, option):
         self.mod = mod
@@ -81,6 +82,9 @@ class BaseItem:
 
     def remove_bad_mods(self):
         pass
+
+    def remove_all_mods(self):
+        self.mods = []
 
     def set_name(self, json, name):
         json["query"]["name"] = name
@@ -162,9 +166,9 @@ class Item(BaseItem):
 
     def print(self):
         super().print()
-        print(f"[Base] {self.base}")
-        print(f"[Item Level] {self.ilevel}")
-        print(f"[Quality] {self.quality}")
+        logging.info(f"[Base] {self.base}")
+        logging.info(f"[Item Level] {self.ilevel}")
+        logging.info(f"[Quality] {self.quality}")
         for mod in self.mods:
             t = f"[Mod] {mod.mod.text}"
             if mod.min:
@@ -172,15 +176,15 @@ class Item(BaseItem):
             if mod.max:
                 t += f": [{Fore.YELLOW}{mod.max}{Fore.RESET}]"
 
-            print(t)
+            logging.info(t)
 
     def get_json(self):
         json = super().get_json()
         json = self.set_type(json, self.base)
         json = self.set_rarity(json, self.rarity)
-        #json = self.set_ilevel(json, self.ilevel)
+        # json = self.set_ilevel(json, self.ilevel)
         json = self.set_category(json, self.category)
-        #json = self.set_quality(json, self.quality)
+        # json = self.set_quality(json, self.quality)
         json = self.set_influence(json, self.influence)
         json = self.add_mods(json, self.mods)
 
@@ -207,16 +211,15 @@ class Item(BaseItem):
             g_sockets = sockets.count("g")
             w_sockets = sockets.count("w")
             a_sockets = sockets.count("a")
-            #links = sockets.count("-") - sockets.count(" ") + 1
 
             links = 0
             counter = 0
             for c in sockets:
-                if c == ' ':
+                if c == " ":
                     if counter > links:
                         links = counter
                     counter = 0
-                elif c == '-':
+                elif c == "-":
                     counter += 1
             if counter > links:
                 links = counter
@@ -778,7 +781,6 @@ def parse_mod(mod_text: str, mod_values, category=""):
     if "Chance to Block Spell Damage" in mod_text:
         logging.info("[!] Chance to Block Spell Damage currently unsupported")
         return None
-
 
     mod = None
     mod_type = ItemModifierType.EXPLICIT

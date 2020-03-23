@@ -40,6 +40,7 @@ def get_response(item):
 
     return response
 
+
 def get_trade_data(item):
     """For the given item, find current listings and retrieve prices & times
 
@@ -130,9 +131,7 @@ def price_item(item):
         offline = False
         if results <= 0:
             logging.info(f"[!] No results, Checking offline sellers")
-            information.add_info(
-                "[!] No results, Checking offline sellers"
-            )
+            information.add_info("[!] No results, Checking offline sellers")
             information.create_at_cursor()
             item.set_offline()
             offline = True
@@ -159,6 +158,16 @@ def price_item(item):
             return results
 
         else:
+            # If the mods found on our unique item are well above average, there can be no results.
+            # In this case, we create a new item that has no mods.
+            if item.rarity == "unique":
+                item2 = item
+                item2.remove_all_mods()
+                logging.info(f"[!] Re-pricing {item2.name} without mods.")
+                logging.debug(item2.get_json())
+                price_item(item2)
+                return 0
+
             logging.info("[!] No results!")
             price = get_poe_prices_info(item)
 

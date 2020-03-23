@@ -100,7 +100,7 @@ Sockets: G-G-R-G
 --------
 Item Level: 79
 --------
-+53 to Dexterity
++80 to Dexterity
 50% reduced Damage when on Low Life
 10% increased Attack Speed
 25% increased Global Critical Strike Chance
