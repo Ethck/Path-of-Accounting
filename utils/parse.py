@@ -37,9 +37,8 @@ def adv_search(text):
     item = parse_item_info(text)
     if not item:
         return
-    if config.USE_GUI:
-        advancedSearch.add_item(item)
-        advancedSearch.create_at_cursor()
+    advancedSearch.add_item(item)
+    advancedSearch.create_at_cursor()
 
 
 def basic_search(text):
@@ -58,11 +57,10 @@ def basic_search(text):
 
     if results < MIN_RESULTS:
         logging.info(f"[!] Limited Results, Removing some item stats")
-        if config.USE_GUI:
-            information.add_info(
-                "[!] Limited Results, Removing some item stats"
-            )
-            information.create_at_cursor()
+        information.add_info(
+            "[!] Limited Results, Removing some item stats"
+        )
+        information.create_at_cursor()
         item.remove_bad_mods()
 
     price_item(item)
@@ -114,14 +112,12 @@ def search_ninja_base(text):
         )
     except StopIteration:
         logging.error("[!] Could not find the requested item.")
-        if config.USE_GUI:
-            notEnoughInformation.create_at_cursor()
+        notEnoughInformation.create_at_cursor()
 
     if result is not None:
         price = result["exalt"] if result["exalt"] >= 1 else result["chaos"]
         currency = "ex" if result["exalt"] >= 1 else "chaos"
         logging.info(f"[$] Price: {price} {currency}")
-        if config.USE_GUI:
-            influence = influences[0] if bool(influences) else None
-            baseResults.add_base_result(base, influence, ilvl, price, currency)
-            baseResults.create_at_cursor()
+        influence = influences[0] if bool(influences) else None
+        baseResults.add_base_result(base, influence, ilvl, price, currency)
+        baseResults.create_at_cursor()

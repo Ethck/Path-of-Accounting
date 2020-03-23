@@ -130,11 +130,10 @@ def price_item(item):
         offline = False
         if results <= 0:
             logging.info(f"[!] No results, Checking offline sellers")
-            if config.USE_GUI:
-                information.add_info(
-                    "[!] No results, Checking offline sellers"
-                )
-                information.create_at_cursor()
+            information.add_info(
+                "[!] No results, Checking offline sellers"
+            )
+            information.create_at_cursor()
             item.set_offline()
             offline = True
             data, results = get_trade_data(item)
@@ -154,9 +153,8 @@ def price_item(item):
                 logging.info(
                     "[!] Not enough data to confidently price this item."
                 )
-            if config.USE_GUI:
-                priceInformation.add_price_information(data, offline)
-                priceInformation.create_at_cursor()
+            priceInformation.add_price_information(data, offline)
+            priceInformation.create_at_cursor()
 
             return results
 
@@ -181,10 +179,9 @@ def price_item(item):
                 )
 
             logging.info(txt)
-            if config.USE_GUI:
-                if price:
-                    notEnoughInformation.add_poe_info_price(price)
-                notEnoughInformation.create_at_cursor()
+            if price:
+                notEnoughInformation.add_poe_info_price(price)
+            notEnoughInformation.create_at_cursor()
 
             return 0
 

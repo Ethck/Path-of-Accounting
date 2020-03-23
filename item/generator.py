@@ -207,7 +207,20 @@ class Item(BaseItem):
             g_sockets = sockets.count("g")
             w_sockets = sockets.count("w")
             a_sockets = sockets.count("a")
-            links = sockets.count("-") - sockets.count(" ") + 1
+            #links = sockets.count("-") - sockets.count(" ") + 1
+
+            links = 0
+            counter = 0
+            for c in sockets:
+                if c == ' ':
+                    if counter > links:
+                        links = counter
+                    counter = 0
+                elif c == '-':
+                    counter += 1
+            if counter > links:
+                links = counter
+            links = links + 1
             sockets = r_sockets + b_sockets + g_sockets + w_sockets + a_sockets
 
             json["query"]["filters"]["socket_filters"]["filters"]
@@ -228,7 +241,8 @@ class Item(BaseItem):
         return json
 
     def create_pseudo_mods(self):
-        """Turn certain modifiers into their pseudo variants to find more matches"""
+        """Turn certain modifiers into their pseudo variants to find more matches
+        Returns the mods that was turned"""
         if self.rarity == "unique":
             return
 
@@ -284,22 +298,33 @@ class Item(BaseItem):
             "crafted.stat_3299347043",  # Crafted maximum life
         }
 
+        rMods = []
         nMods = []
         for mod in self.mods:
 
             if mod.mod.id in solo_resist_ids:
                 total_ele_resists += float(mod.min)
+                rMods.append(mod)
             elif mod.mod.id in dual_resist_ids:
                 total_ele_resists += 2 * float(mod.min)
+                rMods.append(mod)
             elif mod.mod.id in triple_resist_ids:
                 total_ele_resists += 3 * float(mod.min)
+                rMods.append(mod)
             elif mod.mod.id in solo_chaos_resist_ids:
                 total_chaos_resist += float(mod.min)
+                rMods.append(mod)
             elif mod.mod.id in dual_chaos_resist_ids:
                 total_ele_resists += float(mod.min)
                 total_chaos_resist += float(mod.min)
+                rMods.append(mod)
             elif mod.mod.id in life_ids:
                 total_life += float(mod.min)
+                rMods.append(mod)
+            # Life gained from strength
+            elif mod.mod.id == "explicit.stat_4080418644":
+                total_life += (float(mod.min) / 10) * 5
+                nMods.append(mod)
             else:
                 nMods.append(mod)
         self.mods = nMods
@@ -362,6 +387,8 @@ class Item(BaseItem):
                 + f"+{total_life} to maximum Life (pseudo)"
                 + Fore.RESET
             )
+
+        return rMods
 
     def relax_modifiers(self):
         if self.rarity == "unique":  # dont do this on uniques

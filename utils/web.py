@@ -121,7 +121,7 @@ def get_leagues() -> tuple:
     """
     try:
         leagues = requests.get(
-            url="https://www.pathofexile.com/api/trade/data/leagues", timeout=1
+            url="https://www.pathofexile.com/api/trade/data/leagues", timeout=2
         ).json()
         return tuple(x["id"] for x in leagues["result"])
     except Exception:
@@ -294,7 +294,7 @@ def get_ninja_bases(league: str):
     global ninja_bases
     if not ninja_bases:
         try:
-            requests.post(b"https://poe.ninja/", timeout=0.5)
+            requests.post(b"https://poe.ninja/", timeout=2)
         except Exception:
             logging.info("poe.ninja is not available.")
             return None
@@ -421,22 +421,26 @@ def get_poe_prices_info(item):
     :param item: The item whose info we will query
     """
     try:
-        results = requests.post(b"http://poeprices.info", timeout=0.5)
-    except Exception:
-        logging.info("poeprices.info is not available.")
-        return {}
-    try:
         league = bytes(config.LEAGUE, "utf-8")
         try:
-            results = requests.post(
-                b"http://poeprices.info/api?l="
+            logging.debug(
+                b"Visiting "
+                + b"https://poeprices.info/api?l="
                 + league
                 + b"&i="
-                + base64.b64encode(bytes(item.text, "utf-8"), timeout=5)
+                + base64.b64encode(bytes(item.text, "utf-8"))
             )
+            results = requests.post(
+                b"https://poeprices.info/api?l="
+                + league
+                + b"&i="
+                + base64.b64encode(bytes(item.text, "utf-8")),
+                timeout=5,
+            )
+            logging.debug(results)
             return results.json()
         except Exception:
-            logging.info("poeprices.info is not available.")
+            logging.info("poeprices.info took too long to respond.")
             return {}
     except Exception:
         logging.error("Could not retrieve data from poeprices.info")

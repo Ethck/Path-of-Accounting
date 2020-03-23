@@ -81,9 +81,8 @@ def hotkey_handler(keyboard, hotkey):
         if isinstance(item, Weapon):
             stats = item.get_weapon_stats()
             logging.info(stats)
-            if config.USE_GUI:
-                gearInformation.add_info(item)
-                gearInformation.create_at_cursor()
+            gearInformation.add_info(item)
+            gearInformation.create_at_cursor()
 
     elif hotkey == "Basic":  # alt+d, ctrl+c
         basic_search(text)
