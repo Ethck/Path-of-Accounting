@@ -160,13 +160,16 @@ def price_item(item):
         else:
             # If the mods found on our unique item are well above average, there can be no results.
             # In this case, we create a new item that has no mods.
-            if item.rarity == "unique":
-                item2 = item
-                item2.remove_all_mods()
-                logging.info(f"[!] Re-pricing {item2.name} without mods.")
-                logging.debug(item2.get_json())
-                price_item(item2)
-                return 0
+            try:
+                if item.rarity == "unique":
+                    item2 = item
+                    item2.remove_all_mods()
+                    logging.info(f"[!] Re-pricing {item2.name} without mods.")
+                    logging.debug(item2.get_json())
+                    price_item(item2)
+                    return 0
+            except AttributeError:
+                pass
 
             logging.info("[!] No results!")
             price = get_poe_prices_info(item)

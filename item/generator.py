@@ -188,21 +188,26 @@ class Item(BaseItem):
         json = self.set_influence(json, self.influence)
         json = self.add_mods(json, self.mods)
 
-        json["query"]["filters"]["misc_filters"]["filters"][
-            "synthesised_item"
-        ] = {"option": self.synthesised}
-        json["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {
-            "option": self.corrupted
-        }
-        json["query"]["filters"]["misc_filters"]["filters"]["mirrored"] = {
-            "option": self.mirrored
-        }
-        json["query"]["filters"]["misc_filters"]["filters"]["veiled"] = {
-            "option": self.veiled
-        }
-        json["query"]["filters"]["misc_filters"]["filters"]["identified"] = {
-            "option": self.identified
-        }
+        if self.synthesised:
+            json["query"]["filters"]["misc_filters"]["filters"][
+                "synthesised_item"
+            ] = {"option": self.synthesised}
+        if self.corrupted:
+            json["query"]["filters"]["misc_filters"]["filters"][
+                "corrupted"
+            ] = {"option": self.corrupted}
+        if self.mirrored:
+            json["query"]["filters"]["misc_filters"]["filters"]["mirrored"] = {
+                "option": self.mirrored
+            }
+        if self.veiled:
+            json["query"]["filters"]["misc_filters"]["filters"]["veiled"] = {
+                "option": self.veiled
+            }
+        if self.identified:
+            json["query"]["filters"]["misc_filters"]["filters"][
+                "identified"
+            ] = {"option": self.identified}
 
         if self.sockets:
             sockets = self.sockets.lower()
@@ -226,17 +231,18 @@ class Item(BaseItem):
             links = links + 1
             sockets = r_sockets + b_sockets + g_sockets + w_sockets + a_sockets
 
-            json["query"]["filters"]["socket_filters"]["filters"]
-            if sockets == 6:
-                json["query"]["filters"]["socket_filters"]["filters"][
-                    "sockets"
-                ] = {"min": 6}
+            if sockets == 6 or links >= 5:
+                json["query"]["filters"]["socket_filters"]["filters"]
+                if sockets == 6:
+                    json["query"]["filters"]["socket_filters"]["filters"][
+                        "sockets"
+                    ] = {"min": 6}
 
-            # If we have 5 or more links, we'll include that in the query
-            if links >= 5:
-                json["query"]["filters"]["socket_filters"]["filters"][
-                    "links"
-                ] = {"min": links}
+                # If we have 5 or more links, we'll include that in the query
+                if links >= 5:
+                    json["query"]["filters"]["socket_filters"]["filters"][
+                        "links"
+                    ] = {"min": links}
 
         if self.rarity == "unique" and self.identified:
             json = self.set_name(json, self.name.replace(" " + self.base, ""))
