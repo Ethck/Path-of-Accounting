@@ -1046,7 +1046,11 @@ def parse_item_info(text: str):
     name = re.sub(r"<<set:M?S?>>", "", regions[0][1])
 
     if len(regions[0]) > 2:
-        name += " " + regions[0][2]
+        if rarity == "rare":
+            modname = name + " " + regions[0][2]
+            name = regions[0][2]
+        else:
+            name += " " + regions[0][2]
 
     if len(name) > 60:
         logging.info("Not a PoE Item")
@@ -1105,21 +1109,24 @@ def parse_item_info(text: str):
         synthesised = True
         name = name.replace("Synthesised ", "")
 
-    base = get_base("Accessories", name)
+    base = get_base("Accessories", name, rarity)
     category = "accessory"
     if not base:
-        base = get_base("Weapons", name)
+        base = get_base("Weapons", name, rarity)
         category = "weapon"
     if not base:
-        base = get_base("Armour", name)
+        base = get_base("Armour", name, rarity)
         category = "armour"
     if not base:
-        base = get_base("Jewels", name)
+        base = get_base("Jewels", name, rarity)
         category = "jewel"
     if not base:
         logging.info("[!] Item not found")
         logging.info("[!] Pathofexile.com might be down")
         return None
+
+    if "modname" in locals():
+        name = modname
 
     influenceText = {
         "Elder",
