@@ -32,8 +32,15 @@ def get_response(item):
     :return: Response from approriate API
     """
     json = item.get_json()
+    unsupportedCurrency = [
+        "Warlord's Exalted Orb",
+        "Crusader's Exalted Orb",
+        "Redeemer's Exalted Orb",
+        "Hunter's Exalted Orb",
+        "Awakener's Orb",
+    ]
 
-    if isinstance(item, Currency):
+    if isinstance(item, Currency) and item.name not in unsupportedCurrency:
         response = exchange_currency(json, config.LEAGUE)
     else:
         response = query_item(json, config.LEAGUE)

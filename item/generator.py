@@ -600,13 +600,27 @@ class Currency(BaseItem):
         super().__init__(name)
 
     def get_json(self):
-        json = {
-            "exchange": {
+        unsupportedCurrency = [
+            "Warlord's Exalted Orb",
+            "Crusader's Exalted Orb",
+            "Redeemer's Exalted Orb",
+            "Hunter's Exalted Orb",
+            "Awakener's Orb",
+        ]
+        if self.name not in unsupportedCurrency:
+            json = {
+                "exchange": {
+                    "status": {"option": "online"},
+                    "have": ["chaos"],
+                    "want": [currency_global[self.name]],
+                },
+            }
+        else:
+            json = {
+                "query": {"type": self.name},
                 "status": {"option": "online"},
-                "have": ["chaos"],
-                "want": [currency_global[self.name]],
-            },
-        }
+                "sort": {"price": "asc"},
+            }
         return json
 
 
