@@ -341,6 +341,8 @@ def get_items() -> dict:
             )
             items = query.json()
             item_cache = items["result"]
+            for i in item_cache:
+                i["entries"].sort(key=lambda x: len(x["type"]), reverse=True)
         except Exception:
             return None
     return item_cache
