@@ -960,7 +960,7 @@ def parse_map(regions: list, rarity, name):
         elif line.startswith("Monster Pack Size: +"):
             pack_size = int(line[19:-13])
 
-    base = get_base("Maps", name)
+    base = get_base("Maps", name, rarity)
 
     return Map(
         name, base, rarity, ilevel, iiq, iir, pack_size, map_mods, identified
@@ -999,7 +999,7 @@ def parse_flask(regions: list, rarity: str, quality: int, name: str):
                 mods.append(mod)
 
     if rarity != "Unique":
-        base = get_base("Flasks", name)
+        base = get_base("Flasks", name, rarity)
     else:
         base = name
     return Flask(name, base, rarity, quality, mods)
