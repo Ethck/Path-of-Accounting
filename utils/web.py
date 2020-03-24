@@ -348,7 +348,7 @@ def get_items() -> dict:
     return item_cache
 
 
-def get_base(category, name, rarity):
+def get_base(category, name):
     """Find the base type of a given item.
 
     :param category: cateogory of given item (Belt, Flask, etc.)
@@ -359,12 +359,7 @@ def get_base(category, name, rarity):
     try:
         for i in items:
             if i["label"] == category:
-                result = next(
-                    l
-                    for l in i["entries"]
-                    if (l["type"] == name and rarity == "rare")
-                    or (l["type"] in name and rarity != "rare")
-                )
+                result = next(l for l in i["entries"] if l["type"] in name)
                 return result["type"]
     except:
         pass

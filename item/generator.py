@@ -1109,16 +1109,16 @@ def parse_item_info(text: str):
         synthesised = True
         name = name.replace("Synthesised ", "")
 
-    base = get_base("Accessories", name, rarity)
+    base = get_base("Accessories", name)
     category = "accessory"
     if not base:
-        base = get_base("Weapons", name, rarity)
+        base = get_base("Weapons", name)
         category = "weapon"
     if not base:
-        base = get_base("Armour", name, rarity)
+        base = get_base("Armour", name)
         category = "armour"
     if not base:
-        base = get_base("Jewels", name, rarity)
+        base = get_base("Jewels", name)
         category = "jewel"
     if not base:
         logging.info("[!] Item not found")
