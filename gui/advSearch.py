@@ -47,23 +47,31 @@ class AdvancedSearch(ActiveWindow):
         self.item.print()
 
     def search(self):
-        self.edit_item()
-        results = price_item(self.item)
-        if results > 0:
+        try:
+            self.edit_item()
+            results = price_item(self.item)
+            if results > 0:
+                self.close()
+            else:
+                time.sleep(1.2)
+                close_all_windows()
+        except Exception:
             self.close()
-        else:
-            time.sleep(1.2)
-            close_all_windows()
+            traceback.print_exc()
 
     def open_trade(self):
-        self.edit_item()
-        response = get_response(self.item)
-        if response:
-            if isinstance(self.item, Currency):
-                open_exchange_site(response["id"], config.LEAGUE)
-            else:
-                open_trade_site(response["id"], config.LEAGUE)
-        self.close()
+        try:
+            self.edit_item()
+            response = get_response(self.item)
+            if response:
+                if isinstance(self.item, Currency):
+                    open_exchange_site(response["id"], config.LEAGUE)
+                else:
+                    open_trade_site(response["id"], config.LEAGUE)
+            self.close()
+        except Exception:
+            self.close()
+            traceback.print_exc()
 
     def add_components(self):
         """

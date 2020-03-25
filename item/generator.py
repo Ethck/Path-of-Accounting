@@ -75,7 +75,7 @@ class BaseItem:
         return json
 
     def create_pseudo_mods(self):
-        pass
+        return {}
 
     def relax_modifiers(self):
         pass

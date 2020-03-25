@@ -16,25 +16,6 @@ from utils.config import (
     USE_GUI,
 )
 
-if os.name == "nt":
-    import win32gui
-
-
-def set_foreground_window(wid):
-    if os.name == "nt":
-        win32gui.ShowWindow(wid, 5)
-        try:  # this might fail if somebody is working in a diffrent window, should just be ignored in that case
-            win32gui.SetForegroundWindow(wid)
-        except win32gui.error:
-            pass
-
-
-def get_foreground_window():
-    if os.name == "nt":
-        return win32gui.GetForegroundWindow()
-    return 0
-
-
 components = []
 
 
@@ -46,9 +27,7 @@ def init_gui():
 def close_all_windows():
     if USE_GUI:
         for x in components:
-            # Should be AdvancedSearch but circ ref atm..
-            if not isinstance(x, ActiveWindow):
-                x.close()
+            x.close()
 
 
 def check_timeout_gui():
@@ -65,9 +44,6 @@ if USE_GUI:
             self.frame = None
             self.opened = time.time()  # When the window was created
             self.elapsed = 0  # Used to see how long the window was open
-            self.created = False
-            self.prev = None  # The Active foreground window before this one
-            self.window_id = 0
 
             components.append(self)
 
@@ -139,12 +115,8 @@ if USE_GUI:
             self.frame = frame
 
         def close(self, event=None):
-            if self.created:
-                if self.window_id == get_foreground_window():
-                    set_foreground_window(self.prev)
-                self.frame.withdraw()
+            if self.frame:
                 self.frame.destroy()
-                self.created = False
 
         def should_close(self):
             self.elapsed = time.time() - self.opened
@@ -160,18 +132,14 @@ if USE_GUI:
 
         def create(self, x_cord, y_cord):
             close_all_windows()
-            self.prev = get_foreground_window()
             self.prepare_window()
             self.add_components()
-            self.created = True
             self.finalize(x_cord, y_cord)
 
         def create_at_cursor(self):
             close_all_windows()
-            self.prev = get_foreground_window()
             self.prepare_window()
             self.add_components()
-            self.created = True
             self.frame.deiconify()
             self.frame.update()
             m_x = self.frame.winfo_pointerx()
@@ -212,7 +180,6 @@ if USE_GUI:
             self.finalize(m_x, m_y)
 
         def finalize(self, x_cord, y_cord):
-            self.window_id = get_foreground_window()
             self.frame.deiconify()
             self.frame.geometry(f"+{x_cord}+{y_cord}")
             self.frame.resizable(False, False)
@@ -225,23 +192,25 @@ if USE_GUI:
     class ActiveWindow(DisplayWindow):
         """Base window for setting up the overlay"""
 
+        def __init__(self):
+            self.frame = None
+            self.opened = time.time()  # When the window was created
+            self.elapsed = 0  # Used to see how long the window was open
+
         def close(self, event=None):
-            if self.created:
+            if self.frame:
                 self.frame.unbind("<Escape>")
                 self.frame.unbind("<FocusOut>")
-                self.frame.quit()
                 self.frame.update()
                 self.frame.withdraw()
+                self.frame.quit()
                 self.frame.destroy()
-                self.created = False
-                set_foreground_window(self.prev)
 
         def run(self):
             self.frame.mainloop()
 
         def create_at_cursor(self):
             super().create_at_cursor()
-            set_foreground_window(self.frame.winfo_id())
             self.run()
 
         def lost_focus(self, event=None):

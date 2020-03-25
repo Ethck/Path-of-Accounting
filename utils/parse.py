@@ -78,6 +78,8 @@ def search_ninja_base(text):
         return 0
 
     real_item = parse_item_info(text)
+    if not real_item:
+        return
     logging.debug(real_item.get_json())
     if not isinstance(real_item, Item):
         return

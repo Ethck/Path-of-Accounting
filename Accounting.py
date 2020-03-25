@@ -129,9 +129,6 @@ def watch_keyboard(keyboard, use_hotkeys):
             ADV_SEARCH, lambda: hotkey_handler(keyboard, "Adv")
         )
 
-    # Fetch the item's approximate price
-    logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
-
 
 def check_league():
     valid_leagues = get_leagues()
@@ -195,6 +192,18 @@ if __name__ == "__main__":
         start_stash_scroll()
 
         init_gui()
+
+        logging.info(
+            f"[{(BASIC_SEARCH)}]:".rjust(15) + " For simple search.\n" +
+            f"[{(ADV_SEARCH)}]:".rjust(15) + " For advanced search.\n" +
+            f"[{(BASE_SEARCH)}]:".rjust(15) + " For item base price\n" +
+            f"[{(OPEN_WIKI)}]:".rjust(15) + " To open the item on wiki.\n" +
+            f"[{(OPEN_TRADE)}]:".rjust(15) + " To open the item on trade site.\n" +
+            f"[{(SHOW_INFO)}]:".rjust(15) + " To see item stats (Does not work with all items).\n" +
+            f"[{(HIDEOUT)}]:".rjust(15) + " To go to hideout.\n" +
+            "[*] Hotkeys can be changed in settings.cfg\n" +
+            "[*] Watching hotkeys (Ctrl+C to stop) ..."
+        )
 
         try:
             while True:
