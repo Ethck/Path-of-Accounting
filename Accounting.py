@@ -17,7 +17,6 @@ from utils.config import (
     OPEN_TRADE,
     OPEN_WIKI,
     SHOW_INFO,
-    USE_HOTKEYS,
 )
 from utils.input import (
     Keyboard,
@@ -88,46 +87,45 @@ def hotkey_handler(keyboard, hotkey):
         basic_search(text)
 
 
-def watch_keyboard(keyboard, use_hotkeys):
+def watch_keyboard(keyboard):
     """Add all of the hotkeys to watch over
 
     :param keyboard: Keyboard object to determine key status
     :param use_hotkeys: config to determine whether hotkeys are established
     """
-    if use_hotkeys:
 
-        # Use the "f5" key to go to hideout
-        keyboard.add_hotkey(HIDEOUT, lambda: keyboard.write("\n/hideout\n"))
+    # Use the "f5" key to go to hideout
+    keyboard.add_hotkey(HIDEOUT, lambda: keyboard.write("\n/hideout\n"))
 
-        # Basic search
-        keyboard.add_hotkey(
-            BASIC_SEARCH, lambda: hotkey_handler(keyboard, "Basic")
-        )
+    # Basic search
+    keyboard.add_hotkey(
+        BASIC_SEARCH, lambda: hotkey_handler(keyboard, "Basic")
+    )
 
-        # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey(
-            OPEN_WIKI, lambda: hotkey_handler(keyboard, "Wiki")
-        )
+    # Open item in the Path of Exile Wiki
+    keyboard.add_hotkey(
+        OPEN_WIKI, lambda: hotkey_handler(keyboard, "Wiki")
+    )
 
-        # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey(
-            OPEN_TRADE, lambda: hotkey_handler(keyboard, "Trade")
-        )
+    # Open item search in pathofexile.com/trade
+    keyboard.add_hotkey(
+        OPEN_TRADE, lambda: hotkey_handler(keyboard, "Trade")
+    )
 
-        # poe.ninja base check
-        keyboard.add_hotkey(
-            BASE_SEARCH, lambda: hotkey_handler(keyboard, "Base")
-        )
+    # poe.ninja base check
+    keyboard.add_hotkey(
+        BASE_SEARCH, lambda: hotkey_handler(keyboard, "Base")
+    )
 
-        # Show item info
-        keyboard.add_hotkey(
-            SHOW_INFO, lambda: hotkey_handler(keyboard, "Info")
-        )
+    # Show item info
+    keyboard.add_hotkey(
+        SHOW_INFO, lambda: hotkey_handler(keyboard, "Info")
+    )
 
-        # Adv Search
-        keyboard.add_hotkey(
-            ADV_SEARCH, lambda: hotkey_handler(keyboard, "Adv")
-        )
+    # Adv Search
+    keyboard.add_hotkey(
+        ADV_SEARCH, lambda: hotkey_handler(keyboard, "Adv")
+    )
 
 
 def check_league():
@@ -187,7 +185,7 @@ if __name__ == "__main__":
             )
 
         keyboard = Keyboard()
-        watch_keyboard(keyboard, USE_HOTKEYS)
+        watch_keyboard(keyboard)
 
         start_stash_scroll()
 
