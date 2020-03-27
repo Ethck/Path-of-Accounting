@@ -121,7 +121,8 @@ def get_leagues() -> tuple:
     """
     try:
         leagues = requests.get(
-            url="https://www.pathofexile.com/api/trade/data/leagues", timeout=2
+            url="https://www.pathofexile.com/api/trade/data/leagues",
+            timeout=10,
         ).json()
         return tuple(x["id"] for x in leagues["result"])
     except Exception:
@@ -294,7 +295,7 @@ def get_ninja_bases(league: str):
     global ninja_bases
     if not ninja_bases:
         try:
-            requests.post(b"https://poe.ninja/", timeout=2)
+            requests.post(b"https://poe.ninja/", timeout=10)
         except Exception:
             logging.info("poe.ninja is not available.")
             return None
