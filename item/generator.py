@@ -426,7 +426,7 @@ class Item(BaseItem):
         restr = ""
         for mod in self.mods:
             if is_duplicate_mod_type(mod.mod):
-                restr += f"[!] {mod.mod.text}\n"
+                restr += f"    {mod.mod.text}\n"
             else:
                 nMods.append(mod)
         self.mods = nMods
@@ -436,6 +436,9 @@ class Item(BaseItem):
 
     def remove_bad_mods(self):
         """Mods to remove first if found on any individual item if no matches are found before relaxing"""
+
+        if self.rarity == "unique":  # dont do this on uniques
+            return ""
 
         # TODO Add more, move to config ( config parse does not support multiple lines atm, prob need to write a custom one)
         bad_mod_list = [
@@ -464,16 +467,18 @@ class Item(BaseItem):
 
         nMods = []
         found = False
-        restr = "[!] Removed some mods From Search:\n"
+        restr = ""
         for mod in self.mods:
             for bad in bad_mod_list:
                 if bad in mod.mod.text:
                     found = True
-                    restr += f"[!] {mod.mod.text}\n"
+                    restr += f"    {mod.mod.text}\n"
             if not found:
                 nMods.append(mod)
             found = False
         self.mods = nMods
+        if restr != "":
+            restr = "[!] Removed some mods From Search:\n" + restr
         restr += f"[!] Removed Quality From Search\n"
         restr += f"[!] Removed Item Level From Search\n"
         self.quality = 0

@@ -104,7 +104,11 @@ class Information(DisplayWindow):
 
     def add_components(self):
         if self.info:
-            self.create_label_header(self.info, 0, 1, "E")
+            lines = self.info.splitlines()
+            counter = 0
+            for s in lines:
+                self.create_label_header(s, 0, counter, "W")
+                counter += 1
 
         self.info = None
 

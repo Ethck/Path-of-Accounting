@@ -130,12 +130,13 @@ def get_trade_data(item):
 
 
 def print_info(info):
-    logging.info(info)
-    information.add_info(
-        info
-    )
-    information.create_at_cursor()
-    time.sleep(int(config.TIMEOUT_GUI))
+    if info != "":
+        logging.info(info)
+        information.add_info(
+            info
+        )
+        information.create_at_cursor()
+        time.sleep(int(config.TIMEOUT_GUI))
     
 
 def price_item(item):
