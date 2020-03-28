@@ -49,6 +49,7 @@ if USE_GUI:
 
         def __init__(self):
             self.frame = None
+            self.created = False
             self.opened = time.time()  # When the window was created
             self.elapsed = 0  # Used to see how long the window was open
 
@@ -122,15 +123,17 @@ if USE_GUI:
             self.frame = frame
 
         def close(self, event=None):
-            if self.frame:
+            if self.frame and self.created:
                 self.frame.destroy()
                 self.frame = None
+                self.created = False
 
         def should_close(self):
-            self.elapsed = time.time() - self.opened
-            if self.elapsed >= int(TIMEOUT_GUI):
-                self.elapsed = 0
-                self.close()
+            if self.frame and self.created:
+                self.elapsed = time.time() - self.opened
+                if self.elapsed >= int(TIMEOUT_GUI):
+                    self.elapsed = 0
+                    self.close()
 
         def add_callbacks(self):
             pass
@@ -139,13 +142,11 @@ if USE_GUI:
             pass
 
         def create(self, x_cord, y_cord):
-            close_display_windows()
             self.prepare_window()
             self.add_components()
             self.finalize(x_cord, y_cord)
 
         def create_at_cursor(self):
-            close_display_windows()
             self.prepare_window()
             self.add_components()
             self.frame.deiconify()
@@ -175,9 +176,53 @@ if USE_GUI:
                 print(exception)
                 self.close()
                 return
-            # Get the monitor's size
+            # Get the window's size
             root_w = self.frame.winfo_width()
             root_h = self.frame.winfo_height()
+
+            if m_x + root_w >= width:
+                m_x = width - root_w - 5
+
+            if m_y + root_h >= height:
+                m_y = height - root_h - 5
+
+            self.finalize(m_x, m_y)
+
+        def create_at_cursor_left(self):
+            self.prepare_window()
+            self.add_components()
+            self.frame.deiconify()
+            self.frame.update()
+            m_x = self.frame.winfo_pointerx()
+            m_y = self.frame.winfo_pointery() + 10
+
+            def get_monitor_from_coord(x, y):
+                monitors = screeninfo.get_monitors()
+                for m in reversed(monitors):
+                    if m.x <= x <= m.width + m.x and m.y <= y <= m.height + m.y:
+                        return m
+                return monitors[0]
+
+            # Get the screen which contains top
+            width = 0
+            height = 0
+            try:
+                current_screen = get_monitor_from_coord(
+                    self.frame.winfo_x(), self.frame.winfo_y()
+                )
+                width = current_screen.width
+                height = current_screen.height
+            except screeninfo.common.ScreenInfoError:
+                exception = traceback.format_exc()
+                print("====== TRACEBACK =====")
+                print(exception)
+                self.close()
+                return
+            # Get the window size
+            root_w = self.frame.winfo_width()
+            root_h = self.frame.winfo_height()
+
+            m_x -= root_w + 10
 
             if m_x + root_w >= width:
                 m_x = width - root_w - 5
@@ -195,6 +240,7 @@ if USE_GUI:
             self.frame.update()
             self.add_callbacks()
             self.opened = time.time()
+            self.created = True
 
 
     class ActiveWindow(DisplayWindow):
@@ -204,6 +250,7 @@ if USE_GUI:
             self.frame = None
             self.opened = time.time()  # When the window was created
             self.elapsed = 0  # Used to see how long the window was open
+            self.created = False
             components.append(self)
 
         def close(self, event=None):
@@ -215,6 +262,7 @@ if USE_GUI:
                 self.frame.quit()
                 self.frame.destroy()
                 self.frame = None
+                self.created = False
 
         def run(self):
             self.frame.mainloop()
@@ -226,10 +274,16 @@ if USE_GUI:
         def lost_focus(self, event=None):
             if not self.frame.focus_get():
                 self.close()
-                
+        
+        def check_timeout(self):
+            self.frame.after(100, self.check_timeout)
+            check_timeout_gui()
+
+
         def add_callbacks(self):
             self.frame.bind("<Escape>", self.close)
             self.frame.bind("<FocusOut>", self.lost_focus)
+            self.frame.after(100, self.check_timeout)
 else:
 
     class DisplayWindow:

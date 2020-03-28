@@ -135,8 +135,7 @@ def print_info(info):
         information.add_info(
             info
         )
-        information.create_at_cursor()
-        time.sleep(int(config.TIMEOUT_GUI))
+        information.create_at_cursor_left()
     
 
 def price_item(item):

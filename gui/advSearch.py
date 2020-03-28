@@ -52,9 +52,6 @@ class AdvancedSearch(ActiveWindow):
             results = price_item(self.item)
             if results > 0:
                 self.close()
-            else:
-                time.sleep(1.2)
-                close_display_windows()
         except Exception:
             self.close()
             traceback.print_exc()
