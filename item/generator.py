@@ -19,11 +19,12 @@ def round_mod(number):
 
 
 class ModInfo:
-    def __init__(self, mod, m_min, m_max, option):
+    def __init__(self, mod, m_min, m_max, option, can_reduce = True):
         self.mod = mod
         self.min = m_min
         self.max = m_max
         self.option = option
+        self.can_reduce = can_reduce
 
 
 class BaseItem:
@@ -404,16 +405,17 @@ class Item(BaseItem):
             return
 
         for mod in self.mods:
-            if mod.max:
-                if mod.max > 0:
-                    mod.max = round_mod(mod.max * 1.1)
-                else:
-                    mod.max = round_mod(mod.max * 0.9)
-            if mod.min:
-                if mod.min > 0:
-                    mod.min = round_mod(mod.min * 0.9)
-                else:
-                    mod.min = round_mod(mod.min * 1.1)
+            if mod.can_reduce:
+                if mod.max:
+                    if mod.max > 0:
+                        mod.max = round_mod(mod.max * 1.1)
+                    else:
+                        mod.max = round_mod(mod.max * 0.9)
+                if mod.min:
+                    if mod.min > 0:
+                        mod.min = round_mod(mod.min * 0.9)
+                    else:
+                        mod.min = round_mod(mod.min * 1.1)
 
     def remove_bad_mods(self):
         """Mods to remove first if found on any individual item if no matches are found before relaxing"""
@@ -798,12 +800,20 @@ def parse_mod(mod_text: str, mod_values, category=""):
     """
     global prev_mod
 
+
+    can_reduce = True
+    m_min = None
+    m_max = None
+    option = None
+
     if "Chance to Block Spell Damage" in mod_text:
         logging.info("[!] Chance to Block Spell Damage currently unsupported")
         return None
 
     mod = None
     mod_type = ItemModifierType.EXPLICIT
+
+    
 
     if mod_values == []:
         mod_values = ""
@@ -814,6 +824,8 @@ def parse_mod(mod_text: str, mod_values, category=""):
         element = ("Allocates #", ItemModifierType.ENCHANT)
         mod = get_item_modifiers_by_text(element)
         mod_values = mod.options[mod_text]
+        option = mod_values
+        can_reduce = False
 
     if mod_text.endswith("(implicit)"):
         mod_text = mod_text[:-11]
@@ -821,6 +833,36 @@ def parse_mod(mod_text: str, mod_values, category=""):
     elif mod_text.endswith("(crafted)"):
         mod_text = mod_text[:-10]
         mod_type = ItemModifierType.CRAFTED
+    
+
+    # Added Small Passive Skills grant: #% increased Damage while affected by a Herald (enchant) 10
+
+    # Added Small Passive Skills grant:
+    # 10% increased Damage while affected by a Herald (enchant)
+    # {"id":"enchant.stat_3948993189","value":{"option":26}
+
+    elif mod_text.endswith("(enchant)"):
+        mod_text = mod_text.replace(" (enchant)", "")
+        mod_type = ItemModifierType.ENCHANT
+        can_reduce = False
+
+    if "Passive Skill" in mod_text:
+        can_reduce = False
+
+    if "Added Small Passive Skills grant:" in mod_text:
+        element = ("Added Small Passive Skills grant: #", ItemModifierType.ENCHANT)
+        mod = get_item_modifiers_by_text(element)
+        mod_text = mod_text.replace("Added Small Passive Skills grant: ", "")
+        mod_text = mod_text.replace("#", mod_values)
+        mod_values = mod.options[mod_text]
+        option = mod_values
+
+
+    # {"id":"explicit.stat_4079888060","value":{"min":1}
+    # # Added Passive Skill is a Jewel Socket -> # Added Passive Skills are Jewel Sockets
+    if "# Added Passive Skill is a Jewel Socket" in mod_text:
+        element = ("# Added Passive Skills are Jewel Sockets", ItemModifierType.EXPLICIT)
+        mod = get_item_modifiers_by_text(element)
 
     if category == "weapon":
         if (
@@ -887,16 +929,11 @@ def parse_mod(mod_text: str, mod_values, category=""):
     except ValueError:
         pass
 
-    m_min = None
-    m_max = None
-    option = None
-
     if not mod:
+        print(mod_text, mod_values)
         return None
-    # Atunements is a number but it needs to be in options
-    if mod.id == "enchant.stat_2954116742":
-        option = mod_values
-    else:
+
+    if not option:
         try:
             if float(mod_values) < 0:
                 m_max = float(mod_values)
@@ -906,8 +943,12 @@ def parse_mod(mod_text: str, mod_values, category=""):
             if mod_values:
                 option = mod_values
 
+    if "Adds # Passive Skills" in mod.text:
+        m_max = float(mod_values)
+        m_min = None
+
     prev_mod = mod_text
-    m = ModInfo(mod, m_min, m_max, option)
+    m = ModInfo(mod, m_min, m_max, option, can_reduce)
     return m
 
 
