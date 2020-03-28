@@ -104,7 +104,7 @@ class Information(DisplayWindow):
 
     def add_components(self):
         if self.info:
-            self.create_label_header(self.info, 0, 1, "WE")
+            self.create_label_header(self.info, 0, 1, "E")
 
         self.info = None
 

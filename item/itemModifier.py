@@ -15,7 +15,7 @@ class ItemModifierType(Enum):
     DELVE = "delve"
 
 
-@attrs(auto_attribs=True, frozen=True)
+@attrs(auto_attribs=True)
 class ItemModifier:
     type: ItemModifierType
     id: str

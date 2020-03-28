@@ -11,6 +11,7 @@ from utils.web import (
     get_item_modifiers_by_id,
     get_item_modifiers_by_text,
     get_ninja_bases,
+    is_duplicate_mod_type,
 )
 
 
@@ -81,8 +82,11 @@ class BaseItem:
     def relax_modifiers(self):
         pass
 
+    def remove_duplicate_mods(self):
+        return ""
+
     def remove_bad_mods(self):
-        pass
+        return ""
 
     def remove_all_mods(self):
         self.mods = []
@@ -417,6 +421,19 @@ class Item(BaseItem):
                     else:
                         mod.min = round_mod(mod.min * 1.1)
 
+    def remove_duplicate_mods(self):
+        nMods = []
+        restr = ""
+        for mod in self.mods:
+            if is_duplicate_mod_type(mod.mod):
+                restr += f"[!] {mod.mod.text}\n"
+            else:
+                nMods.append(mod)
+        self.mods = nMods
+        if restr != "":
+            restr = f"[!] Removing duplicate mods on trade site:\n" + restr
+        return restr
+
     def remove_bad_mods(self):
         """Mods to remove first if found on any individual item if no matches are found before relaxing"""
 
@@ -447,19 +464,22 @@ class Item(BaseItem):
 
         nMods = []
         found = False
+        restr = "[!] Removed some mods From Search:\n"
         for mod in self.mods:
             for bad in bad_mod_list:
                 if bad in mod.mod.text:
                     found = True
-                    logging.info(f"[!] Removed {mod.mod.text} From Search")
+                    restr += f"[!] {mod.mod.text}\n"
             if not found:
                 nMods.append(mod)
             found = False
         self.mods = nMods
-        logging.info(f"[!] Removed Quality From Search")
-        logging.info(f"[!] Removed Item Level From Search")
+        restr += f"[!] Removed Quality From Search\n"
+        restr += f"[!] Removed Item Level From Search\n"
         self.quality = 0
         self.ilevel = 0
+
+        return restr
 
 
 class Weapon(Item):
@@ -805,10 +825,6 @@ def parse_mod(mod_text: str, mod_values, category=""):
     m_min = None
     m_max = None
     option = None
-
-    if "Chance to Block Spell Damage" in mod_text:
-        logging.info("[!] Chance to Block Spell Damage currently unsupported")
-        return None
 
     mod = None
     mod_type = ItemModifierType.EXPLICIT

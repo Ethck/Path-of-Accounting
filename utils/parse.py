@@ -53,16 +53,6 @@ def basic_search(text):
     item.create_pseudo_mods()
     item.relax_modifiers()
 
-    data, results = get_trade_data(item)
-
-    if results < MIN_RESULTS:
-        logging.info(f"[!] Limited Results, Removing some item stats")
-        information.add_info(
-            "[!] Limited Results, Removing some item stats"
-        )
-        information.create_at_cursor()
-        item.remove_bad_mods()
-
     price_item(item)
 
 

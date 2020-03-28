@@ -16,6 +16,7 @@ from item.itemModifier import ItemModifier, ItemModifierType
 from utils import config
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
+import re
 
 ninja_bases = []
 
@@ -25,6 +26,9 @@ map_cache = set()
 mod_list = []
 mod_list_dict_id = {}
 mod_list_dict_text = {}
+
+# contains all mods there exist more than 1 off
+dup_mod_list_text = {}
 
 
 def search_url(league: str) -> str:
@@ -138,11 +142,36 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
     :return: ItemModifier that matches
     """
     global mod_list_dict_text
+    global dup_mod_list_text
     if len(mod_list_dict_text) == 0:
         item_modifiers = get_item_modifiers()
-        mod_list_dict_text = {(e.text, e.type): e for e in item_modifiers}
+        found = {}
+        for mod in item_modifiers:
+            if "Allocates # (Additional)" in mod.text: # Gives no results ATM
+                continue
+            mod.text = re.sub("\(([^)]*)\)", "", mod.text)
+            mod.text = mod.text.rstrip()
+            if (mod.text, mod.type) in mod_list_dict_text:
+                if not (mod.text, mod.type) in found:
+                    found[(mod.text, mod.type)] = {}
+                found[(mod.text, mod.type)][mod.id] = ""
+                found[(mod.text, mod.type)][mod_list_dict_text[(mod.text, mod.type)].id] = ""
+
+            mod_list_dict_text[(mod.text, mod.type)] = mod
+        for key, value in found.items():
+            dup_mod_list_text[key] = ""
     if element in mod_list_dict_text:
         return mod_list_dict_text[element]
+
+def is_duplicate_mod_type(mod):
+    """
+    Checks if a mod exist in the duplicate mod list
+    Return True if it does, false if it does not
+    """
+    global dup_mod_list_text
+    if (mod.text, mod.type) in dup_mod_list_text:
+        return True
+    return False
 
 
 def get_item_modifiers_by_id(element: str) -> ItemModifier:
@@ -202,14 +231,11 @@ def get_item_modifiers() -> tuple:
         json_blob = requests.get(
             url="https://www.pathofexile.com/api/trade/data/stats"
         ).json()
-        mod_list = tuple(
-            chain(
-                *[
-                    [build_from_json(y) for y in x["entries"]]
-                    for x in json_blob["result"]
-                ]
-            )
-        )
+
+        for modType in json_blob["result"]:
+            for mod in modType["entries"]:
+                mod_list.append(build_from_json(mod))
+
         logging.info(f"[*] Loaded {len(mod_list)} item mods.")
         return mod_list
 
