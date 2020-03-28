@@ -1,4 +1,5 @@
 import logging
+import time
 import traceback
 from datetime import datetime, timezone
 from typing import Dict
@@ -23,8 +24,6 @@ from utils.web import (
     open_trade_site,
     query_item,
 )
-
-import time
 
 
 def get_response(item):
@@ -132,11 +131,9 @@ def get_trade_data(item):
 def print_info(info):
     if info != "":
         logging.info(info)
-        information.add_info(
-            info
-        )
+        information.add_info(info)
         information.create_at_cursor_left()
-    
+
 
 def price_item(item):
     """Pricing utility. Tries to price items by searching the API
@@ -150,9 +147,9 @@ def price_item(item):
         info = ""
         print(info)
         if results <= 0:
-                info += item.remove_duplicate_mods()
-                data, results = get_trade_data(item)
-                
+            info += item.remove_duplicate_mods()
+            data, results = get_trade_data(item)
+
         if results <= 0:
             try:
                 if item.rarity == "unique":
@@ -169,7 +166,7 @@ def price_item(item):
 
         offline = False
         if results <= 0:
-            info += f"[!] No results, Checking offline sellers\n"
+            info += f"[!] Checking offline sellers\n"
             item.set_offline()
             offline = True
             data, results = get_trade_data(item)
@@ -196,7 +193,7 @@ def price_item(item):
             return results
 
         else:
-            info += "[!] No results!"
+            info += "[!] No results on /trade, using ML!"
             print_info(info)
             item.print()
             price = get_poe_prices_info(item)
