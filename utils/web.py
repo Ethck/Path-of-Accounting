@@ -16,6 +16,7 @@ from item.itemModifier import ItemModifier, ItemModifierType
 from utils import config
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
+import re
 
 ninja_bases = []
 
@@ -25,6 +26,9 @@ map_cache = set()
 mod_list = []
 mod_list_dict_id = {}
 mod_list_dict_text = {}
+
+# contains all mods there exist more than 1 off
+dup_mod_list_text = {}
 
 
 def search_url(league: str) -> str:
@@ -139,11 +143,36 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
     :return: ItemModifier that matches
     """
     global mod_list_dict_text
+    global dup_mod_list_text
     if len(mod_list_dict_text) == 0:
         item_modifiers = get_item_modifiers()
-        mod_list_dict_text = {(e.text, e.type): e for e in item_modifiers}
+        found = {}
+        for mod in item_modifiers:
+            if "Allocates # (Additional)" in mod.text: # Gives no results ATM
+                continue
+            mod.text = re.sub("\(([^)]*)\)", "", mod.text)
+            mod.text = mod.text.rstrip()
+            if (mod.text, mod.type) in mod_list_dict_text:
+                if not (mod.text, mod.type) in found:
+                    found[(mod.text, mod.type)] = {}
+                found[(mod.text, mod.type)][mod.id] = ""
+                found[(mod.text, mod.type)][mod_list_dict_text[(mod.text, mod.type)].id] = ""
+
+            mod_list_dict_text[(mod.text, mod.type)] = mod
+        for key, value in found.items():
+            dup_mod_list_text[key] = ""
     if element in mod_list_dict_text:
         return mod_list_dict_text[element]
+
+def is_duplicate_mod_type(mod):
+    """
+    Checks if a mod exist in the duplicate mod list
+    Return True if it does, false if it does not
+    """
+    global dup_mod_list_text
+    if (mod.text, mod.type) in dup_mod_list_text:
+        return True
+    return False
 
 
 def get_item_modifiers_by_id(element: str) -> ItemModifier:
@@ -203,88 +232,88 @@ def get_item_modifiers() -> tuple:
         json_blob = requests.get(
             url="https://www.pathofexile.com/api/trade/data/stats"
         ).json()
-        mod_list = tuple(
-            chain(
-                *[
-                    [build_from_json(y) for y in x["entries"]]
-                    for x in json_blob["result"]
-                ]
-            )
-        )
+
+        for modType in json_blob["result"]:
+            for mod in modType["entries"]:
+                mod_list.append(build_from_json(mod))
+
         logging.info(f"[*] Loaded {len(mod_list)} item mods.")
         return mod_list
 
 
 def find_latest_update():
     """Search both local and remote versions, if different, prompt for update."""
-    # Get the list of releases from github, choose newest (even pre-release)
-    remote = requests.get(url=RELEASE_URL).json()[0]
-    # local version
-    local = VERSION
-    # Check if the same-
-    # print(remote["tag_name"], local)
-    if float(local.replace("v", "")) < float(
-        remote["tag_name"].replace("v", "")
-    ):
-        logging.info(
-            "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
-        )
-        # Keep going till user makes a valid choice
-        choice_made = False
-        while not choice_made:
-            user_choice = input()
-            if user_choice.lower() == "y":
-                choice_made = True
-                if os.name == "nt":
-                    # Get the sole zip url
-                    r = requests.get(
-                        url=remote["assets"][0]["browser_download_url"],
-                        stream=True,
-                    )
-
-                    # Set up a progress bar
-                    total_size = int(r.headers.get("content-length", 0))
-                    block_size = 1024
-                    timer = tqdm(total=total_size, unit="iB", unit_scale=True)
-
-                    # Write the file
-                    with open("Path-of-Accounting.zip", "wb") as f:
-                        for data in r.iter_content(block_size):
-                            timer.update(len(data))
-                            f.write(data)
-                    timer.close()
-
-                    # This means data got lost somewhere...
-                    if total_size != 0 and timer.n != total_size:
-                        logging.error(
-                            "[!] Error, something went wrong while downloading the file."
+    try:
+        # Get the list of releases from github, choose newest (even pre-release)
+        remote = requests.get(url=RELEASE_URL).json()[0]
+        # local version
+        local = VERSION
+        # Check if the same-
+        # print(remote["tag_name"], local)
+        if float(local.replace("v", "")) < float(
+            remote["tag_name"].replace("v", "")
+        ):
+            logging.info(
+                "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
+            )
+            # Keep going till user makes a valid choice
+            choice_made = False
+            while not choice_made:
+                user_choice = input()
+                if user_choice.lower() == "y":
+                    choice_made = True
+                    if os.name == "nt":
+                        # Get the sole zip url
+                        r = requests.get(
+                            url=remote["assets"][0]["browser_download_url"],
+                            stream=True,
                         )
+
+                        # Set up a progress bar
+                        total_size = int(r.headers.get("content-length", 0))
+                        block_size = 1024
+                        timer = tqdm(total=total_size, unit="iB", unit_scale=True)
+
+                        # Write the file
+                        with open("Path-of-Accounting.zip", "wb") as f:
+                            for data in r.iter_content(block_size):
+                                timer.update(len(data))
+                                f.write(data)
+                        timer.close()
+
+                        # This means data got lost somewhere...
+                        if total_size != 0 and timer.n != total_size:
+                            logging.error(
+                                "[!] Error, something went wrong while downloading the file."
+                            )
+                        else:
+                            # Unzip it and tell the user where we unzipped it to.
+                            with zipfile.ZipFile(
+                                "Path-of-Accounting.zip", "wb+"
+                            ) as zip_file:
+                                zip_file.extractall()
+                            logging.info(
+                                f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
+                            )
+
+                        # subprocess.Popen(f"{pathlib.Path().absolute()}\\Accounting.exe")
+                        sys.exit()
                     else:
-                        # Unzip it and tell the user where we unzipped it to.
-                        with zipfile.ZipFile(
-                            "Path-of-Accounting.zip", "wb+"
-                        ) as zip_file:
-                            zip_file.extractall()
                         logging.info(
-                            f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
+                            "Auto updates are not supported on non windows systems at the moment."
+                        )
+                        logging.info(
+                            "Please clone/pull the repo at https://github.com/Ethck/Path-of-Accounting.git"
                         )
 
-                    # subprocess.Popen(f"{pathlib.Path().absolute()}\\Accounting.exe")
-                    sys.exit()
+                elif user_choice.lower() == "n":
+                    choice_made = True
                 else:
-                    logging.info(
-                        "Auto updates are not supported on non windows systems at the moment."
+                    logging.error(
+                        "I did not understand your response. Please user either y or n."
                     )
-                    logging.info(
-                        "Please clone/pull the repo at https://github.com/Ethck/Path-of-Accounting.git"
-                    )
-
-            elif user_choice.lower() == "n":
-                choice_made = True
-            else:
-                logging.error(
-                    "I did not understand your response. Please user either y or n."
-                )
+    except Exception:
+        logging.error("[!] Could not check for new update!")
 
 
 def get_ninja_bases(league: str):

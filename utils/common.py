@@ -24,6 +24,8 @@ from utils.web import (
     query_item,
 )
 
+import time
+
 
 def get_response(item):
     """Based on the item given, get the response from the API
@@ -127,25 +129,54 @@ def get_trade_data(item):
     return {}, 0
 
 
+def print_info(info):
+    if info != "":
+        logging.info(info)
+        information.add_info(
+            info
+        )
+        information.create_at_cursor_left()
+    
+
 def price_item(item):
     """Pricing utility. Tries to price items by searching the API
 
     :param item: The item to search
     """
     try:
+
         data, results = get_trade_data(item)
+
+        info = ""
+        print(info)
+        if results <= 0:
+                info += item.remove_duplicate_mods()
+                data, results = get_trade_data(item)
+                
+        if results <= 0:
+            try:
+                if item.rarity == "unique":
+                    item2 = item
+                    item2.remove_all_mods()
+                    logging.info(f"[!] Re-pricing {item2.name} without mods.")
+                    logging.debug(item2.get_json())
+                    data, results = get_trade_data(item)
+            except AttributeError:
+                pass
+
+        if results < MIN_RESULTS:
+            info += item.remove_bad_mods()
 
         offline = False
         if results <= 0:
-            logging.info(f"[!] No results, Checking offline sellers")
-            information.add_info("[!] No results, Checking offline sellers")
-            information.create_at_cursor()
+            info += f"[!] No results, Checking offline sellers\n"
             item.set_offline()
             offline = True
             data, results = get_trade_data(item)
 
         if data:
             item.print()
+            print_info(info)
 
             print_text = "[$] Prices: "
             for price, values in data.items():
@@ -165,20 +196,9 @@ def price_item(item):
             return results
 
         else:
-            # If the mods found on our unique item are well above average, there can be no results.
-            # In this case, we create a new item that has no mods.
-            try:
-                if item.rarity == "unique":
-                    item2 = item
-                    item2.remove_all_mods()
-                    logging.info(f"[!] Re-pricing {item2.name} without mods.")
-                    logging.debug(item2.get_json())
-                    price_item(item2)
-                    return 0
-            except AttributeError:
-                pass
-
-            logging.info("[!] No results!")
+            info += "[!] No results!"
+            print_info(info)
+            item.print()
             price = get_poe_prices_info(item)
 
             txt = ""

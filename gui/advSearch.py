@@ -1,6 +1,6 @@
 import tkinter
 import time
-from gui.gui import ActiveWindow, close_all_windows
+from gui.gui import ActiveWindow, close_all_windows, close_display_windows
 from item.generator import Currency, Item, ModInfo
 from utils.common import get_response, price_item
 from utils import config
@@ -47,23 +47,28 @@ class AdvancedSearch(ActiveWindow):
         self.item.print()
 
     def search(self):
-        self.edit_item()
-        results = price_item(self.item)
-        if results > 0:
+        try:
+            self.edit_item()
+            results = price_item(self.item)
+            if results > 0:
+                self.close()
+        except Exception:
             self.close()
-        else:
-            time.sleep(1.2)
-            close_all_windows()
+            traceback.print_exc()
 
     def open_trade(self):
-        self.edit_item()
-        response = get_response(self.item)
-        if response:
-            if isinstance(self.item, Currency):
-                open_exchange_site(response["id"], config.LEAGUE)
-            else:
-                open_trade_site(response["id"], config.LEAGUE)
-        self.close()
+        try:
+            self.edit_item()
+            response = get_response(self.item)
+            if response:
+                if isinstance(self.item, Currency):
+                    open_exchange_site(response["id"], config.LEAGUE)
+                else:
+                    open_trade_site(response["id"], config.LEAGUE)
+            self.close()
+        except Exception:
+            self.close()
+            traceback.print_exc()
 
     def add_components(self):
         """
@@ -78,59 +83,60 @@ class AdvancedSearch(ActiveWindow):
         j = 0
         self.selected = {}
         self.entries = {}
+        rMods = self.item.create_pseudo_mods()
+        if rMods:
+            for mod in rMods:
 
-        for mod in self.item.create_pseudo_mods():
-
-            self.searchable_mods.append(mod)
-            self.selected[mod.mod.id] = tkinter.IntVar()
-            # CheckButton
-            bgColor = GUI_BG2 if j % 2 else GUI_BG1
-            cb = tkinter.Checkbutton(
-                self.frame,
-                text=mod.mod.text,
-                variable=self.selected[mod.mod.id],
-                bg=bgColor,
-                fg=GUI_FONT_COLOR,
-                activebackground=bgColor,
-                activeforeground=GUI_FONT_COLOR,
-            )
-            #cb.select()
-            cb.grid(row=j + 2, sticky="W", columnspan=3)
-            cb.config(font=(GUI_FONT, GUI_FONT_SIZE))
-
-            # Entry
-            if mod.min or mod.max:  # If mod has values
-                val = tkinter.StringVar()
-                if mod.min:
-                    val.set(mod.min)
-                else:
-                    val.set("Min")
-                e = tkinter.Entry(
+                self.searchable_mods.append(mod)
+                self.selected[mod.mod.id] = tkinter.IntVar()
+                # CheckButton
+                bgColor = GUI_BG2 if j % 2 else GUI_BG1
+                cb = tkinter.Checkbutton(
                     self.frame,
+                    text=mod.mod.text,
+                    variable=self.selected[mod.mod.id],
                     bg=bgColor,
                     fg=GUI_FONT_COLOR,
-                    width=5,
-                    textvariable=val,
-                    exportselection=0,
+                    activebackground=bgColor,
+                    activeforeground=GUI_FONT_COLOR,
                 )
-                e.grid(row=j + 2, column=4, sticky="E", columnspan=1)
-                val2 = tkinter.StringVar()
-                if mod.max:
-                    val2.set(mod.max)
-                else:
-                    val2.set("Max")
-                e2 = tkinter.Entry(
-                    self.frame,
-                    bg=bgColor,
-                    fg=GUI_FONT_COLOR,
-                    width=5,
-                    textvariable=val2,
-                    exportselection=0,
-                )
-                e2.grid(row=j + 2, column=5, sticky="E", columnspan=1)
-                self.entries[mod.mod.id] = [e,e2]
+                #cb.select()
+                cb.grid(row=j + 2, sticky="W", columnspan=3)
+                cb.config(font=(GUI_FONT, GUI_FONT_SIZE))
 
-                j += 1
+                # Entry
+                if mod.min or mod.max:  # If mod has values
+                    val = tkinter.StringVar()
+                    if mod.min:
+                        val.set(mod.min)
+                    else:
+                        val.set("Min")
+                    e = tkinter.Entry(
+                        self.frame,
+                        bg=bgColor,
+                        fg=GUI_FONT_COLOR,
+                        width=5,
+                        textvariable=val,
+                        exportselection=0,
+                    )
+                    e.grid(row=j + 2, column=4, sticky="E", columnspan=1)
+                    val2 = tkinter.StringVar()
+                    if mod.max:
+                        val2.set(mod.max)
+                    else:
+                        val2.set("Max")
+                    e2 = tkinter.Entry(
+                        self.frame,
+                        bg=bgColor,
+                        fg=GUI_FONT_COLOR,
+                        width=5,
+                        textvariable=val2,
+                        exportselection=0,
+                    )
+                    e2.grid(row=j + 2, column=5, sticky="E", columnspan=1)
+                    self.entries[mod.mod.id] = [e,e2]
+
+                    j += 1
 
         for mod in self.item.mods:
             self.searchable_mods.append(mod)

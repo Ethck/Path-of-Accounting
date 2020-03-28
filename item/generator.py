@@ -11,6 +11,7 @@ from utils.web import (
     get_item_modifiers_by_id,
     get_item_modifiers_by_text,
     get_ninja_bases,
+    is_duplicate_mod_type,
 )
 
 
@@ -19,11 +20,12 @@ def round_mod(number):
 
 
 class ModInfo:
-    def __init__(self, mod, m_min, m_max, option):
+    def __init__(self, mod, m_min, m_max, option, can_reduce = True):
         self.mod = mod
         self.min = m_min
         self.max = m_max
         self.option = option
+        self.can_reduce = can_reduce
 
 
 class BaseItem:
@@ -75,13 +77,16 @@ class BaseItem:
         return json
 
     def create_pseudo_mods(self):
-        pass
+        return {}
 
     def relax_modifiers(self):
         pass
 
+    def remove_duplicate_mods(self):
+        return ""
+
     def remove_bad_mods(self):
-        pass
+        return ""
 
     def remove_all_mods(self):
         self.mods = []
@@ -154,6 +159,8 @@ class Item(BaseItem):
         self.base = base
         self.category = category
         self.ilevel = ilevel
+        if self.ilevel > 86:
+            self.ilevel == 86
         self.mods = mods
         self.sockets = sockets
         self.influence = influence
@@ -182,7 +189,7 @@ class Item(BaseItem):
         json = super().get_json()
         json = self.set_type(json, self.base)
         json = self.set_rarity(json, self.rarity)
-        # json = self.set_ilevel(json, self.ilevel)
+        json = self.set_ilevel(json, self.ilevel)
         json = self.set_category(json, self.category)
         # json = self.set_quality(json, self.quality)
         json = self.set_influence(json, self.influence)
@@ -404,19 +411,36 @@ class Item(BaseItem):
             return
 
         for mod in self.mods:
-            if mod.max:
-                if mod.max > 0:
-                    mod.max = round_mod(mod.max * 1.1)
-                else:
-                    mod.max = round_mod(mod.max * 0.9)
-            if mod.min:
-                if mod.min > 0:
-                    mod.min = round_mod(mod.min * 0.9)
-                else:
-                    mod.min = round_mod(mod.min * 1.1)
+            if mod.can_reduce:
+                if mod.max:
+                    if mod.max > 0:
+                        mod.max = round_mod(mod.max * 1.1)
+                    else:
+                        mod.max = round_mod(mod.max * 0.9)
+                if mod.min:
+                    if mod.min > 0:
+                        mod.min = round_mod(mod.min * 0.9)
+                    else:
+                        mod.min = round_mod(mod.min * 1.1)
+
+    def remove_duplicate_mods(self):
+        nMods = []
+        restr = ""
+        for mod in self.mods:
+            if is_duplicate_mod_type(mod.mod):
+                restr += f"    {mod.mod.text}\n"
+            else:
+                nMods.append(mod)
+        self.mods = nMods
+        if restr != "":
+            restr = f"[!] Removing duplicate mods on trade site:\n" + restr
+        return restr
 
     def remove_bad_mods(self):
         """Mods to remove first if found on any individual item if no matches are found before relaxing"""
+
+        if self.rarity == "unique":  # dont do this on uniques
+            return ""
 
         # TODO Add more, move to config ( config parse does not support multiple lines atm, prob need to write a custom one)
         bad_mod_list = [
@@ -445,19 +469,24 @@ class Item(BaseItem):
 
         nMods = []
         found = False
+        restr = ""
         for mod in self.mods:
             for bad in bad_mod_list:
                 if bad in mod.mod.text:
                     found = True
-                    logging.info(f"[!] Removed {mod.mod.text} From Search")
+                    restr += f"    {mod.mod.text}\n"
             if not found:
                 nMods.append(mod)
             found = False
         self.mods = nMods
-        logging.info(f"[!] Removed Quality From Search")
-        logging.info(f"[!] Removed Item Level From Search")
+        if restr != "":
+            restr = "[!] Removed some mods From Search:\n" + restr
+        restr += f"[!] Removed Quality From Search\n"
+        #restr += f"[!] Removed Item Level From Search\n"
         self.quality = 0
-        self.ilevel = 0
+        #self.ilevel = 0
+
+        return restr
 
 
 class Weapon(Item):
@@ -705,7 +734,7 @@ class Gem(BaseItem):
         json = self.set_type(json, self.name)
         json = self.set_category(json, "gem")
         json["query"]["filters"]["misc_filters"]["filters"]["gem_level"] = {
-            "min": self.level
+            "min": int(self.level)
         }
         json = self.set_quality(json, self.quality)
         json["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {
@@ -798,21 +827,28 @@ def parse_mod(mod_text: str, mod_values, category=""):
     """
     global prev_mod
 
-    if "Chance to Block Spell Damage" in mod_text:
-        logging.info("[!] Chance to Block Spell Damage currently unsupported")
-        return None
+
+    can_reduce = True
+    m_min = None
+    m_max = None
+    option = None
 
     mod = None
     mod_type = ItemModifierType.EXPLICIT
+
+    
 
     if mod_values == []:
         mod_values = ""
 
     if mod_text.startswith("Allocates"):
-        mod_values = mod_text[10:]
+        mod_text = mod_text.replace("Allocates ", "")
+        mod_text = mod_text.replace(" (enchant)", "")
         element = ("Allocates #", ItemModifierType.ENCHANT)
         mod = get_item_modifiers_by_text(element)
-        mod_values = mod.options[mod_values]
+        mod_values = mod.options[mod_text]
+        option = mod_values
+        can_reduce = False
 
     if mod_text.endswith("(implicit)"):
         mod_text = mod_text[:-11]
@@ -820,6 +856,36 @@ def parse_mod(mod_text: str, mod_values, category=""):
     elif mod_text.endswith("(crafted)"):
         mod_text = mod_text[:-10]
         mod_type = ItemModifierType.CRAFTED
+    
+
+    # Added Small Passive Skills grant: #% increased Damage while affected by a Herald (enchant) 10
+
+    # Added Small Passive Skills grant:
+    # 10% increased Damage while affected by a Herald (enchant)
+    # {"id":"enchant.stat_3948993189","value":{"option":26}
+
+    elif mod_text.endswith("(enchant)"):
+        mod_text = mod_text.replace(" (enchant)", "")
+        mod_type = ItemModifierType.ENCHANT
+        can_reduce = False
+
+    if "Passive Skill" in mod_text:
+        can_reduce = False
+
+    if "Added Small Passive Skills grant:" in mod_text:
+        element = ("Added Small Passive Skills grant: #", ItemModifierType.ENCHANT)
+        mod = get_item_modifiers_by_text(element)
+        mod_text = mod_text.replace("Added Small Passive Skills grant: ", "")
+        mod_text = mod_text.replace("#", mod_values)
+        mod_values = mod.options[mod_text]
+        option = mod_values
+
+
+    # {"id":"explicit.stat_4079888060","value":{"min":1}
+    # # Added Passive Skill is a Jewel Socket -> # Added Passive Skills are Jewel Sockets
+    if "# Added Passive Skill is a Jewel Socket" in mod_text:
+        element = ("# Added Passive Skills are Jewel Sockets", ItemModifierType.EXPLICIT)
+        mod = get_item_modifiers_by_text(element)
 
     if category == "weapon":
         if (
@@ -886,16 +952,11 @@ def parse_mod(mod_text: str, mod_values, category=""):
     except ValueError:
         pass
 
-    m_min = None
-    m_max = None
-    option = None
-
     if not mod:
+        print(mod_text, mod_values)
         return None
-    # Atunements is a number but it needs to be in options
-    if mod.id == "enchant.stat_2954116742":
-        option = mod_values
-    else:
+
+    if not option:
         try:
             if float(mod_values) < 0:
                 m_max = float(mod_values)
@@ -905,8 +966,12 @@ def parse_mod(mod_text: str, mod_values, category=""):
             if mod_values:
                 option = mod_values
 
+    if "Adds # Passive Skills" in mod.text:
+        m_max = float(mod_values)
+        m_min = None
+
     prev_mod = mod_text
-    m = ModInfo(mod, m_min, m_max, option)
+    m = ModInfo(mod, m_min, m_max, option, can_reduce)
     return m
 
 
@@ -1089,6 +1154,7 @@ def parse_item_info(text: str):
 
     if rarity == "gem":
         level = regions[1][1].replace(" (Max)", "")
+        level = level.replace("Level: ", "")
         corrupted = regions[-1] == ["Corrupted"]
         if "Vaal" in regions[1][0]:
             name = "Vaal " + name

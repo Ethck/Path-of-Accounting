@@ -7,7 +7,6 @@ VERSION = "0.94"
 default_config = {
     "GENERAL" : {
         "version" : VERSION,
-        "useHotKeys" : "yes",
         "league" : "League",
         "stashtabMacro" : "yes",
         "projectURL" : "https://github.com/Ethck/Path-of-Accounting/",
@@ -80,7 +79,6 @@ def read_config(section, key):
         config.set(section, key, default_config[section][key])
         return read_config(section, key)
 
-USE_HOTKEYS = True if read_config("GENERAL", "useHotKeys") == "yes" else False
 
 LEAGUE = read_config("GENERAL","league")
 
@@ -115,6 +113,12 @@ OPEN_TRADE = read_config("HOTKEYS","openTrade")
 
 SHOW_INFO = read_config("HOTKEYS","showInfo")
 HIDEOUT = read_config("HOTKEYS","hideout")
+
+
+for section in config.sections():
+    for (key, value) in config.items(section):
+        if not config2.has_option(section, key):
+            needs_write = True
 
 if needs_write:
     try:
