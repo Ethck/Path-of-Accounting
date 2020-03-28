@@ -27,13 +27,20 @@ def init_gui():
 def close_all_windows():
     if USE_GUI:
         for x in components:
-            x.close()
+                x.close()
+
+def close_display_windows():
+    if USE_GUI:
+        for x in components:
+            if not isinstance(x, ActiveWindow):
+                x.close()
 
 
 def check_timeout_gui():
     if USE_GUI:
         for x in components:
-            x.should_close()
+            if not isinstance(x, ActiveWindow):
+                x.should_close()
 
 if USE_GUI:
 
@@ -117,6 +124,7 @@ if USE_GUI:
         def close(self, event=None):
             if self.frame:
                 self.frame.destroy()
+                self.frame = None
 
         def should_close(self):
             self.elapsed = time.time() - self.opened
@@ -131,13 +139,13 @@ if USE_GUI:
             pass
 
         def create(self, x_cord, y_cord):
-            close_all_windows()
+            close_display_windows()
             self.prepare_window()
             self.add_components()
             self.finalize(x_cord, y_cord)
 
         def create_at_cursor(self):
-            close_all_windows()
+            close_display_windows()
             self.prepare_window()
             self.add_components()
             self.frame.deiconify()
@@ -196,6 +204,7 @@ if USE_GUI:
             self.frame = None
             self.opened = time.time()  # When the window was created
             self.elapsed = 0  # Used to see how long the window was open
+            components.append(self)
 
         def close(self, event=None):
             if self.frame:
@@ -205,6 +214,7 @@ if USE_GUI:
                 self.frame.withdraw()
                 self.frame.quit()
                 self.frame.destroy()
+                self.frame = None
 
         def run(self):
             self.frame.mainloop()

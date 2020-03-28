@@ -1,6 +1,6 @@
 import tkinter
 import time
-from gui.gui import ActiveWindow, close_all_windows
+from gui.gui import ActiveWindow, close_all_windows, close_display_windows
 from item.generator import Currency, Item, ModInfo
 from utils.common import get_response, price_item
 from utils import config
@@ -54,7 +54,7 @@ class AdvancedSearch(ActiveWindow):
                 self.close()
             else:
                 time.sleep(1.2)
-                close_all_windows()
+                close_display_windows()
         except Exception:
             self.close()
             traceback.print_exc()

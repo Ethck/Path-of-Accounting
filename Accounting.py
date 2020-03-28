@@ -51,6 +51,8 @@ def hotkey_handler(keyboard, hotkey):
     time.sleep(0.1)
     text = get_clipboard()
 
+    close_all_windows()
+
     if hotkey == "Trade":
         item = parse_item_info(text)
         if not item:
