@@ -705,7 +705,7 @@ class Gem(BaseItem):
         json = self.set_type(json, self.name)
         json = self.set_category(json, "gem")
         json["query"]["filters"]["misc_filters"]["filters"]["gem_level"] = {
-            "min": self.level
+            "min": int(self.level)
         }
         json = self.set_quality(json, self.quality)
         json["query"]["filters"]["misc_filters"]["filters"]["corrupted"] = {
@@ -1090,6 +1090,7 @@ def parse_item_info(text: str):
 
     if rarity == "gem":
         level = regions[1][1].replace(" (Max)", "")
+        level = level.replace("Level: ", "")
         corrupted = regions[-1] == ["Corrupted"]
         if "Vaal" in regions[1][0]:
             name = "Vaal " + name
