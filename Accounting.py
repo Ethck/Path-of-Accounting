@@ -6,7 +6,7 @@ from colorama import Fore, deinit, init
 
 from gui.gui import check_timeout_gui, close_all_windows, init_gui
 from gui.windows import gearInformation, information
-from item.generator import Currency, Weapon, parse_item_info
+from item.generator import Currency, Item, parse_item_info
 from utils import config
 from utils.common import get_response
 from utils.config import (
@@ -36,6 +36,7 @@ from utils.web import (
     open_exchange_site,
     open_trade_site,
     wiki_lookup,
+    get_item_modifiers,
 )
 
 
@@ -79,9 +80,12 @@ def hotkey_handler(keyboard, hotkey):
 
     elif hotkey == "Info":
         item = parse_item_info(text)
-        if isinstance(item, Weapon):
-            stats = item.get_weapon_stats()
-            logging.info(stats)
+        if isinstance(item, Item):
+            stats = item.get_item_stats()
+            if stats != "":
+                logging.info(stats)
+            else:
+                logging.info("[!] No extra info yet!")
             gearInformation.add_info(item)
             gearInformation.create_at_cursor()
 
@@ -185,6 +189,8 @@ if __name__ == "__main__":
             logging.info(
                 f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
             )
+
+        get_item_modifiers()
 
         keyboard = Keyboard()
         watch_keyboard(keyboard)

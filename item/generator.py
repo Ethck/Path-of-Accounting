@@ -88,6 +88,9 @@ class BaseItem:
     def remove_bad_mods(self):
         return ""
 
+    def get_item_stats(self):
+        return ""
+
     def remove_all_mods(self):
         self.mods = []
 
@@ -488,6 +491,112 @@ class Item(BaseItem):
 
         return restr
 
+class Armour(Item):
+    def __init__(
+        self,
+        name,
+        base,
+        category,
+        rarity,
+        quality,
+        ilevel,
+        mods,
+        sockets,
+        influence,
+        identified,
+        corrupted,
+        mirrored,
+        veiled,
+        synthesised,
+        text,
+    ):
+        super().__init__(
+            name,
+            base,
+            category,
+            rarity,
+            quality,
+            ilevel,
+            mods,
+            sockets,
+            influence,
+            identified,
+            corrupted,
+            mirrored,
+            veiled,
+            synthesised,
+            text,
+        )
+        self.armour = None
+        self.es = None
+        self.evasion = None
+
+    def merge_mods(self, regions):
+        for line in regions[1]:
+            line = line.replace(" (augmented)", "")
+            if "Energy Shield: " in line:
+                try:
+                    self.es = float(line.replace("Energy Shield: ", ""))
+                except Exception:
+                    pass
+            if "Evasion Rating: " in line:
+                try:
+                    self.evasion = float(line.replace("Evasion Rating: ",""))
+                except Exception:
+                    pass
+            if "Armour: " in line:
+                try:
+                    self.armour = float(line.replace("Armour: ",""))
+                except Exception:
+                    pass
+
+        statList = [
+            "maximum Energy Shield",
+            "increased maximum Energy Shield",
+            "increased Energy Shield",
+            "increased Armour",
+            "to Armour",
+            "to Evasion Rating",
+            "increased Evasion Rating"
+        ]
+
+        nMods = []
+        for mod in self.mods:
+            mod_text = mod.mod.text
+            found = False
+            for s in statList:
+                if s in mod_text:
+                    found = True
+                    break
+            if not found:
+                nMods.append(mod)
+
+        self.mods = nMods
+
+    def relax_modifiers(self):
+        super().relax_modifiers()
+        if self.armour:
+            self.armour = round_mod(self.armour * 0.9)
+        if self.evasion:
+            self.evasion = round_mod(self.evasion * 0.9)
+        if self.es:
+            self.es = round_mod(self.es * 0.9)
+
+    def get_json(self):
+        json = super().get_json()
+        json["query"]["filters"]["armour_filters"] = {
+            "filters": {
+                "ar": {"min": self.armour},
+                "es": {"min": self.es},
+                "ev": {"min": self.evasion},
+            }
+        }
+        return json
+
+    def get_item_stats(self):
+        s = f"Armour: {self.armour} \nEvasion: {self.evasion} \nEnergy Shield: {self.es}"
+        return s
+
 
 class Weapon(Item):
     """Representation of weapons."""
@@ -532,7 +641,7 @@ class Weapon(Item):
         self.speed = 0
         self.crit = 0
 
-    def parse_weapon_stats(self, regions):
+    def merge_mods(self, regions):
         pValues = None
         eValues = None
         for line in regions[1]:
@@ -617,7 +726,7 @@ class Weapon(Item):
         }
         return json
 
-    def get_weapon_stats(self):
+    def get_item_stats(self):
         s = f"Physical DPS: {self.pdps} \nElemental DPS: {self.edps} \nSpeed: {self.speed}\nCrit: {self.crit}"
         return s
 
@@ -836,7 +945,7 @@ def parse_mod(mod_text: str, mod_values, category=""):
     mod = None
     mod_type = ItemModifierType.EXPLICIT
 
-    
+    mod_text = mod_text.rstrip()
 
     if mod_values == []:
         mod_values = ""
@@ -953,7 +1062,7 @@ def parse_mod(mod_text: str, mod_values, category=""):
         pass
 
     if not mod:
-        print(mod_text, mod_values)
+        #print("["+mod_text+"]")
         return None
 
     if not option:
@@ -1306,8 +1415,29 @@ def parse_item_info(text: str):
             synthesised,
             text,
         )
-        weapon.parse_weapon_stats(regions)
+        weapon.merge_mods(regions)
         return weapon
+
+    if category == "armour":
+        armour = Armour(
+            name,
+            base,
+            category,
+            rarity,
+            quality,
+            ilevel,
+            mods,
+            sockets,
+            influences,
+            identified,
+            corrupted,
+            mirrored,
+            veiled,
+            synthesised,
+            text,
+        )
+        armour.merge_mods(regions)
+        return armour
 
     return Item(
         name,
