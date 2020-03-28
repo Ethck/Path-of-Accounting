@@ -159,6 +159,8 @@ class Item(BaseItem):
         self.base = base
         self.category = category
         self.ilevel = ilevel
+        if self.ilevel > 86:
+            self.ilevel == 86
         self.mods = mods
         self.sockets = sockets
         self.influence = influence
@@ -187,7 +189,7 @@ class Item(BaseItem):
         json = super().get_json()
         json = self.set_type(json, self.base)
         json = self.set_rarity(json, self.rarity)
-        # json = self.set_ilevel(json, self.ilevel)
+        json = self.set_ilevel(json, self.ilevel)
         json = self.set_category(json, self.category)
         # json = self.set_quality(json, self.quality)
         json = self.set_influence(json, self.influence)
@@ -480,9 +482,9 @@ class Item(BaseItem):
         if restr != "":
             restr = "[!] Removed some mods From Search:\n" + restr
         restr += f"[!] Removed Quality From Search\n"
-        restr += f"[!] Removed Item Level From Search\n"
+        #restr += f"[!] Removed Item Level From Search\n"
         self.quality = 0
-        self.ilevel = 0
+        #self.ilevel = 0
 
         return restr
 
