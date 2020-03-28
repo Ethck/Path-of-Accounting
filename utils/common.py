@@ -135,6 +135,18 @@ def price_item(item):
     try:
         data, results = get_trade_data(item)
 
+        if results <= 0:
+            try:
+                if item.rarity == "unique":
+                    item2 = item
+                    item2.remove_all_mods()
+                    logging.info(f"[!] Re-pricing {item2.name} without mods.")
+                    logging.debug(item2.get_json())
+                    data, results = get_trade_data(item)
+            except AttributeError:
+                pass
+
+
         offline = False
         if results <= 0:
             logging.info(f"[!] No results, Checking offline sellers")
@@ -165,19 +177,7 @@ def price_item(item):
             return results
 
         else:
-            # If the mods found on our unique item are well above average, there can be no results.
-            # In this case, we create a new item that has no mods.
-            try:
-                if item.rarity == "unique":
-                    item2 = item
-                    item2.remove_all_mods()
-                    logging.info(f"[!] Re-pricing {item2.name} without mods.")
-                    logging.debug(item2.get_json())
-                    price_item(item2)
-                    return 0
-            except AttributeError:
-                pass
-
+            
             logging.info("[!] No results!")
             price = get_poe_prices_info(item)
 

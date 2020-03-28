@@ -809,10 +809,11 @@ def parse_mod(mod_text: str, mod_values, category=""):
         mod_values = ""
 
     if mod_text.startswith("Allocates"):
-        mod_values = mod_text[10:]
+        mod_text = mod_text.replace("Allocates ", "")
+        mod_text = mod_text.replace(" (enchant)", "")
         element = ("Allocates #", ItemModifierType.ENCHANT)
         mod = get_item_modifiers_by_text(element)
-        mod_values = mod.options[mod_values]
+        mod_values = mod.options[mod_text]
 
     if mod_text.endswith("(implicit)"):
         mod_text = mod_text[:-11]
