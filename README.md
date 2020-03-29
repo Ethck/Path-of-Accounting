@@ -19,8 +19,10 @@ For WINDOWS:
 
 For \*NIX:
 * Ensure that your python version is 3.7 or above.
-* Install from requirements.txt `pip3 install -r requirements.txt`
-* Run Accounting.py
+* Download pip with "curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py"
+* Run "sudo python3 get-pip.py"
+* Run "sudo python3 pip install -r requirements.txt"
+* Run "sudo Accounting.py"
 
 
 For Everyone!
