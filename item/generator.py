@@ -1169,7 +1169,8 @@ def parse_map(regions: list, rarity, name):
                     ("Map is occupied by #", ItemModifierType.IMPLICIT)
                 )
             if mod and mod_value:
-                map_mods.append(((mod, mod_value)))
+                mod = ModInfo(mod, mod_value, None, None)
+                map_mods.append(mod)
 
     ilevel = int(regions[1][0][10:])
     iiq = 0
