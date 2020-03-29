@@ -317,10 +317,15 @@ class Item(BaseItem):
             "crafted.stat_3299347043",  # Crafted maximum life
         }
 
+
+        spell_crit = 0
+        global_crit = 0
+        global_multi = 0
+        increased_ele_attacks = 0
+
         rMods = []
         nMods = []
         for mod in self.mods:
-
             if mod.mod.id in solo_resist_ids:
                 total_ele_resists += float(mod.min)
                 rMods.append(mod)
@@ -344,9 +349,45 @@ class Item(BaseItem):
             elif mod.mod.id == "explicit.stat_4080418644":
                 total_life += (float(mod.min) / 10) * 5
                 nMods.append(mod)
+            elif "increased Critical Strike Chance for Spells" in mod.mod.text:
+                spell_crit += float(mod.min)
+                rMods.append(mod)
+            elif "Global Critical Strike Chance" in mod.mod.text:
+                global_crit += float(mod.min)
+                nMods.append(mod)
+            elif "Global Critical Strike Multiplier" in mod.mod.text:
+                global_multi += float(mod.min)
+                rMods.append(mod)
+            elif "increased Elemental Damage with Attack Skills" in mod.mod.text:
+                increased_ele_attacks += float(mod.min)
+                rMods.append(mod)
             else:
                 nMods.append(mod)
+
         self.mods = nMods
+
+        if spell_crit != 0:
+            spell_crit += global_crit
+            modType = get_item_modifiers_by_id(
+                "pseudo.pseudo_critical_strike_chance_for_spells"
+            )
+            mod = ModInfo(modType, spell_crit, None, None)
+            self.mods.append(mod)
+        
+        if global_multi != 0:
+            modType = get_item_modifiers_by_id(
+                "pseudo.pseudo_global_critical_strike_multiplier"
+            )
+            mod = ModInfo(modType, global_multi, None, None)
+            self.mods.append(mod)
+
+        if increased_ele_attacks != 0:
+            modType = get_item_modifiers_by_id(
+                "pseudo.pseudo_increased_elemental_damage_with_attack_skills"
+            )
+            mod = ModInfo(modType, increased_ele_attacks, None, None)
+            self.mods.append(mod)
+        
 
         if total_ele_resists > 0:
             modType = get_item_modifiers_by_id(
@@ -686,6 +727,7 @@ class Weapon(Item):
             )
 
         # Remove mods that affect weapon stats, and search for weapon stats instead
+        is_caster_weapon = 0
         nMods = []
         for mod in self.mods:
             mod_text = mod.mod.text
@@ -699,8 +741,21 @@ class Weapon(Item):
                 continue
             else:
                 nMods.append(mod)
-
+            
+            if "Spell" in mod_text:
+                is_caster_weapon += 1
+            elif "Spells" in mod_text:
+                is_caster_weapon += 1
         self.mods = nMods
+
+        if self.pdps < 150 and self.edps < 150 and is_caster_weapon >= 2:
+            self.pdps = None
+            self.edps = None
+            self.crit = None
+
+
+
+
 
     # Relax weapon stats
     def relax_modifiers(self):
@@ -978,7 +1033,8 @@ def parse_mod(mod_text: str, mod_values, category=""):
         mod_type = ItemModifierType.ENCHANT
         can_reduce = False
 
-    if "Passive Skill" in mod_text:
+    if ("Passive Skill" in mod_text
+        or "Socketed Gems are Supported by Level" in mod_text):
         can_reduce = False
 
     if "Added Small Passive Skills grant:" in mod_text:
@@ -1001,16 +1057,9 @@ def parse_mod(mod_text: str, mod_values, category=""):
             "Adds # to #" in mod_text
             and "to Spells" not in mod_text
             or "to Accuracy Rating" in mod_text
+            or "increased Attack Speed" in mod_text
         ):
             mod = get_item_modifiers_by_text((mod_text + " (Local)", mod_type))
-        elif "increased Attack Speed" in mod_text:
-            mod = get_item_modifiers_by_text(
-                ("+#% total Attack Speed", ItemModifierType.PSEUDO)
-            )
-        elif "increased Physical Damage" in mod_text:
-            mod = get_item_modifiers_by_text(
-                ("#% total increased Physical Damage", ItemModifierType.PSEUDO)
-            )
         elif (
             "increased Damage with Poison" in mod_text
             and "chance to Poison on Hit" not in prev_mod
