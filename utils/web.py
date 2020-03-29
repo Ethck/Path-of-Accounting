@@ -191,8 +191,6 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
         for mod in item_modifiers:
             if "Allocates # (Additional)" in mod.text: # Gives no results ATM
                 continue
-            mod.text = re.sub("\(([^)]*)\)", "", mod.text)
-            mod.text = mod.text.rstrip()
             if (mod.text, mod.type) in mod_list_dict_text:
                 if not (mod.text, mod.type) in found:
                     found[(mod.text, mod.type)] = {}
@@ -247,15 +245,24 @@ def build_from_json(blob: dict) -> ItemModifier:
             options = {}
             for i in blob["option"]["options"]:
                 options[i["text"]] = i["id"]
+
+            t = blob["text"].rstrip()
+            t = re.sub("\(([^)]*)\)", "", t)
+            t = t.rstrip()
             return ItemModifier(
                 id=blob["id"],
-                text=blob["text"].rstrip(),
+                text=t,
                 options=options,
                 type=ItemModifierType(blob["type"].lower()),
             )
+    
+    t = blob["text"].rstrip()
+    t = re.sub("\(([^)]*)\)", "", t)
+    t = t.rstrip()
+
     return ItemModifier(
         id=blob["id"],
-        text=blob["text"].rstrip(),
+        text=t,
         type=ItemModifierType(blob["type"].lower()),
         options={},
     )
@@ -287,7 +294,12 @@ def find_latest_update():
     """Search both local and remote versions, if different, prompt for update."""
     try:
         # Get the list of releases from github, choose newest (even pre-release)
-        remote = get_request(RELEASE_URL, 10, 2)
+        remote = get_request(RELEASE_URL, 10, 2)[0]
+
+        if not remote:
+            logging.error("[!] Could not check for new update!")
+            return
+
         # local version
         local = VERSION
         # Check if the same-
@@ -351,6 +363,7 @@ def find_latest_update():
                         "I did not understand your response. Please user either y or n."
                     )
     except Exception:
+        traceback.print_exc()
         logging.error("[!] Could not check for new update!")
 
 

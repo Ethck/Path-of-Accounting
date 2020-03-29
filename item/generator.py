@@ -1198,13 +1198,18 @@ def parse_organ(regions: list, name):
         line = line.lstrip(" ").rstrip(" ") + " (×#)"
         mod = get_item_modifiers_by_text((line, ItemModifierType.MONSTER))
         if mod:
-            if mod not in mods:
+            found = False
+            for m in mods:
+                if m.id == mod.id:
+                    found = True
+            if not found:
                 mods[mod] = 1
             else:
                 mods[mod] += 1
     nMods = []
     for key, value in mods.items():
-        nMods.append((key, value))
+        m = ModInfo(mod, value, None, None)
+        nMods.append(m)
 
     ilevel = int(regions[2][0][11:])
     return Organ(name, ilevel, nMods)
@@ -1246,10 +1251,12 @@ def parse_item_info(text: str):
 
     for i, region in enumerate(regions):
         regions[i] = region.strip().splitlines()
+        if len(regions[i]) <= 0:
+            del regions[i]
+            i -= 1
 
-    if regions[-1][0]:
-        if "Note" in regions[-1][0]:
-            del regions[-1]
+    if "Note" in regions[-1][0]:
+        del regions[-1]
 
     rarity = regions[0][0][8:].lower()
 

@@ -124,6 +124,7 @@ if USE_GUI:
 
         def close(self, event=None):
             if self.frame and self.created:
+                self.frame.withdraw()
                 self.frame.destroy()
                 self.frame = None
                 self.created = False
