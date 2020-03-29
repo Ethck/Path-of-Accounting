@@ -1195,19 +1195,20 @@ def parse_organ(regions: list, name):
     """Parse text and construct the Organ object"""
     mods = {}
     for line in regions[3]:
-        line = line.lstrip(" ").rstrip(" ") + " (×#)"
+        line = line.lstrip(" ").rstrip(" ")
         mod = get_item_modifiers_by_text((line, ItemModifierType.MONSTER))
         if mod:
             found = False
-            for m in mods:
-                if m.id == mod.id:
+            for key, value in mods.items():
+                if key == mod.id:
                     found = True
             if not found:
-                mods[mod] = 1
+                mods[mod.id] = 1
             else:
-                mods[mod] += 1
+                mods[mod.id] += 1
     nMods = []
     for key, value in mods.items():
+        mod = get_item_modifiers_by_id(key)
         m = ModInfo(mod, value, None, None)
         nMods.append(m)
 
