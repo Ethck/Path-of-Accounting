@@ -1,4 +1,5 @@
 import logging
+import time
 import traceback
 from datetime import datetime, timezone
 from typing import Dict
@@ -32,13 +33,21 @@ def get_response(item):
     :return: Response from approriate API
     """
     json = item.get_json()
+    unsupportedCurrency = [
+        "Warlord's Exalted Orb",
+        "Crusader's Exalted Orb",
+        "Redeemer's Exalted Orb",
+        "Hunter's Exalted Orb",
+        "Awakener's Orb",
+    ]
 
-    if isinstance(item, Currency):
+    if isinstance(item, Currency) and item.name not in unsupportedCurrency:
         response = exchange_currency(json, config.LEAGUE)
     else:
         response = query_item(json, config.LEAGUE)
 
     return response
+
 
 def get_trade_data(item):
     """For the given item, find current listings and retrieve prices & times
@@ -119,28 +128,52 @@ def get_trade_data(item):
     return {}, 0
 
 
+def print_info(info):
+    if info != "":
+        logging.info(info)
+        information.add_info(info)
+        information.create_at_cursor_left()
+
+
 def price_item(item):
     """Pricing utility. Tries to price items by searching the API
 
     :param item: The item to search
     """
     try:
+
         data, results = get_trade_data(item)
+
+        info = ""
+        logging.debug(item.text)
+        if results <= 0:
+            info += item.remove_duplicate_mods()
+            data, results = get_trade_data(item)
+
+        if results <= 0:
+            try:
+                if item.rarity == "unique":
+                    item2 = item
+                    item2.remove_all_mods()
+                    logging.info(f"[!] Re-pricing {item2.name} without mods.")
+                    logging.debug(item2.get_json())
+                    data, results = get_trade_data(item)
+            except AttributeError:
+                pass
+
+        if results < MIN_RESULTS:
+            info += item.remove_bad_mods()
 
         offline = False
         if results <= 0:
-            logging.info(f"[!] No results, Checking offline sellers")
-            if config.USE_GUI:
-                information.add_info(
-                    "[!] No results, Checking offline sellers"
-                )
-                information.create_at_cursor()
+            info += f"[!] Checking offline sellers\n"
             item.set_offline()
             offline = True
             data, results = get_trade_data(item)
 
         if data:
             item.print()
+            print_info(info)
 
             print_text = "[$] Prices: "
             for price, values in data.items():
@@ -154,14 +187,15 @@ def price_item(item):
                 logging.info(
                     "[!] Not enough data to confidently price this item."
                 )
-            if config.USE_GUI:
-                priceInformation.add_price_information(data, offline)
-                priceInformation.create_at_cursor()
+            priceInformation.add_price_information(data, offline)
+            priceInformation.create_at_cursor()
 
             return results
 
         else:
-            logging.info("[!] No results!")
+            info += "[!] No results on /trade, using ML!"
+            print_info(info)
+            item.print()
             price = get_poe_prices_info(item)
 
             txt = ""
@@ -181,10 +215,9 @@ def price_item(item):
                 )
 
             logging.info(txt)
-            if config.USE_GUI:
-                if price:
-                    notEnoughInformation.add_poe_info_price(price)
-                notEnoughInformation.create_at_cursor()
+            if price:
+                notEnoughInformation.add_poe_info_price(price)
+            notEnoughInformation.create_at_cursor()
 
             return 0
 
@@ -235,7 +268,10 @@ def price_item(item):
         if isinstance(item, Item):
             logging.info(item.text)
         else:
-            logging.info(text)
+            if isinstance(text, list):
+                logging.info("\n".join(text))
+            else:
+                logging.info(text)
         logging.info("====== TRACEBACK =====")
         logging.info(exception)
         logging.info(

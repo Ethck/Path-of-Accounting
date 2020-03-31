@@ -2,7 +2,6 @@ from enum import Enum
 
 from attr import attrs
 
-
 class ItemModifierType(Enum):
     PSEUDO = "pseudo"
     EXPLICIT = "explicit"
@@ -21,3 +20,4 @@ class ItemModifier:
     id: str
     text: str
     options: dict
+

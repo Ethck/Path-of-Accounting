@@ -2,6 +2,7 @@ import base64
 import logging
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import traceback
@@ -26,6 +27,9 @@ mod_list = []
 mod_list_dict_id = {}
 mod_list_dict_text = {}
 
+# contains all mods there exist more than 1 off
+dup_mod_list_text = {}
+
 
 def search_url(league: str) -> str:
     """Returns the URL needed to make the POST request to the API"""
@@ -37,6 +41,65 @@ def exchange_url(league: str) -> str:
     return f"https://www.pathofexile.com/api/trade/exchange/{league}"
 
 
+def post_request(addr: str, timeout: int, max_tries: int, json=None):
+    try:
+        r = requests.post(addr, timeout=timeout, json=json)
+
+        if r.status_code != 200:
+            logging.error(
+                f"[!] Trade result retrieval failed: HTTP {r.status_code}! "
+                f'Message: {r.json().get("error", "unknown error")}'
+            )
+
+        return r.json()
+    except Exception:
+        site = ""
+        x = addr.rfind(".")
+        y = addr.find("/", x)
+        site += addr[:y]
+        if max_tries > 0:
+            logging.info(
+                site
+                + " is not responding, trying "
+                + str(max_tries)
+                + " more times"
+            )
+            return post_request(addr, timeout, max_tries - 1, json)
+        else:
+            logging.info("Could not connect to: " + site + ".")
+            return None
+    return None
+
+
+def get_request(addr: str, timeout: int, max_tries: int, stream=False):
+    try:
+        r = requests.get(addr, timeout=timeout, stream=stream)
+
+        if r.status_code != 200:
+            logging.error(
+                f"[!] Trade result retrieval failed: HTTP {r.status_code}! "
+                f'Message: {r.json().get("error", "unknown error")}'
+            )
+
+        return r.json()
+    except Exception:
+        site = ""
+        x = addr.rfind(".")
+        y = addr.find("/", x)
+        site += addr[:y]
+        if max_tries > 0:
+            logging.info(
+                site
+                + " is not responding, trying "
+                + str(max_tries)
+                + " more times"
+            )
+            return get_request(addr, timeout, max_tries - 1, stream)
+        else:
+            logging.info("Could not connect to: " + site + ".")
+            return None
+
+
 def exchange_currency(query: dict, league: str) -> dict:
     """Queries the Exchange API and returns the results
 
@@ -45,7 +108,7 @@ def exchange_currency(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(exchange_url(league), json=query).json()
+    results = post_request(exchange_url(league), 10, 2, query)
     if "error" in results.keys():
         msg = results["error"]["message"]
         logging.info(f"[Error] {msg}")
@@ -61,7 +124,7 @@ def query_item(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(search_url(league), json=query).json()
+    results = post_request(search_url(league), 10, 2, query)
 
     if "error" in results.keys():
         msg = results["error"]["message"]
@@ -96,17 +159,11 @@ def fetch(q_res: dict, exchange: bool = False) -> dict:
 
             if exchange:
                 url += "exchange=true"
-
-            res = requests.get(url)
-            if res.status_code != 200:
-                logging.error(
-                    f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
-                    f'Message: {res.json().get("error", "unknown error")}'
-                )
-                break
-
+            res = get_request(url, 10, 2)
             # Return the results from our fetch (this has who to whisper, prices, and more!)
-            results += res.json()["result"]
+            if res:
+                if "result" in res:
+                    results += res["result"]
 
     else:
         raise InvalidAPIResponseException()
@@ -120,9 +177,9 @@ def get_leagues() -> tuple:
     :return: Tuple of league ids
     """
     try:
-        leagues = requests.get(
-            url="https://www.pathofexile.com/api/trade/data/leagues", timeout=2
-        ).json()
+        leagues = get_request(
+            "https://www.pathofexile.com/api/trade/data/leagues", 10, 2
+        )
         return tuple(x["id"] for x in leagues["result"])
     except Exception:
         return None
@@ -138,11 +195,37 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
     :return: ItemModifier that matches
     """
     global mod_list_dict_text
+    global dup_mod_list_text
     if len(mod_list_dict_text) == 0:
         item_modifiers = get_item_modifiers()
-        mod_list_dict_text = {(e.text, e.type): e for e in item_modifiers}
+        found = {}
+        for mod in item_modifiers:
+            if "Allocates # (Additional)" in mod.text:  # Gives no results ATM
+                continue
+            if (mod.text, mod.type) in mod_list_dict_text:
+                if not (mod.text, mod.type) in found:
+                    found[(mod.text, mod.type)] = {}
+                found[(mod.text, mod.type)][mod.id] = ""
+                found[(mod.text, mod.type)][
+                    mod_list_dict_text[(mod.text, mod.type)].id
+                ] = ""
+
+            mod_list_dict_text[(mod.text, mod.type)] = mod
+        for key, value in found.items():
+            dup_mod_list_text[key] = ""
     if element in mod_list_dict_text:
         return mod_list_dict_text[element]
+
+
+def is_duplicate_mod_type(mod):
+    """
+    Checks if a mod exist in the duplicate mod list
+    Return True if it does, false if it does not
+    """
+    global dup_mod_list_text
+    if (mod.text, mod.type) in dup_mod_list_text:
+        return True
+    return False
 
 
 def get_item_modifiers_by_id(element: str) -> ItemModifier:
@@ -176,15 +259,24 @@ def build_from_json(blob: dict) -> ItemModifier:
             options = {}
             for i in blob["option"]["options"]:
                 options[i["text"]] = i["id"]
+
+            t = blob["text"].rstrip()
+            t = re.sub(r"\(([^)]*)\)", "", t)
+            t = t.rstrip()
             return ItemModifier(
                 id=blob["id"],
-                text=blob["text"],
+                text=t,
                 options=options,
                 type=ItemModifierType(blob["type"].lower()),
             )
+
+    t = blob["text"].rstrip()
+    t = re.sub(r"\(([^)]*)\)", "", t)
+    t = t.rstrip()
+
     return ItemModifier(
         id=blob["id"],
-        text=blob["text"],
+        text=t,
         type=ItemModifierType(blob["type"].lower()),
         options={},
     )
@@ -199,91 +291,99 @@ def get_item_modifiers() -> tuple:
     if mod_list:
         return mod_list
     else:
-        json_blob = requests.get(
-            url="https://www.pathofexile.com/api/trade/data/stats"
-        ).json()
-        mod_list = tuple(
-            chain(
-                *[
-                    [build_from_json(y) for y in x["entries"]]
-                    for x in json_blob["result"]
-                ]
-            )
+        json_blob = get_request(
+            "https://www.pathofexile.com/api/trade/data/stats", 10, 3
         )
-        logging.info(f"[*] Loaded {len(mod_list)} item mods.")
-        return mod_list
+        try:
+            for modType in json_blob["result"]:
+                for mod in modType["entries"]:
+                    mod_list.append(build_from_json(mod))
+
+            logging.info(f"[*] Loaded {len(mod_list)} item mods.")
+            return mod_list
+        except Exception:
+            logging.info(f"[!] Something went wrong getting item mods!")
+            return None
 
 
 def find_latest_update():
     """Search both local and remote versions, if different, prompt for update."""
-    # Get the list of releases from github, choose newest (even pre-release)
-    remote = requests.get(url=RELEASE_URL).json()[0]
-    # local version
-    local = VERSION
-    # Check if the same-
-    # print(remote["tag_name"], local)
-    if float(local.replace("v", "")) < float(
-        remote["tag_name"].replace("v", "")
-    ):
-        logging.info(
-            "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
-        )
-        # Keep going till user makes a valid choice
-        choice_made = False
-        while not choice_made:
-            user_choice = input()
-            if user_choice.lower() == "y":
-                choice_made = True
-                if os.name == "nt":
-                    # Get the sole zip url
-                    r = requests.get(
-                        url=remote["assets"][0]["browser_download_url"],
-                        stream=True,
-                    )
+    try:
+        # Get the list of releases from github, choose newest (even pre-release)
+        remote = get_request(RELEASE_URL, 10, 2)[0]
 
-                    # Set up a progress bar
-                    total_size = int(r.headers.get("content-length", 0))
-                    block_size = 1024
-                    timer = tqdm(total=total_size, unit="iB", unit_scale=True)
+        if not remote:
+            logging.error("[!] Could not check for new update!")
+            return
 
-                    # Write the file
-                    with open("Path-of-Accounting.zip", "wb") as f:
-                        for data in r.iter_content(block_size):
-                            timer.update(len(data))
-                            f.write(data)
-                    timer.close()
-
-                    # This means data got lost somewhere...
-                    if total_size != 0 and timer.n != total_size:
-                        logging.error(
-                            "[!] Error, something went wrong while downloading the file."
+        # local version
+        local = VERSION
+        # Check if the same-
+        # print(remote["tag_name"], local)
+        if float(local.replace("v", "")) < float(
+            remote["tag_name"].replace("v", "")
+        ):
+            logging.info(
+                "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
+            )
+            # Keep going till user makes a valid choice
+            choice_made = False
+            while not choice_made:
+                user_choice = input()
+                if user_choice.lower() == "y":
+                    choice_made = True
+                    if os.name == "nt":
+                        # Get the sole zip url
+                        url = remote["assets"][0]["browser_download_url"]
+                        r = get_request(url, 10, 2, True)
+                        # Set up a progress bar
+                        total_size = int(r.headers.get("content-length", 0))
+                        block_size = 1024
+                        timer = tqdm(
+                            total=total_size, unit="iB", unit_scale=True
                         )
+
+                        # Write the file
+                        with open("Path-of-Accounting.zip", "wb") as f:
+                            for data in r.iter_content(block_size):
+                                timer.update(len(data))
+                                f.write(data)
+                        timer.close()
+
+                        # This means data got lost somewhere...
+                        if total_size != 0 and timer.n != total_size:
+                            logging.error(
+                                "[!] Error, something went wrong while downloading the file."
+                            )
+                        else:
+                            # Unzip it and tell the user where we unzipped it to.
+                            with zipfile.ZipFile(
+                                "Path-of-Accounting.zip", "wb+"
+                            ) as zip_file:
+                                zip_file.extractall()
+                            logging.info(
+                                f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
+                            )
+
+                        # subprocess.Popen(f"{pathlib.Path().absolute()}\\Accounting.exe")
+                        sys.exit()
                     else:
-                        # Unzip it and tell the user where we unzipped it to.
-                        with zipfile.ZipFile(
-                            "Path-of-Accounting.zip", "wb+"
-                        ) as zip_file:
-                            zip_file.extractall()
                         logging.info(
-                            f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
+                            "Auto updates are not supported on non windows systems at the moment."
+                        )
+                        logging.info(
+                            "Please clone/pull the repo at https://github.com/Ethck/Path-of-Accounting.git"
                         )
 
-                    # subprocess.Popen(f"{pathlib.Path().absolute()}\\Accounting.exe")
-                    sys.exit()
+                elif user_choice.lower() == "n":
+                    choice_made = True
                 else:
-                    logging.info(
-                        "Auto updates are not supported on non windows systems at the moment."
+                    logging.error(
+                        "I did not understand your response. Please user either y or n."
                     )
-                    logging.info(
-                        "Please clone/pull the repo at https://github.com/Ethck/Path-of-Accounting.git"
-                    )
-
-            elif user_choice.lower() == "n":
-                choice_made = True
-            else:
-                logging.error(
-                    "I did not understand your response. Please user either y or n."
-                )
+    except Exception:
+        traceback.print_exc()
+        logging.error("[!] Could not check for new update!")
 
 
 def get_ninja_bases(league: str):
@@ -294,16 +394,8 @@ def get_ninja_bases(league: str):
     global ninja_bases
     if not ninja_bases:
         try:
-            requests.post(b"https://poe.ninja/", timeout=2)
-        except Exception:
-            logging.info("poe.ninja is not available.")
-            return None
-
-        try:
-            query = requests.get(
-                f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
-            )
-            tbases = query.json()
+            addr = f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
+            tbases = get_request(addr, 10, 2)
 
             ninja_bases = [
                 {
@@ -336,11 +428,12 @@ def get_items() -> dict:
     global item_cache
     if not item_cache:
         try:
-            query = requests.get(
-                "https://www.pathofexile.com/api/trade/data/items", timeout=2
+            items = get_request(
+                "https://www.pathofexile.com/api/trade/data/items", 10, 3
             )
-            items = query.json()
             item_cache = items["result"]
+            for i in item_cache:
+                i["entries"].sort(key=lambda x: len(x["type"]), reverse=True)
         except Exception:
             return None
     return item_cache
@@ -357,10 +450,9 @@ def get_base(category, name):
     try:
         for i in items:
             if i["label"] == category:
-                for l in i["entries"]:
-                    if l["type"] in name:
-                        return l["type"]
-    except Exception:
+                result = next(l for l in i["entries"] if l["type"] in name)
+                return result["type"]
+    except:
         pass
     return None
 
@@ -430,15 +522,17 @@ def get_poe_prices_info(item):
                 + b"&i="
                 + base64.b64encode(bytes(item.text, "utf-8"))
             )
-            results = requests.post(
+            addr = (
                 b"https://poeprices.info/api?l="
                 + league
                 + b"&i="
-                + base64.b64encode(bytes(item.text, "utf-8")),
-                timeout=5,
+                + base64.b64encode(bytes(item.text, "utf-8"))
             )
+
+            results = post_request(addr, 10, 2)
+
             logging.debug(results)
-            return results.json()
+            return results
         except Exception:
             logging.info("poeprices.info took too long to respond.")
             return {}

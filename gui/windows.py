@@ -6,7 +6,7 @@ from timeago import locales
 from timeago.locales import en
 
 from gui.gui import DisplayWindow
-from item.generator import Weapon
+from item.generator import Item
 from utils import config
 from utils.config import MIN_RESULTS
 
@@ -104,7 +104,11 @@ class Information(DisplayWindow):
 
     def add_components(self):
         if self.info:
-            self.create_label_header(self.info, 0, 1, "WE")
+            lines = self.info.splitlines()
+            counter = 0
+            for s in lines:
+                self.create_label_header(s, 0, counter, "W")
+                counter += 1
 
         self.info = None
 
@@ -123,16 +127,13 @@ class GearInformation(DisplayWindow):
 
         if self.item:
             self.create_label_header(self.item.name, 0, 0, "W")
-        if isinstance(self.item, Weapon):
-            self.create_label_BG2(
-                "Phys DPS: " + str(self.item.pdps), 0, 1, "W"
-            )
-            self.create_label_BG1("Ele DPS: " + str(self.item.edps), 0, 2, "W")
-            self.create_label_BG2(
-                "Total DPS: " + str(self.item.pdps + self.item.edps), 0, 3, "W"
-            )
-            self.create_label_BG1("Speed: " + str(self.item.speed), 0, 4, "W")
-            self.create_label_BG2("Crit: " + str(self.item.crit), 0, 5, "W")
+        txt = self.item.get_item_stats()
+        if txt != "":
+            lines = txt.splitlines()
+            counter = 1
+            for s in lines:
+                self.create_label_BG2(s, 0, counter, "W")
+                counter += 1
         else:
             self.create_label_header("No extra info yet!", 0, 1, "W")
 

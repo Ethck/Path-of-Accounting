@@ -38,37 +38,41 @@ class TestItemLookup(unittest.TestCase):
         # Mockups of response data from pathofexile.com/trade
         expected = [
             # (mocked up json response, expected condition, search url)
-            (mockResponse(11), lambda v: "[$]" in v, LOOKUP_URL),
-            (mockResponse(12), lambda v: "[$]" in v, LOOKUP_URL),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
+            (mockResponse(11), lambda v: "[$]" in v, LOOKUP_URL),  # 0
+            (mockResponse(12), lambda v: "[$]" in v, LOOKUP_URL),  # 1
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 2
+            (mockResponse(10), lambda v: "[$]" in v, LOOKUP_URL,),  # 3
             (
                 mockResponse(1),
-                lambda v: "INFO:root:[!] Not enough data to confidently price this item"
+                lambda v: "INFO:root:[!] Not enough data to confidently price this item"  # 4
                 in v,
                 LOOKUP_URL,
             ),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(66), lambda v: "[$]" in v, LOOKUP_URL),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            # 14th item in sampleItems is a divination card, which is looked
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 5
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 6
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 7
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 8
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 9
+            (mockResponse(66), lambda v: "[$]" in v, LOOKUP_URL),  # 10
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 11
+            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),  # 12
+            # 13 item in sampleItems is a divination card, which is looked
             # up via exchange URL instead of search.
-            (mockResponse(0), lambda v: "INFO:root:" in v, EXCHANGE_URL,),
-            (mockResponse(0), lambda v: "INFO:root:" in v, LOOKUP_URL,),
-            (mockResponse(10), lambda v: "[$]" in v, LOOKUP_URL),
+            (
+                mockResponse(0),
+                lambda v: "INFO:root:" in v,
+                EXCHANGE_URL,
+            ),  # 13
+            (mockResponse(10), lambda v: "[$]" in v, LOOKUP_URL,),  # 14
+            (mockResponse(10), lambda v: "[$]" in v, LOOKUP_URL),  # 15
         ]
 
         # Mocked up prices to return when searching. We only take the first
         # 10 results from any search. We don't have to worry about sorting by
         # price here, as we know that PoE/trade sorts by default.
         prices = [
-            [(45, "Alch"),] * 10,  # List 1
-            [  # List 2
+            [(45, "Alch"),] * 10,  # List 0
+            [  # List 1
                 # 5 x 1 chaos
                 *(((1, "Chaos"),) * 5),
                 # 1 x 3 chaos
@@ -76,20 +80,20 @@ class TestItemLookup(unittest.TestCase):
                 # 4 x 2 alch
                 *(((2, "Alch"),) * 4),
             ],
-            [],  # List 3
-            [],  # List 4
-            [(666, "Exa")],  # List 5
+            [],  # List 2
+            [(1, "Chaos")] * 10,  # List 3
+            [(666, "Exa")],  # List 4
+            [],  # List 5
             [],  # List 6
             [],  # List 7
             [],  # List 8
             [],  # List 9
-            [],  # List 10
-            [(2.5, "Mir")] * 10,  # List 11
+            [(2.5, "Mir")] * 10,  # List 10
+            [],  # List 11
             [],  # List 12
             [],  # List 13
-            [],  # List 14
-            [],  # List 15
-            [(1, "Fuse")] * 10,  # List 16
+            [(25, "Chaos")] * 10,  # List 14
+            [(1, "Fuse")] * 10,  # List 15
         ]
 
         for i in range(len(items)):
@@ -159,8 +163,7 @@ class TestItemLookup(unittest.TestCase):
                     }
 
                     mock.get(
-                        "http://poeprices.info/api?l=Standard&i=",
-                        json=poePricesRes,
+                        makePoePricesURL(i), json=poePricesRes,
                     )
 
                     response = {

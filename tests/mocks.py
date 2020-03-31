@@ -1,7 +1,9 @@
+import base64
 import os
 import sys
 
 import Accounting
+from tests.sampleItems import items
 
 # Append the root directory to sys.path so we can import like normal.
 BASE_DIR = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
@@ -33,6 +35,12 @@ def makeFetchURL(result, exchange=False):
     if exchange:
         url += "exchange=true"
     return url
+
+
+def makePoePricesURL(i):
+    return b"https://poeprices.info/api?l=Standard&i=" + base64.b64encode(
+        bytes(items[i], "utf-8")
+    )
 
 
 class TkMockObject:

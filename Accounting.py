@@ -6,7 +6,7 @@ from colorama import Fore, deinit, init
 
 from gui.gui import check_timeout_gui, close_all_windows, init_gui
 from gui.windows import gearInformation, information
-from item.generator import Currency, Weapon, parse_item_info
+from item.generator import Currency, Item, parse_item_info
 from utils import config
 from utils.common import get_response
 from utils.config import (
@@ -17,7 +17,6 @@ from utils.config import (
     OPEN_TRADE,
     OPEN_WIKI,
     SHOW_INFO,
-    USE_HOTKEYS,
 )
 from utils.input import (
     Keyboard,
@@ -37,6 +36,7 @@ from utils.web import (
     open_exchange_site,
     open_trade_site,
     wiki_lookup,
+    get_item_modifiers,
 )
 
 
@@ -51,6 +51,8 @@ def hotkey_handler(keyboard, hotkey):
 
     time.sleep(0.1)
     text = get_clipboard()
+
+    close_all_windows()
 
     if hotkey == "Trade":
         item = parse_item_info(text)
@@ -78,60 +80,58 @@ def hotkey_handler(keyboard, hotkey):
 
     elif hotkey == "Info":
         item = parse_item_info(text)
-        if isinstance(item, Weapon):
-            stats = item.get_weapon_stats()
-            logging.info(stats)
-            if config.USE_GUI:
-                gearInformation.add_info(item)
-                gearInformation.create_at_cursor()
+        if isinstance(item, Item):
+            stats = item.get_item_stats()
+            if stats != "":
+                logging.info(stats)
+            else:
+                logging.info("[!] No extra info yet!")
+            gearInformation.add_info(item)
+            gearInformation.create_at_cursor()
 
     elif hotkey == "Basic":  # alt+d, ctrl+c
         basic_search(text)
 
 
-def watch_keyboard(keyboard, use_hotkeys):
+def watch_keyboard(keyboard):
     """Add all of the hotkeys to watch over
 
     :param keyboard: Keyboard object to determine key status
     :param use_hotkeys: config to determine whether hotkeys are established
     """
-    if use_hotkeys:
 
-        # Use the "f5" key to go to hideout
-        keyboard.add_hotkey(HIDEOUT, lambda: keyboard.write("\n/hideout\n"))
+    # Use the "f5" key to go to hideout
+    keyboard.add_hotkey(HIDEOUT, lambda: keyboard.write("\n/hideout\n"))
 
-        # Basic search
-        keyboard.add_hotkey(
-            BASIC_SEARCH, lambda: hotkey_handler(keyboard, "Basic")
-        )
+    # Basic search
+    keyboard.add_hotkey(
+        BASIC_SEARCH, lambda: hotkey_handler(keyboard, "Basic")
+    )
 
-        # Open item in the Path of Exile Wiki
-        keyboard.add_hotkey(
-            OPEN_WIKI, lambda: hotkey_handler(keyboard, "Wiki")
-        )
+    # Open item in the Path of Exile Wiki
+    keyboard.add_hotkey(
+        OPEN_WIKI, lambda: hotkey_handler(keyboard, "Wiki")
+    )
 
-        # Open item search in pathofexile.com/trade
-        keyboard.add_hotkey(
-            OPEN_TRADE, lambda: hotkey_handler(keyboard, "Trade")
-        )
+    # Open item search in pathofexile.com/trade
+    keyboard.add_hotkey(
+        OPEN_TRADE, lambda: hotkey_handler(keyboard, "Trade")
+    )
 
-        # poe.ninja base check
-        keyboard.add_hotkey(
-            BASE_SEARCH, lambda: hotkey_handler(keyboard, "Base")
-        )
+    # poe.ninja base check
+    keyboard.add_hotkey(
+        BASE_SEARCH, lambda: hotkey_handler(keyboard, "Base")
+    )
 
-        # Show item info
-        keyboard.add_hotkey(
-            SHOW_INFO, lambda: hotkey_handler(keyboard, "Info")
-        )
+    # Show item info
+    keyboard.add_hotkey(
+        SHOW_INFO, lambda: hotkey_handler(keyboard, "Info")
+    )
 
-        # Adv Search
-        keyboard.add_hotkey(
-            ADV_SEARCH, lambda: hotkey_handler(keyboard, "Adv")
-        )
-
-    # Fetch the item's approximate price
-    logging.info("[*] Watching clipboard (Ctrl+C to stop)...")
+    # Adv Search
+    keyboard.add_hotkey(
+        ADV_SEARCH, lambda: hotkey_handler(keyboard, "Adv")
+    )
 
 
 def check_league():
@@ -190,12 +190,26 @@ if __name__ == "__main__":
                 f"[*] Loaded {len(NINJA_BASES)} bases and their prices."
             )
 
+        get_item_modifiers()
+
         keyboard = Keyboard()
-        watch_keyboard(keyboard, USE_HOTKEYS)
+        watch_keyboard(keyboard)
 
         start_stash_scroll()
 
         init_gui()
+
+        logging.info(
+            f"[{(BASIC_SEARCH)}]:".rjust(15) + " For simple search.\n" +
+            f"[{(ADV_SEARCH)}]:".rjust(15) + " For advanced search.\n" +
+            f"[{(BASE_SEARCH)}]:".rjust(15) + " For item base price\n" +
+            f"[{(OPEN_WIKI)}]:".rjust(15) + " To open the item on wiki.\n" +
+            f"[{(OPEN_TRADE)}]:".rjust(15) + " To open the item on trade site.\n" +
+            f"[{(SHOW_INFO)}]:".rjust(15) + " To see item stats (Does not work with all items).\n" +
+            f"[{(HIDEOUT)}]:".rjust(15) + " To go to hideout.\n" +
+            "[*] Hotkeys can be changed in settings.cfg\n" +
+            "[*] Watching hotkeys (Ctrl+C to stop) ..."
+        )
 
         try:
             while True:
