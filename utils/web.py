@@ -41,6 +41,55 @@ def exchange_url(league: str) -> str:
     return f"https://www.pathofexile.com/api/trade/exchange/{league}"
 
 
+def post_request(addr: str, timeout: int, max_tries: int, json=None):
+    try:
+        r = requests.post(addr, timeout=timeout, json=json)
+
+        if r.status_code != 200:
+            logging.error(
+                f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
+                f'Message: {res.json().get("error", "unknown error")}'
+            )
+
+        return r.json()
+    except Exception:
+        site = ""
+        x = addr.rfind(".")
+        y = addr.find("/", x)
+        site += addr[:y]
+        if max_tries > 0:
+            logging.info(site + " is not responding, trying " + str(max_tries) + " more times")
+            return post_request(addr, timeout, max_tries - 1, json)
+        else:
+            logging.info("Could not connect to: " +site + ".")
+            return None
+    return None
+
+def get_request(addr: str, timeout: int, max_tries: int, stream=False):
+    try:
+        r = requests.get(addr, timeout=timeout, stream=stream)
+
+        if r.status_code != 200:
+            logging.error(
+                f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
+                f'Message: {res.json().get("error", "unknown error")}'
+            )
+
+        return r.json()
+    except Exception:
+        site = ""
+        x = addr.rfind(".")
+        y = addr.find("/", x)
+        site += addr[:y]
+        if max_tries > 0:
+            logging.info(site + " is not responding, trying " + str(max_tries) + " more times")
+            return get_request(addr, timeout, max_tries - 1, stream)
+        else:
+            logging.info("Could not connect to: " +site + ".")
+            return None
+
+
+
 def exchange_currency(query: dict, league: str) -> dict:
     """Queries the Exchange API and returns the results
 
@@ -49,7 +98,7 @@ def exchange_currency(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(exchange_url(league), json=query).json()
+    results = post_request(exchange_url(league), 10, 2, query)
     if "error" in results.keys():
         msg = results["error"]["message"]
         logging.info(f"[Error] {msg}")
@@ -65,7 +114,7 @@ def query_item(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = requests.post(search_url(league), json=query).json()
+    results = post_request(search_url(league), 10, 2, query)
 
     if "error" in results.keys():
         msg = results["error"]["message"]
@@ -100,17 +149,11 @@ def fetch(q_res: dict, exchange: bool = False) -> dict:
 
             if exchange:
                 url += "exchange=true"
-
-            res = requests.get(url)
-            if res.status_code != 200:
-                logging.error(
-                    f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
-                    f'Message: {res.json().get("error", "unknown error")}'
-                )
-                break
-
+            res = get_request(url, 10, 2)
             # Return the results from our fetch (this has who to whisper, prices, and more!)
-            results += res.json()["result"]
+            if res:
+                if "result" in res:
+                    results += res["result"]
 
     else:
         raise InvalidAPIResponseException()
@@ -124,10 +167,8 @@ def get_leagues() -> tuple:
     :return: Tuple of league ids
     """
     try:
-        leagues = requests.get(
-            url="https://www.pathofexile.com/api/trade/data/leagues",
-            timeout=10,
-        ).json()
+        leagues = get_request("https://www.pathofexile.com/api/trade/data/leagues", 10, 2)
+
         return tuple(x["id"] for x in leagues["result"])
     except Exception:
         return None
@@ -150,8 +191,6 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
         for mod in item_modifiers:
             if "Allocates # (Additional)" in mod.text: # Gives no results ATM
                 continue
-            mod.text = re.sub("\(([^)]*)\)", "", mod.text)
-            mod.text = mod.text.rstrip()
             if (mod.text, mod.type) in mod_list_dict_text:
                 if not (mod.text, mod.type) in found:
                     found[(mod.text, mod.type)] = {}
@@ -206,15 +245,24 @@ def build_from_json(blob: dict) -> ItemModifier:
             options = {}
             for i in blob["option"]["options"]:
                 options[i["text"]] = i["id"]
+
+            t = blob["text"].rstrip()
+            t = re.sub("\(([^)]*)\)", "", t)
+            t = t.rstrip()
             return ItemModifier(
                 id=blob["id"],
-                text=blob["text"],
+                text=t,
                 options=options,
                 type=ItemModifierType(blob["type"].lower()),
             )
+    
+    t = blob["text"].rstrip()
+    t = re.sub("\(([^)]*)\)", "", t)
+    t = t.rstrip()
+
     return ItemModifier(
         id=blob["id"],
-        text=blob["text"],
+        text=t,
         type=ItemModifierType(blob["type"].lower()),
         options={},
     )
@@ -229,23 +277,29 @@ def get_item_modifiers() -> tuple:
     if mod_list:
         return mod_list
     else:
-        json_blob = requests.get(
-            url="https://www.pathofexile.com/api/trade/data/stats"
-        ).json()
+        json_blob = get_request("https://www.pathofexile.com/api/trade/data/stats", 10, 3)
+        try:
+            for modType in json_blob["result"]:
+                for mod in modType["entries"]:
+                    mod_list.append(build_from_json(mod))
 
-        for modType in json_blob["result"]:
-            for mod in modType["entries"]:
-                mod_list.append(build_from_json(mod))
-
-        logging.info(f"[*] Loaded {len(mod_list)} item mods.")
-        return mod_list
+            logging.info(f"[*] Loaded {len(mod_list)} item mods.")
+            return mod_list
+        except Exception:
+            logging.info(f"[!] Something went wrong getting item mods!")
+            return None
 
 
 def find_latest_update():
     """Search both local and remote versions, if different, prompt for update."""
     try:
         # Get the list of releases from github, choose newest (even pre-release)
-        remote = requests.get(url=RELEASE_URL).json()[0]
+        remote = get_request(RELEASE_URL, 10, 2)[0]
+
+        if not remote:
+            logging.error("[!] Could not check for new update!")
+            return
+
         # local version
         local = VERSION
         # Check if the same-
@@ -264,11 +318,7 @@ def find_latest_update():
                     choice_made = True
                     if os.name == "nt":
                         # Get the sole zip url
-                        r = requests.get(
-                            url=remote["assets"][0]["browser_download_url"],
-                            stream=True,
-                        )
-
+                        r = get_request(url, 10, 2, True)
                         # Set up a progress bar
                         total_size = int(r.headers.get("content-length", 0))
                         block_size = 1024
@@ -313,6 +363,7 @@ def find_latest_update():
                         "I did not understand your response. Please user either y or n."
                     )
     except Exception:
+        traceback.print_exc()
         logging.error("[!] Could not check for new update!")
 
 
@@ -324,16 +375,8 @@ def get_ninja_bases(league: str):
     global ninja_bases
     if not ninja_bases:
         try:
-            requests.post(b"https://poe.ninja/", timeout=10)
-        except Exception:
-            logging.info("poe.ninja is not available.")
-            return None
-
-        try:
-            query = requests.get(
-                f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
-            )
-            tbases = query.json()
+            addr = f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
+            tbases = get_request(addr, 10, 2)
 
             ninja_bases = [
                 {
@@ -366,10 +409,7 @@ def get_items() -> dict:
     global item_cache
     if not item_cache:
         try:
-            query = requests.get(
-                "https://www.pathofexile.com/api/trade/data/items", timeout=2
-            )
-            items = query.json()
+            items = get_request("https://www.pathofexile.com/api/trade/data/items", 10, 3)
             item_cache = items["result"]
             for i in item_cache:
                 i["entries"].sort(key=lambda x: len(x["type"]), reverse=True)
@@ -461,15 +501,12 @@ def get_poe_prices_info(item):
                 + b"&i="
                 + base64.b64encode(bytes(item.text, "utf-8"))
             )
-            results = requests.post(
-                b"https://poeprices.info/api?l="
-                + league
-                + b"&i="
-                + base64.b64encode(bytes(item.text, "utf-8")),
-                timeout=5,
-            )
+            addr = b"https://poeprices.info/api?l="+league+b"&i="+base64.b64encode(bytes(item.text, "utf-8"))
+
+            results = post_request(addr, 10, 2)
+
             logging.debug(results)
-            return results.json()
+            return results
         except Exception:
             logging.info("poeprices.info took too long to respond.")
             return {}

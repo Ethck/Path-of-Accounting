@@ -88,6 +88,9 @@ class BaseItem:
     def remove_bad_mods(self):
         return ""
 
+    def get_item_stats(self):
+        return ""
+
     def remove_all_mods(self):
         self.mods = []
 
@@ -314,10 +317,15 @@ class Item(BaseItem):
             "crafted.stat_3299347043",  # Crafted maximum life
         }
 
+
+        spell_crit = 0
+        global_crit = 0
+        global_multi = 0
+        increased_ele_attacks = 0
+
         rMods = []
         nMods = []
         for mod in self.mods:
-
             if mod.mod.id in solo_resist_ids:
                 total_ele_resists += float(mod.min)
                 rMods.append(mod)
@@ -341,9 +349,45 @@ class Item(BaseItem):
             elif mod.mod.id == "explicit.stat_4080418644":
                 total_life += (float(mod.min) / 10) * 5
                 nMods.append(mod)
+            elif "increased Critical Strike Chance for Spells" in mod.mod.text:
+                spell_crit += float(mod.min)
+                rMods.append(mod)
+            elif "Global Critical Strike Chance" in mod.mod.text:
+                global_crit += float(mod.min)
+                nMods.append(mod)
+            elif "Global Critical Strike Multiplier" in mod.mod.text:
+                global_multi += float(mod.min)
+                rMods.append(mod)
+            elif "increased Elemental Damage with Attack Skills" in mod.mod.text:
+                increased_ele_attacks += float(mod.min)
+                rMods.append(mod)
             else:
                 nMods.append(mod)
+
         self.mods = nMods
+
+        if spell_crit != 0:
+            spell_crit += global_crit
+            modType = get_item_modifiers_by_id(
+                "pseudo.pseudo_critical_strike_chance_for_spells"
+            )
+            mod = ModInfo(modType, spell_crit, None, None)
+            self.mods.append(mod)
+        
+        if global_multi != 0:
+            modType = get_item_modifiers_by_id(
+                "pseudo.pseudo_global_critical_strike_multiplier"
+            )
+            mod = ModInfo(modType, global_multi, None, None)
+            self.mods.append(mod)
+
+        if increased_ele_attacks != 0:
+            modType = get_item_modifiers_by_id(
+                "pseudo.pseudo_increased_elemental_damage_with_attack_skills"
+            )
+            mod = ModInfo(modType, increased_ele_attacks, None, None)
+            self.mods.append(mod)
+        
 
         if total_ele_resists > 0:
             modType = get_item_modifiers_by_id(
@@ -488,6 +532,112 @@ class Item(BaseItem):
 
         return restr
 
+class Armour(Item):
+    def __init__(
+        self,
+        name,
+        base,
+        category,
+        rarity,
+        quality,
+        ilevel,
+        mods,
+        sockets,
+        influence,
+        identified,
+        corrupted,
+        mirrored,
+        veiled,
+        synthesised,
+        text,
+    ):
+        super().__init__(
+            name,
+            base,
+            category,
+            rarity,
+            quality,
+            ilevel,
+            mods,
+            sockets,
+            influence,
+            identified,
+            corrupted,
+            mirrored,
+            veiled,
+            synthesised,
+            text,
+        )
+        self.armour = None
+        self.es = None
+        self.evasion = None
+
+    def merge_mods(self, regions):
+        for line in regions[1]:
+            line = line.replace(" (augmented)", "")
+            if "Energy Shield: " in line:
+                try:
+                    self.es = float(line.replace("Energy Shield: ", ""))
+                except Exception:
+                    pass
+            if "Evasion Rating: " in line:
+                try:
+                    self.evasion = float(line.replace("Evasion Rating: ",""))
+                except Exception:
+                    pass
+            if "Armour: " in line:
+                try:
+                    self.armour = float(line.replace("Armour: ",""))
+                except Exception:
+                    pass
+
+        statList = [
+            "maximum Energy Shield",
+            "increased maximum Energy Shield",
+            "increased Energy Shield",
+            "increased Armour",
+            "to Armour",
+            "to Evasion Rating",
+            "increased Evasion Rating"
+        ]
+
+        nMods = []
+        for mod in self.mods:
+            mod_text = mod.mod.text
+            found = False
+            for s in statList:
+                if s in mod_text:
+                    found = True
+                    break
+            if not found:
+                nMods.append(mod)
+
+        self.mods = nMods
+
+    def relax_modifiers(self):
+        super().relax_modifiers()
+        if self.armour:
+            self.armour = round_mod(self.armour * 0.9)
+        if self.evasion:
+            self.evasion = round_mod(self.evasion * 0.9)
+        if self.es:
+            self.es = round_mod(self.es * 0.9)
+
+    def get_json(self):
+        json = super().get_json()
+        json["query"]["filters"]["armour_filters"] = {
+            "filters": {
+                "ar": {"min": self.armour},
+                "es": {"min": self.es},
+                "ev": {"min": self.evasion},
+            }
+        }
+        return json
+
+    def get_item_stats(self):
+        s = f"Armour: {self.armour} \nEvasion: {self.evasion} \nEnergy Shield: {self.es}"
+        return s
+
 
 class Weapon(Item):
     """Representation of weapons."""
@@ -532,7 +682,7 @@ class Weapon(Item):
         self.speed = 0
         self.crit = 0
 
-    def parse_weapon_stats(self, regions):
+    def merge_mods(self, regions):
         pValues = None
         eValues = None
         for line in regions[1]:
@@ -577,6 +727,7 @@ class Weapon(Item):
             )
 
         # Remove mods that affect weapon stats, and search for weapon stats instead
+        is_caster_weapon = 0
         nMods = []
         for mod in self.mods:
             mod_text = mod.mod.text
@@ -590,8 +741,21 @@ class Weapon(Item):
                 continue
             else:
                 nMods.append(mod)
-
+            
+            if "Spell" in mod_text:
+                is_caster_weapon += 1
+            elif "Spells" in mod_text:
+                is_caster_weapon += 1
         self.mods = nMods
+
+        if self.pdps < 150 and self.edps < 150 and is_caster_weapon >= 2:
+            self.pdps = None
+            self.edps = None
+            self.crit = None
+
+
+
+
 
     # Relax weapon stats
     def relax_modifiers(self):
@@ -617,7 +781,7 @@ class Weapon(Item):
         }
         return json
 
-    def get_weapon_stats(self):
+    def get_item_stats(self):
         s = f"Physical DPS: {self.pdps} \nElemental DPS: {self.edps} \nSpeed: {self.speed}\nCrit: {self.crit}"
         return s
 
@@ -836,7 +1000,7 @@ def parse_mod(mod_text: str, mod_values, category=""):
     mod = None
     mod_type = ItemModifierType.EXPLICIT
 
-    
+    mod_text = mod_text.rstrip()
 
     if mod_values == []:
         mod_values = ""
@@ -869,7 +1033,8 @@ def parse_mod(mod_text: str, mod_values, category=""):
         mod_type = ItemModifierType.ENCHANT
         can_reduce = False
 
-    if "Passive Skill" in mod_text:
+    if ("Passive Skill" in mod_text
+        or "Socketed Gems are Supported by Level" in mod_text):
         can_reduce = False
 
     if "Added Small Passive Skills grant:" in mod_text:
@@ -892,16 +1057,9 @@ def parse_mod(mod_text: str, mod_values, category=""):
             "Adds # to #" in mod_text
             and "to Spells" not in mod_text
             or "to Accuracy Rating" in mod_text
+            or "increased Attack Speed" in mod_text
         ):
             mod = get_item_modifiers_by_text((mod_text + " (Local)", mod_type))
-        elif "increased Attack Speed" in mod_text:
-            mod = get_item_modifiers_by_text(
-                ("+#% total Attack Speed", ItemModifierType.PSEUDO)
-            )
-        elif "increased Physical Damage" in mod_text:
-            mod = get_item_modifiers_by_text(
-                ("#% total increased Physical Damage", ItemModifierType.PSEUDO)
-            )
         elif (
             "increased Damage with Poison" in mod_text
             and "chance to Poison on Hit" not in prev_mod
@@ -953,7 +1111,7 @@ def parse_mod(mod_text: str, mod_values, category=""):
         pass
 
     if not mod:
-        print(mod_text, mod_values)
+        #print("["+mod_text+"]")
         return None
 
     if not option:
@@ -1011,7 +1169,8 @@ def parse_map(regions: list, rarity, name):
                     ("Map is occupied by #", ItemModifierType.IMPLICIT)
                 )
             if mod and mod_value:
-                map_mods.append(((mod, mod_value)))
+                mod = ModInfo(mod, mod_value, None, None)
+                map_mods.append(mod)
 
     ilevel = int(regions[1][0][10:])
     iiq = 0
@@ -1036,16 +1195,22 @@ def parse_organ(regions: list, name):
     """Parse text and construct the Organ object"""
     mods = {}
     for line in regions[3]:
-        line = line.lstrip(" ").rstrip(" ") + " (×#)"
+        line = line.lstrip(" ").rstrip(" ")
         mod = get_item_modifiers_by_text((line, ItemModifierType.MONSTER))
         if mod:
-            if mod not in mods:
-                mods[mod] = 1
+            found = False
+            for key, value in mods.items():
+                if key == mod.id:
+                    found = True
+            if not found:
+                mods[mod.id] = 1
             else:
-                mods[mod] += 1
+                mods[mod.id] += 1
     nMods = []
     for key, value in mods.items():
-        nMods.append((key, value))
+        mod = get_item_modifiers_by_id(key)
+        m = ModInfo(mod, value, None, None)
+        nMods.append(m)
 
     ilevel = int(regions[2][0][11:])
     return Organ(name, ilevel, nMods)
@@ -1087,10 +1252,12 @@ def parse_item_info(text: str):
 
     for i, region in enumerate(regions):
         regions[i] = region.strip().splitlines()
+        if len(regions[i]) <= 0:
+            del regions[i]
+            i -= 1
 
-    if regions[-1][0]:
-        if "Note" in regions[-1][0]:
-            del regions[-1]
+    if "Note" in regions[-1][0]:
+        del regions[-1]
 
     rarity = regions[0][0][8:].lower()
 
@@ -1306,8 +1473,29 @@ def parse_item_info(text: str):
             synthesised,
             text,
         )
-        weapon.parse_weapon_stats(regions)
+        weapon.merge_mods(regions)
         return weapon
+
+    if category == "armour":
+        armour = Armour(
+            name,
+            base,
+            category,
+            rarity,
+            quality,
+            ilevel,
+            mods,
+            sockets,
+            influences,
+            identified,
+            corrupted,
+            mirrored,
+            veiled,
+            synthesised,
+            text,
+        )
+        armour.merge_mods(regions)
+        return armour
 
     return Item(
         name,
