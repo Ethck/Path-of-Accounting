@@ -7,6 +7,7 @@ import subprocess
 import sys
 import traceback
 import webbrowser
+import time
 import zipfile
 from itertools import chain
 
@@ -323,16 +324,21 @@ def find_latest_update():
         if float(local.replace("v", "")) < float(
             remote["tag_name"].replace("v", "")
         ):
+            url = remote["html_url"]
             logging.info(
-                "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
+                f"[!] You are not running the latest version of Path of Accounting.\nNew Version available at: {url}"
             )
-            # Keep going till user makes a valid choice
-            choice_made = False
-            while not choice_made:
-                user_choice = input()
-                if user_choice.lower() == "y":
-                    choice_made = True
-                    if os.name == "nt":
+
+              # Keep going till user makes a valid choice
+            if os.name == "nt":
+
+                logging.info(
+                    f"[!] Do you want to download the new version? (y/n)"
+                )
+
+                while True:
+                    user_choice = input()
+                    if user_choice.lower() == "y":
                         # Get the sole zip url
                         url = remote["assets"][0]["browser_download_url"]
                         r = get_request(url, 10, 2, True)
@@ -349,40 +355,31 @@ def find_latest_update():
                                 timer.update(len(data))
                                 f.write(data)
                         timer.close()
+                        f.close()
 
                         # This means data got lost somewhere...
                         if total_size != 0 and timer.n != total_size:
                             logging.error(
-                                "[!] Error, something went wrong while downloading the file."
+                                "[!] Error, something went wrong while downloading the file.\n" +
+                                "[!] Please try download manually"
                             )
                         else:
-                            # Unzip it and tell the user where we unzipped it to.
-                            with zipfile.ZipFile(
-                                "Path-of-Accounting.zip", "wb+"
-                            ) as zip_file:
-                                zip_file.extractall()
                             logging.info(
-                                f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
+                                f"[*] Zip file downloaded to: {pathlib.Path().absolute()}\n" +
+                                "[*] Please extract it manually\n" +
+                                "[*] Program will automaticly exit in 10 seconds.."
                             )
+                            time.sleep(10)
+                            sys.exit()
+                        break
 
-                        # subprocess.Popen(f"{pathlib.Path().absolute()}\\Accounting.exe")
-                        sys.exit()
+                    elif user_choice.lower() == "n":
+                        break
                     else:
-                        logging.info(
-                            "Auto updates are not supported on non windows systems at the moment."
+                        logging.error(
+                            "I did not understand your response. Please user either y or n."
                         )
-                        logging.info(
-                            "Please clone/pull the repo at https://github.com/Ethck/Path-of-Accounting.git"
-                        )
-
-                elif user_choice.lower() == "n":
-                    choice_made = True
-                else:
-                    logging.error(
-                        "I did not understand your response. Please user either y or n."
-                    )
     except Exception:
-        traceback.print_exc()
         logging.error("[!] Could not check for new update!")
 
 
