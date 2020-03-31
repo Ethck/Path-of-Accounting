@@ -20,7 +20,7 @@ def round_mod(number):
 
 
 class ModInfo:
-    def __init__(self, mod, m_min, m_max, option, can_reduce = True):
+    def __init__(self, mod, m_min, m_max, option, can_reduce=True):
         self.mod = mod
         self.min = m_min
         self.max = m_max
@@ -35,6 +35,7 @@ class BaseItem:
         self.name = name
         self.online = "online"
         self.mods = []
+        self.text = ""
 
     def set_offline(self):
         self.online = "any"
@@ -317,7 +318,6 @@ class Item(BaseItem):
             "crafted.stat_3299347043",  # Crafted maximum life
         }
 
-
         spell_crit = 0
         global_crit = 0
         global_multi = 0
@@ -358,7 +358,9 @@ class Item(BaseItem):
             elif "Global Critical Strike Multiplier" in mod.mod.text:
                 global_multi += float(mod.min)
                 rMods.append(mod)
-            elif "increased Elemental Damage with Attack Skills" in mod.mod.text:
+            elif (
+                "increased Elemental Damage with Attack Skills" in mod.mod.text
+            ):
                 increased_ele_attacks += float(mod.min)
                 rMods.append(mod)
             else:
@@ -373,7 +375,7 @@ class Item(BaseItem):
             )
             mod = ModInfo(modType, spell_crit, None, None)
             self.mods.append(mod)
-        
+
         if global_multi != 0:
             modType = get_item_modifiers_by_id(
                 "pseudo.pseudo_global_critical_strike_multiplier"
@@ -387,7 +389,6 @@ class Item(BaseItem):
             )
             mod = ModInfo(modType, increased_ele_attacks, None, None)
             self.mods.append(mod)
-        
 
         if total_ele_resists > 0:
             modType = get_item_modifiers_by_id(
@@ -526,11 +527,12 @@ class Item(BaseItem):
         if restr != "":
             restr = "[!] Removed some mods From Search:\n" + restr
         restr += f"[!] Removed Quality From Search\n"
-        #restr += f"[!] Removed Item Level From Search\n"
+        # restr += f"[!] Removed Item Level From Search\n"
         self.quality = 0
-        #self.ilevel = 0
+        # self.ilevel = 0
 
         return restr
+
 
 class Armour(Item):
     def __init__(
@@ -582,12 +584,12 @@ class Armour(Item):
                     pass
             if "Evasion Rating: " in line:
                 try:
-                    self.evasion = float(line.replace("Evasion Rating: ",""))
+                    self.evasion = float(line.replace("Evasion Rating: ", ""))
                 except Exception:
                     pass
             if "Armour: " in line:
                 try:
-                    self.armour = float(line.replace("Armour: ",""))
+                    self.armour = float(line.replace("Armour: ", ""))
                 except Exception:
                     pass
 
@@ -598,7 +600,7 @@ class Armour(Item):
             "increased Armour",
             "to Armour",
             "to Evasion Rating",
-            "increased Evasion Rating"
+            "increased Evasion Rating",
         ]
 
         nMods = []
@@ -741,7 +743,7 @@ class Weapon(Item):
                 continue
             else:
                 nMods.append(mod)
-            
+
             if "Spell" in mod_text:
                 is_caster_weapon += 1
             elif "Spells" in mod_text:
@@ -752,10 +754,6 @@ class Weapon(Item):
             self.pdps = None
             self.edps = None
             self.crit = None
-
-
-
-
 
     # Relax weapon stats
     def relax_modifiers(self):
@@ -789,8 +787,9 @@ class Weapon(Item):
 class Currency(BaseItem):
     """Representation of currency items"""
 
-    def __init__(self, name):
+    def __init__(self, name, text):
         super().__init__(name)
+        self.text = text
 
     def get_json(self):
         unsupportedCurrency = [
@@ -820,8 +819,9 @@ class Currency(BaseItem):
 class Prophecy(BaseItem):
     """Representation of Prophecy items"""
 
-    def __init__(self, name):
+    def __init__(self, name, text):
         super().__init__(name)
+        self.text = text
 
     def get_json(self):
         json = super().get_json()
@@ -834,10 +834,11 @@ class Prophecy(BaseItem):
 class Organ(BaseItem):
     """Representation of Metamorph Organs"""
 
-    def __init__(self, name, ilevel, mods):
+    def __init__(self, name, ilevel, mods, text):
         super().__init__(name)
         self.ilevel = ilevel
         self.mods = mods
+        self.text = text
 
     def print(self):
         super().print()
@@ -856,12 +857,13 @@ class Organ(BaseItem):
 class Flask(BaseItem):
     """Representation of Flasks"""
 
-    def __init__(self, name, base, rarity, quality, mods):
+    def __init__(self, name, base, rarity, quality, mods, text):
         super().__init__(name)
         self.base = base
         self.rarity = rarity
         self.quality = quality
         self.mods = mods
+        self.text = text
 
     def print(self):
         super().print()
@@ -882,11 +884,12 @@ class Flask(BaseItem):
 class Gem(BaseItem):
     """Representation of Skill Gems"""
 
-    def __init__(self, name, quality, level, corrupted):
+    def __init__(self, name, quality, level, corrupted, text):
         super().__init__(name)
         self.quality = quality
         self.level = level
         self.corrupted = corrupted
+        self.text = text
 
     def print(self):
         super().print()
@@ -921,6 +924,7 @@ class Map(BaseItem):
         pack_size,
         map_mods,
         identified,
+        text,
     ):
         super().__init__(name)
         self.base = base
@@ -931,6 +935,7 @@ class Map(BaseItem):
         self.pack_size = pack_size
         self.map_mods = map_mods
         self.identified = identified
+        self.text = text
 
     def print(self):
         super().print()
@@ -962,10 +967,11 @@ class Map(BaseItem):
 class Beast(BaseItem):
     """Representation for itemized Beasts"""
 
-    def __init__(self, name, base, ilevel):
+    def __init__(self, name, base, ilevel, text):
         super().__init__(name)
         self.base = base
         self.ilevel = ilevel
+        self.text = text
 
     def print(self):
         super().print()
@@ -990,7 +996,6 @@ def parse_mod(mod_text: str, mod_values, category=""):
     :param category: Specific category of mods to check
     """
     global prev_mod
-
 
     can_reduce = True
     m_min = None
@@ -1020,7 +1025,6 @@ def parse_mod(mod_text: str, mod_values, category=""):
     elif mod_text.endswith("(crafted)"):
         mod_text = mod_text[:-10]
         mod_type = ItemModifierType.CRAFTED
-    
 
     # Added Small Passive Skills grant: #% increased Damage while affected by a Herald (enchant) 10
 
@@ -1033,23 +1037,30 @@ def parse_mod(mod_text: str, mod_values, category=""):
         mod_type = ItemModifierType.ENCHANT
         can_reduce = False
 
-    if ("Passive Skill" in mod_text
-        or "Socketed Gems are Supported by Level" in mod_text):
+    if (
+        "Passive Skill" in mod_text
+        or "Socketed Gems are Supported by Level" in mod_text
+    ):
         can_reduce = False
 
     if "Added Small Passive Skills grant:" in mod_text:
-        element = ("Added Small Passive Skills grant: #", ItemModifierType.ENCHANT)
+        element = (
+            "Added Small Passive Skills grant: #",
+            ItemModifierType.ENCHANT,
+        )
         mod = get_item_modifiers_by_text(element)
         mod_text = mod_text.replace("Added Small Passive Skills grant: ", "")
         mod_text = mod_text.replace("#", mod_values)
         mod_values = mod.options[mod_text]
         option = mod_values
 
-
     # {"id":"explicit.stat_4079888060","value":{"min":1}
     # # Added Passive Skill is a Jewel Socket -> # Added Passive Skills are Jewel Sockets
     if "# Added Passive Skill is a Jewel Socket" in mod_text:
-        element = ("# Added Passive Skills are Jewel Sockets", ItemModifierType.EXPLICIT)
+        element = (
+            "# Added Passive Skills are Jewel Sockets",
+            ItemModifierType.EXPLICIT,
+        )
         mod = get_item_modifiers_by_text(element)
 
     if category == "weapon":
@@ -1111,7 +1122,7 @@ def parse_mod(mod_text: str, mod_values, category=""):
         pass
 
     if not mod:
-        #print("["+mod_text+"]")
+        # print("["+mod_text+"]")
         return None
 
     if not option:
@@ -1136,14 +1147,14 @@ def parse_mod(mod_text: str, mod_values, category=""):
 def isCurrency(name: str, rarity: str, regions: list):
     """Determine if given item is a currency"""
     if rarity == "currency" or rarity == "divination card":
-        return Currency(name)
+        return Currency(name, regions)
     if name in currency_global:
-        return Currency(name)
+        return Currency(name, regions)
 
     mapText = "Travel to this Map by using it in a personal Map Device. Maps can only be used once."
     for i in range(len(regions) - 3, len(regions)):
         if "Map Device" in regions[i][0] and mapText not in regions[i][0]:
-            return Currency(name)
+            return Currency(name, regions)
     return None
 
 
@@ -1187,7 +1198,16 @@ def parse_map(regions: list, rarity, name):
     base = get_base("Maps", name)
 
     return Map(
-        name, base, rarity, ilevel, iiq, iir, pack_size, map_mods, identified
+        name,
+        base,
+        rarity,
+        ilevel,
+        iiq,
+        iir,
+        pack_size,
+        map_mods,
+        identified,
+        regions,
     )
 
 
@@ -1213,7 +1233,7 @@ def parse_organ(regions: list, name):
         nMods.append(m)
 
     ilevel = int(regions[2][0][11:])
-    return Organ(name, ilevel, nMods)
+    return Organ(name, ilevel, nMods, regions)
 
 
 def parse_flask(regions: list, rarity: str, quality: int, name: str):
@@ -1232,14 +1252,14 @@ def parse_flask(regions: list, rarity: str, quality: int, name: str):
         base = get_base("Flasks", name)
     else:
         base = name
-    return Flask(name, base, rarity, quality, mods)
+    return Flask(name, base, rarity, quality, mods, regions)
 
 
 def parse_beast(name: str, regions: str):
     """Parse text and construct Beast object"""
     base = get_base("Itemised Monsters", name + " " + regions[0][2])
     ilevel = int(regions[2][0][12:])
-    return Beast(name, base, ilevel)
+    return Beast(name, base, ilevel, regions)
 
 
 def parse_item_info(text: str):
@@ -1307,7 +1327,7 @@ def parse_item_info(text: str):
         if mapText in regions[i][0]:
             return parse_map(regions, rarity, name)
         elif prophecyText in regions[i][0]:
-            return Prophecy(name)
+            return Prophecy(name, regions)
         elif organText in regions[i][0]:
             return parse_organ(regions, name)
         elif flaskText in regions[i][0]:
@@ -1325,7 +1345,7 @@ def parse_item_info(text: str):
         corrupted = regions[-1] == ["Corrupted"]
         if "Vaal" in regions[1][0]:
             name = "Vaal " + name
-        return Gem(name, quality, level, corrupted)
+        return Gem(name, quality, level, corrupted, regions)
 
     sockets = []
     corrupted = False

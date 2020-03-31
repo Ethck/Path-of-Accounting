@@ -145,7 +145,7 @@ def price_item(item):
         data, results = get_trade_data(item)
 
         info = ""
-        print(info)
+        logging.debug(item.text)
         if results <= 0:
             info += item.remove_duplicate_mods()
             data, results = get_trade_data(item)
@@ -268,7 +268,10 @@ def price_item(item):
         if isinstance(item, Item):
             logging.info(item.text)
         else:
-            logging.info(text)
+            if isinstance(text, list):
+                logging.info("\n".join(text))
+            else:
+                logging.info(text)
         logging.info("====== TRACEBACK =====")
         logging.info(exception)
         logging.info(
