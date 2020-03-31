@@ -32,6 +32,7 @@ In order to change settings (like `league`and/or `gui`) go to where PoA is downl
 
 The program reads what is entered into your clipboard in real time and determines whether or not it is Path of Exile related, if it is not the info is immediately discarded. If it is a PoE item, it then queries the official API to determine pricing based on what everyone else has listed that item for.
 
+*NOTICE* Since the beginning of the Delirium League, the official API has slowly become much slower. Please note that this is not because of Path of Accounting when you are searching, but rather because the API is really slow due to lots of use.
 ## Pictures
 
 Sample searches:
