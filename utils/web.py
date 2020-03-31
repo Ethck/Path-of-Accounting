@@ -51,7 +51,7 @@ def post_request(addr: str, timeout: int, max_tries: int, json=None):
                 f'Message: {r.json().get("error", "unknown error")}'
             )
 
-        return r.json()
+        return r
     except Exception:
         site = ""
         x = addr.rfind(".")
@@ -81,7 +81,7 @@ def get_request(addr: str, timeout: int, max_tries: int, stream=False):
                 f'Message: {r.json().get("error", "unknown error")}'
             )
 
-        return r.json()
+        return r
     except Exception:
         site = ""
         x = addr.rfind(".")
@@ -108,7 +108,7 @@ def exchange_currency(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = post_request(exchange_url(league), 10, 2, query)
+    results = post_request(exchange_url(league), 10, 2, query).json()
     if "error" in results.keys():
         msg = results["error"]["message"]
         logging.info(f"[Error] {msg}")
@@ -124,7 +124,7 @@ def query_item(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = post_request(search_url(league), 10, 2, query)
+    results = post_request(search_url(league), 10, 2, query).json()
 
     if "error" in results.keys():
         msg = results["error"]["message"]
@@ -159,7 +159,7 @@ def fetch(q_res: dict, exchange: bool = False) -> dict:
 
             if exchange:
                 url += "exchange=true"
-            res = get_request(url, 10, 2)
+            res = get_request(url, 10, 2).json()
             # Return the results from our fetch (this has who to whisper, prices, and more!)
             if res:
                 if "result" in res:
@@ -179,7 +179,7 @@ def get_leagues() -> tuple:
     try:
         leagues = get_request(
             "https://www.pathofexile.com/api/trade/data/leagues", 10, 2
-        )
+        ).json()
         return tuple(x["id"] for x in leagues["result"])
     except Exception:
         return None
@@ -293,7 +293,7 @@ def get_item_modifiers() -> tuple:
     else:
         json_blob = get_request(
             "https://www.pathofexile.com/api/trade/data/stats", 10, 3
-        )
+        ).json()
         try:
             for modType in json_blob["result"]:
                 for mod in modType["entries"]:
@@ -310,7 +310,7 @@ def find_latest_update():
     """Search both local and remote versions, if different, prompt for update."""
     try:
         # Get the list of releases from github, choose newest (even pre-release)
-        remote = get_request(RELEASE_URL, 10, 2)[0]
+        remote = get_request(RELEASE_URL, 10, 2).json()[0]
 
         if not remote:
             logging.error("[!] Could not check for new update!")
@@ -395,7 +395,7 @@ def get_ninja_bases(league: str):
     if not ninja_bases:
         try:
             addr = f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
-            tbases = get_request(addr, 10, 2)
+            tbases = get_request(addr, 10, 2).json()
 
             ninja_bases = [
                 {
@@ -430,7 +430,7 @@ def get_items() -> dict:
         try:
             items = get_request(
                 "https://www.pathofexile.com/api/trade/data/items", 10, 3
-            )
+            ).json()
             item_cache = items["result"]
             for i in item_cache:
                 i["entries"].sort(key=lambda x: len(x["type"]), reverse=True)
@@ -529,7 +529,7 @@ def get_poe_prices_info(item):
                 + base64.b64encode(bytes(item.text, "utf-8"))
             )
 
-            results = post_request(addr, 10, 2)
+            results = post_request(addr, 10, 2).json()
 
             logging.debug(results)
             return results
