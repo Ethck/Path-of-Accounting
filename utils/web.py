@@ -262,7 +262,8 @@ def build_from_json(blob: dict) -> ItemModifier:
                 options[i["text"]] = i["id"]
 
             t = blob["text"].rstrip()
-            t = re.sub(r"\(([^)]*)\)", "", t)
+            if not "(Local)" in t:
+                t = re.sub(r"\(([^)]*)\)", "", t)
             t = t.rstrip()
             return ItemModifier(
                 id=blob["id"],
@@ -272,7 +273,8 @@ def build_from_json(blob: dict) -> ItemModifier:
             )
 
     t = blob["text"].rstrip()
-    t = re.sub(r"\(([^)]*)\)", "", t)
+    if not "(Local)" in t:
+        t = re.sub(r"\(([^)]*)\)", "", t)
     t = t.rstrip()
 
     return ItemModifier(

@@ -140,8 +140,12 @@ def price_item(item):
         logging.debug(item.text)
         if "total" in response:
             if response["total"] <= 0:
-                info += item.remove_duplicate_mods()
                 info += item.remove_bad_mods()
+                time.sleep(0.5)
+                response = get_response(item)
+            
+            if response["total"] <= 0:
+                info += item.remove_duplicate_mods()
                 time.sleep(0.5)
                 response = get_response(item)
 
