@@ -29,6 +29,7 @@ default_config = {
         "searchBase": "alt+c",
         "showInfo": "alt+f",
         "hideout": "f5",
+        "exit": "alt+m",
     },
 }
 
@@ -111,7 +112,7 @@ OPEN_TRADE = read_config("HOTKEYS", "openTrade")
 
 SHOW_INFO = read_config("HOTKEYS", "showInfo")
 HIDEOUT = read_config("HOTKEYS", "hideout")
-
+EXIT = read_config("HOTKEYS", "exit")
 
 for section in config.sections():
     for (key, value) in config.items(section):

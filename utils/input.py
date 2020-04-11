@@ -1,12 +1,12 @@
 import os
 import traceback
-from queue import Empty, Queue
+from threading import Lock
 from tkinter import TclError
 
 import pyperclip
 import keyboard
 
-from utils.config import STASHTAB_SCROLLING
+from utils.config import STASHTAB_SCROLLING, EXIT
 
 def get_clipboard():
     """Retrieves the current value in the clipboard
@@ -15,30 +15,49 @@ def get_clipboard():
     """
     return pyperclip.paste()
 
+def set_clipboard(text):
+    pyperclip.copy(text)
+
 
 class Keyboard:
     def __init__(self):
         self.hotkeys = {}
-        self.queue = Queue()
+        self.lock = Lock()
+        self.hotkey = None
 
     def poll(self):
         try:
-            key = self.queue.get_nowait()
-            self.hotkeys[key]()
-        except Empty:
-            return
+            if self.lock.acquire():
+                key = self.hotkey
+                self.hotkey = None
+                if key:
+                    if key == EXIT:
+                        self.lock.release()
+                        return True
+                    self.hotkeys[key]()
+                self.lock.release()
+                return False
+            return False
         except Exception:
             # Do not fail
             print("Unexpected exception occurred while handling hotkey: ")
             traceback.print_exc()
-        self.queue.task_done()
+            return False
 
     def write(self, string):
         keyboard.write(string)
 
+    def send_hotkey(self, key):
+        try:
+            if self.lock.acquire(blocking=False):
+                self.hotkey = key
+                self.lock.release()
+        except Exception:
+            pass
+
     def add_hotkey(self, key, func):
         self.hotkeys[key] = func
-        keyboard.add_hotkey(key, lambda: self.queue.put(key))
+        keyboard.add_hotkey(key, lambda: self.send_hotkey(key))
 
     def press_and_release(self, key):
         keyboard.press_and_release(key)
