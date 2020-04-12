@@ -870,7 +870,11 @@ class Flask(BaseItem):
         print(f"[Base] {self.base}")
         print(f"[Quality] {self.quality}")
         for mod in self.mods:
-            print(f"[Mod] {mod.mod.text}")
+            t = f"[Mod] {mod.mod.text}"
+            if mod.min:
+                t += f": [{Fore.YELLOW}{mod.min}{Fore.RESET}]"
+            if mod.max:
+                t += f": [{Fore.YELLOW}{mod.max}{Fore.RESET}]"
 
     def get_json(self):
         json = super().get_json()
@@ -988,7 +992,7 @@ class Beast(BaseItem):
 prev_mod = ""
 
 
-def parse_mod(mod_text: str, mod_values, category=""):
+def parse_mod(line: str, category=""):
     """Given the text of the mod, find the appropriate ItemModifier object
 
     :param mod_text: Text of the mod
@@ -997,12 +1001,60 @@ def parse_mod(mod_text: str, mod_values, category=""):
     """
     global prev_mod
 
+    mod_values = ""
+    mod_text = ""
+
     can_reduce = True
     m_min = None
     m_max = None
     option = None
 
     mod = None
+
+
+    # Some special mods exeptions
+
+    # #% increased Damage with Poison if you have at least 300 Dexterity
+    # Skills which throw Mines throw up to 1 additional Mine if you have at least 800 Dexterity , both values fixed on this one
+    # #% chance for Poisons inflicted with this Weapon to deal 100% more Damage
+    # #% of Damage taken gained as Mana over 4 seconds when Hit
+    if (
+        "if you have at least" in line
+        or "inflicted with this Weapon to deal" in line
+        or "Damage taken gained as Mana over" in line
+        ):
+        mod_values = re.search(
+            r"[+-]?\d+\.?\d?\d?", line
+        ).group(0)
+        numberIndex = re.search(
+            r"[+-]?\d+\.?\d?\d?", line
+        ).start()
+
+        if '%' in line:
+            mod_text = re.sub(
+                r"[+-]?\d+\.?\d?\d?", "#", line, 1
+            )
+        else: # Skills which throw Mines throw up to 1 additional Mine if you have at least 800 Dexterity
+            mod_text = line
+        can_reduce = False
+
+    else:
+        mod_values = re.findall(r"[+-]?\d+\.?\d?\d?", line)
+        if len(mod_values) > 1:
+            try:
+                mod_values = (
+                    (float(mod_values[0]))
+                    + float(mod_values[1])
+                ) / 2
+            except ValueError:
+                mod_values = None
+        else:
+            if mod_values:
+                mod_values = mod_values[0]
+        mod_text = re.sub(r"[+-]?\d+\.?\d?\d?", "#", line)
+
+
+
     mod_type = ItemModifierType.EXPLICIT
 
     mod_text = mod_text.rstrip()
@@ -1018,9 +1070,6 @@ def parse_mod(mod_text: str, mod_values, category=""):
         mod_values = mod.options[mod_text]
         option = mod_values
         can_reduce = False
-
-    if mod_text.startswith(r"#% of Damage taken gained as Mana over"):
-        mod_text = r"#% of Damage taken gained as Mana over 4 seconds when Hit"
 
     if mod_text.endswith("(implicit)"):
         mod_text = mod_text[:-11]
@@ -1107,11 +1156,6 @@ def parse_mod(mod_text: str, mod_values, category=""):
                 (mod_text, ItemModifierType.ENCHANT)
             )
 
-    if (
-        not mod
-    ):  # example: Skills which throw Mines throw up to 1 additional Mine if you have at least 800 Dexterity
-        mod_text2 = mod_text.replace("#", "1")
-        mod = get_item_modifiers_by_text((mod_text2, mod_type))
     try:
         if not mod:
             if "reduced" in mod_text:
@@ -1125,7 +1169,6 @@ def parse_mod(mod_text: str, mod_values, category=""):
         pass
 
     if not mod:
-        # print("["+mod_text+"]")
         return None
 
     if not option:
@@ -1244,10 +1287,8 @@ def parse_flask(regions: list, rarity: str, quality: int, name: str):
     mods = []
     for i in range(4, len(regions)):
         for line in regions[i]:
-            mod_values = re.findall(r"[+-]?\d+\.?\d?\d?", line)
-            mod_values = ",".join(["".join(v) for v in mod_values])
-            mod_text = re.sub(r"[+-]?\d+\.?\d?\d?", "#", line)
-            mod = parse_mod(mod_text, mod_values)
+            
+            mod = parse_mod(line)
             if mod:
                 mods.append(mod)
 
@@ -1428,46 +1469,7 @@ def parse_item_info(text: str):
                 if "Veiled Prefix" in line or "Veiled Suffix" in line:
                     veiled = True
                 else:
-                    if (
-                        "if you have at least" in line
-                        or "inflicted with this Weapon to deal" in line
-                    ):
-                        mod_values = re.search(
-                            r"[+-]?\d+\.?\d?\d?", line
-                        ).group(0)
-                        numberIndex = re.search(
-                            r"[+-]?\d+\.?\d?\d?", line
-                        ).start()
-                        textIndex = line.find("if you have at least")
-                        if textIndex == -1:
-                            textIndex = line.find(
-                                "inflicted with this Weapon to deal"
-                            )
-                        if numberIndex < textIndex:
-                            mod_text = re.sub(
-                                r"[+-]?\d+\.?\d?\d?", "#", line, 1
-                            )
-                        else:
-                            mod_text = line
-                    else:
-                        mod_values = re.findall(r"[+-]?\d+\.?\d?\d?", line)
-                        if len(mod_values) > 1:
-                            try:
-                                mod_values = (
-                                    (float(mod_values[0]))
-                                    + float(mod_values[1])
-                                ) / 2
-                            except ValueError:
-                                mod_values = None
-                        else:
-                            if mod_values:
-                                mod_values = mod_values[0]
-                        mod_text = re.sub(r"[+-]?\d+\.?\d?\d?", "#", line)
-
-                    mod = None
-                    if not mod_text:
-                        mod_text = line
-                    mod = parse_mod(mod_text, mod_values, category)
+                    mod = parse_mod(line, category)
                     if mod:
                         mods.append(mod)
                         if mod.mod.type == ItemModifierType.EXPLICIT:
