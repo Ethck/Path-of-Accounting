@@ -256,7 +256,7 @@ class Item(BaseItem):
                     ] = {"min": links}
 
         if self.rarity == "unique" and self.identified:
-            json = self.set_name(json, self.name.replace(" " + self.base, ""))
+            json = self.set_name(json, self.name)
 
         return json
 
@@ -1472,8 +1472,10 @@ def parse_item_info(text: str):
                     else:
                         logging.info(f"Unable to find mod: {line}")
 
+
     if rarity == "unique" and identified:
-        name = name.replace(" " + base, "")
+        name = name.replace(" " + base, "", 1)
+
 
     if category == "weapon":
         weapon = Weapon(

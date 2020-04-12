@@ -49,12 +49,8 @@ def get_response(item):
     return response
 
 
-def get_trade_data(item):
-    """For the given item, find current listings and retrieve prices & times
 
-    :param item: Item to process
-    :return: dict of count and prices, length of prices
-    """
+def get_prices(response, item): 
 
     def pretty_currency(curr):
         currency = curr
@@ -74,10 +70,6 @@ def get_trade_data(item):
         return currency
 
     trade_info = None
-
-    response = get_response(item)
-    if not response:
-        return {}
 
     if len(response["result"]) > 0:
         trade_info = fetch(response, isinstance(item, Currency))
@@ -142,112 +134,79 @@ def price_item(item):
     """
     try:
 
-        data, results = get_trade_data(item)
+        response = get_response(item)
 
         info = ""
         logging.debug(item.text)
-        if results <= 0:
-            info += item.remove_duplicate_mods()
-            data, results = get_trade_data(item)
+        if "total" in response:
+            if response["total"] <= 0:
+                info += item.remove_bad_mods()
+                time.sleep(0.5)
+                response = get_response(item)
+            
+            if response["total"] <= 0:
+                info += item.remove_duplicate_mods()
+                time.sleep(0.5)
+                response = get_response(item)
 
-        if results <= 0:
-            try:
-                if item.rarity == "unique":
-                    item2 = item
-                    item2.remove_all_mods()
-                    logging.info(f"[!] Re-pricing {item2.name} without mods.")
-                    logging.debug(item2.get_json())
-                    data, results = get_trade_data(item)
-            except AttributeError:
-                pass
+            offline = False
+            if response["total"] <= 0:
+                info += f"[!] Checking offline sellers\n"
+                item.set_offline()
+                offline = True
+                time.sleep(0.5)
+                response = get_response(item)
 
-        if results < MIN_RESULTS:
-            info += item.remove_bad_mods()
+            if response["total"] > 0:
+                prices, count = get_prices(response, item)
+                if prices:
+                    item.print()
+                    print_info(info)
 
-        offline = False
-        if results <= 0:
-            info += f"[!] Checking offline sellers\n"
-            item.set_offline()
-            offline = True
-            data, results = get_trade_data(item)
+                    print_text = "[$] Prices: "
+                    for price, values in prices.items():
+                        print_text += (
+                            f"{Fore.YELLOW}{price}{Fore.RESET} x {values[0]}, "
+                        )
 
-        if data:
-            item.print()
-            print_info(info)
+                    print_text = print_text[:-2]
+                    logging.info(print_text)
+                    if count < MIN_RESULTS:
+                        logging.info(
+                            "[!] Not enough data to confidently price this item."
+                        )
+                    priceInformation.add_price_information(prices, offline)
+                    priceInformation.create_at_cursor()
 
-            print_text = "[$] Prices: "
-            for price, values in data.items():
-                print_text += (
-                    f"{Fore.YELLOW}{price}{Fore.RESET} x {values[0]}, "
-                )
+                    return prices
 
-            print_text = print_text[:-2]
-            logging.info(print_text)
-            if results < MIN_RESULTS:
-                logging.info(
-                    "[!] Not enough data to confidently price this item."
-                )
-            priceInformation.add_price_information(data, offline)
-            priceInformation.create_at_cursor()
+        info += "[!] No results on /trade, using ML!"
+        print_info(info)
+        item.print()
+        price = get_poe_prices_info(item)
 
-            return results
+        txt = ""
 
-        else:
-            info += "[!] No results on /trade, using ML!"
-            print_info(info)
-            item.print()
-            price = get_poe_prices_info(item)
+        if "min" in price:
+            txt = txt + "Min: [" + str(round(price["min"], 2)) + "] "
+        if "max" in price:
+            txt = txt + "Max: [" + str(round(price["max"], 2)) + "] "
+        if "currency" in price:
+            txt = txt + "[" + price["currency"] + "] "
+        if "pred_confidence_score" in price:
+            txt = (
+                txt
+                + "Confidence: "
+                + str(floor(price["pred_confidence_score"]))
+                + "% "
+            )
 
-            txt = ""
+        logging.info(txt)
+        if price:
+            notEnoughInformation.add_poe_info_price(price)
+        notEnoughInformation.create_at_cursor()
 
-            if "min" in price:
-                txt = txt + "Min: [" + str(round(price["min"], 2)) + "] "
-            if "max" in price:
-                txt = txt + "Max: [" + str(round(price["max"], 2)) + "] "
-            if "currency" in price:
-                txt = txt + "[" + price["currency"] + "] "
-            if "pred_confidence_score" in price:
-                txt = (
-                    txt
-                    + "Confidence: "
-                    + str(floor(price["pred_confidence_score"]))
-                    + "% "
-                )
-
-            logging.info(txt)
-            if price:
-                notEnoughInformation.add_poe_info_price(price)
-            notEnoughInformation.create_at_cursor()
-
-            return 0
-
-    except InvalidAPIResponseException:
-        logging.info(
-            f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS BELOW =================={Fore.RESET}"
-        )
-        logging.info(
-            f"[!] Failed to parse response from POE API. If this error occurs again please open an issue at {PROJECT_URL}issues with the info below"
-        )
-        logging.info(
-            f"{Fore.GREEN}================== START ISSUE DATA =================={Fore.RESET}"
-        )
-        logging.info(f"{Fore.GREEN}Title:{Fore.RESET}")
-        logging.info("Failed to query item from trade API.")
-        logging.info(f"{Fore.GREEN}Body:{Fore.RESET}")
-        logging.info(
-            "Macro failed to lookup item from POE trade API. Here is the item in question."
-        )
-        logging.info("====== ITEM DATA=====")
-        if isinstance(item, Item):
-            logging.info(item)
-        else:
-            logging.info(text)
-        logging.info(
-            f"{Fore.GREEN}================== END ISSUE DATA =================={Fore.RESET}"
-        )
-        logging.info(
-            f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================={Fore.RESET}"
-        )
+        return 0
 
     except Exception:
         exception = traceback.format_exc()
@@ -266,12 +225,20 @@ def price_item(item):
         logging.info("Here is the item in question.")
         logging.info("====== ITEM DATA=====")
         if isinstance(item, Item):
+            logging.info(item.base)
+            logging.info(item.name)
+        logging.info("```")
+        if isinstance(item, Item):
             logging.info(item.text)
         else:
             if isinstance(text, list):
                 logging.info("\n".join(text))
             else:
                 logging.info(text)
+                
+        logging.info("```")
+        logging.info("====== RESPONSE ======")
+        logging.info(response)
         logging.info("====== TRACEBACK =====")
         logging.info(exception)
         logging.info(
@@ -280,3 +247,4 @@ def price_item(item):
         logging.info(
             f"{Fore.RED}================== LOOKUP FAILED, PLEASE READ INSTRUCTIONS ABOVE =================={Fore.RESET}"
         )
+        

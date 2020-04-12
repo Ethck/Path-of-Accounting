@@ -17,10 +17,12 @@ from utils.config import (
     OPEN_TRADE,
     OPEN_WIKI,
     SHOW_INFO,
+    EXIT,
 )
 from utils.input import (
     Keyboard,
     get_clipboard,
+    set_clipboard,
     start_stash_scroll,
     stop_stash_scroll,
 )
@@ -47,10 +49,13 @@ def hotkey_handler(keyboard, hotkey):
     :param hotkey: The triggered hotkey
     """
 
-    keyboard.press_and_release("ctrl+c")
+    old_clipboard = get_clipboard()
 
+    keyboard.press_and_release("ctrl+c")
     time.sleep(0.1)
     text = get_clipboard()
+
+    set_clipboard(old_clipboard)
 
     close_all_windows()
 
@@ -133,6 +138,11 @@ def watch_keyboard(keyboard):
         ADV_SEARCH, lambda: hotkey_handler(keyboard, "Adv")
     )
 
+    # Exit
+    keyboard.add_hotkey(
+        EXIT, lambda: hotkey_handler(keyboard, "Exit")
+    )
+
 
 def check_league():
     valid_leagues = get_leagues()
@@ -208,16 +218,18 @@ if __name__ == "__main__":
             f"[{(SHOW_INFO)}]:".rjust(15) + " To see item stats (Does not work with all items).\n" +
             f"[{(HIDEOUT)}]:".rjust(15) + " To go to hideout.\n" +
             "[*] Hotkeys can be changed in settings.cfg\n" +
-            "[*] Watching hotkeys (Ctrl+C to stop) ..."
+            f"[*] Watching hotkeys ({EXIT} to stop) ..."
         )
 
-        try:
-            while True:
-                keyboard.poll()
+        while True:
+            try:
                 check_timeout_gui()
                 time.sleep(0.2)
-        except KeyboardInterrupt:
-            pass
+                _exit = keyboard.poll()
+                if _exit:
+                    break
+            except KeyboardInterrupt:
+                pass
 
         stop_stash_scroll()
         close_all_windows()

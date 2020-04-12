@@ -14,7 +14,7 @@ from gui.windows import (
 )
 from item.generator import *
 from utils import config
-from utils.common import get_trade_data, price_item
+from utils.common import price_item
 from utils.config import MIN_RESULTS, PROJECT_URL
 from utils.exceptions import InvalidAPIResponseException
 from utils.web import (

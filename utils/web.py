@@ -2,10 +2,12 @@ import base64
 import logging
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import traceback
 import webbrowser
+import time
 import zipfile
 from itertools import chain
 
@@ -16,7 +18,6 @@ from item.itemModifier import ItemModifier, ItemModifierType
 from utils import config
 from utils.config import RELEASE_URL, VERSION
 from utils.exceptions import InvalidAPIResponseException
-import re
 
 ninja_bases = []
 
@@ -47,23 +48,29 @@ def post_request(addr: str, timeout: int, max_tries: int, json=None):
 
         if r.status_code != 200:
             logging.error(
-                f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
-                f'Message: {res.json().get("error", "unknown error")}'
+                f"[!] Trade result retrieval failed: HTTP {r.status_code}! "
+                f'Message: {r.json().get("error", "unknown error")}'
             )
 
-        return r.json()
+        return r
     except Exception:
         site = ""
         x = addr.rfind(".")
         y = addr.find("/", x)
         site += addr[:y]
         if max_tries > 0:
-            logging.info(site + " is not responding, trying " + str(max_tries) + " more times")
+            logging.info(
+                site
+                + " is not responding, trying "
+                + str(max_tries)
+                + " more times"
+            )
             return post_request(addr, timeout, max_tries - 1, json)
         else:
-            logging.info("Could not connect to: " +site + ".")
+            logging.info("Could not connect to: " + site + ".")
             return None
     return None
+
 
 def get_request(addr: str, timeout: int, max_tries: int, stream=False):
     try:
@@ -71,23 +78,27 @@ def get_request(addr: str, timeout: int, max_tries: int, stream=False):
 
         if r.status_code != 200:
             logging.error(
-                f"[!] Trade result retrieval failed: HTTP {res.status_code}! "
-                f'Message: {res.json().get("error", "unknown error")}'
+                f"[!] Trade result retrieval failed: HTTP {r.status_code}! "
+                f'Message: {r.json().get("error", "unknown error")}'
             )
 
-        return r.json()
+        return r
     except Exception:
         site = ""
         x = addr.rfind(".")
         y = addr.find("/", x)
         site += addr[:y]
         if max_tries > 0:
-            logging.info(site + " is not responding, trying " + str(max_tries) + " more times")
+            logging.info(
+                site
+                + " is not responding, trying "
+                + str(max_tries)
+                + " more times"
+            )
             return get_request(addr, timeout, max_tries - 1, stream)
         else:
-            logging.info("Could not connect to: " +site + ".")
+            logging.info("Could not connect to: " + site + ".")
             return None
-
 
 
 def exchange_currency(query: dict, league: str) -> dict:
@@ -98,7 +109,7 @@ def exchange_currency(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = post_request(exchange_url(league), 10, 2, query)
+    results = post_request(exchange_url(league), 10, 2, query).json()
     if "error" in results.keys():
         msg = results["error"]["message"]
         logging.info(f"[Error] {msg}")
@@ -114,7 +125,7 @@ def query_item(query: dict, league: str) -> dict:
     :return results: return a JSON object with the amount of items found and a key to get
      item details
     """
-    results = post_request(search_url(league), 10, 2, query)
+    results = post_request(search_url(league), 10, 2, query).json()
 
     if "error" in results.keys():
         msg = results["error"]["message"]
@@ -149,7 +160,7 @@ def fetch(q_res: dict, exchange: bool = False) -> dict:
 
             if exchange:
                 url += "exchange=true"
-            res = get_request(url, 10, 2)
+            res = get_request(url, 10, 2).json()
             # Return the results from our fetch (this has who to whisper, prices, and more!)
             if res:
                 if "result" in res:
@@ -167,8 +178,9 @@ def get_leagues() -> tuple:
     :return: Tuple of league ids
     """
     try:
-        leagues = get_request("https://www.pathofexile.com/api/trade/data/leagues", 10, 2)
-
+        leagues = get_request(
+            "https://www.pathofexile.com/api/trade/data/leagues", 10, 2
+        ).json()
         return tuple(x["id"] for x in leagues["result"])
     except Exception:
         return None
@@ -189,19 +201,22 @@ def get_item_modifiers_by_text(element: tuple) -> ItemModifier:
         item_modifiers = get_item_modifiers()
         found = {}
         for mod in item_modifiers:
-            if "Allocates # (Additional)" in mod.text: # Gives no results ATM
+            if "Allocates # (Additional)" in mod.text:  # Gives no results ATM
                 continue
             if (mod.text, mod.type) in mod_list_dict_text:
                 if not (mod.text, mod.type) in found:
                     found[(mod.text, mod.type)] = {}
                 found[(mod.text, mod.type)][mod.id] = ""
-                found[(mod.text, mod.type)][mod_list_dict_text[(mod.text, mod.type)].id] = ""
+                found[(mod.text, mod.type)][
+                    mod_list_dict_text[(mod.text, mod.type)].id
+                ] = ""
 
             mod_list_dict_text[(mod.text, mod.type)] = mod
         for key, value in found.items():
             dup_mod_list_text[key] = ""
     if element in mod_list_dict_text:
         return mod_list_dict_text[element]
+
 
 def is_duplicate_mod_type(mod):
     """
@@ -247,7 +262,8 @@ def build_from_json(blob: dict) -> ItemModifier:
                 options[i["text"]] = i["id"]
 
             t = blob["text"].rstrip()
-            t = re.sub("\(([^)]*)\)", "", t)
+            if not "(Local)" in t:
+                t = re.sub(r"\(([^)]*)\)", "", t)
             t = t.rstrip()
             return ItemModifier(
                 id=blob["id"],
@@ -255,9 +271,10 @@ def build_from_json(blob: dict) -> ItemModifier:
                 options=options,
                 type=ItemModifierType(blob["type"].lower()),
             )
-    
+
     t = blob["text"].rstrip()
-    t = re.sub("\(([^)]*)\)", "", t)
+    if not "(Local)" in t:
+        t = re.sub(r"\(([^)]*)\)", "", t)
     t = t.rstrip()
 
     return ItemModifier(
@@ -277,7 +294,9 @@ def get_item_modifiers() -> tuple:
     if mod_list:
         return mod_list
     else:
-        json_blob = get_request("https://www.pathofexile.com/api/trade/data/stats", 10, 3)
+        json_blob = get_request(
+            "https://www.pathofexile.com/api/trade/data/stats", 10, 3
+        ).json()
         try:
             for modType in json_blob["result"]:
                 for mod in modType["entries"]:
@@ -294,7 +313,7 @@ def find_latest_update():
     """Search both local and remote versions, if different, prompt for update."""
     try:
         # Get the list of releases from github, choose newest (even pre-release)
-        remote = get_request(RELEASE_URL, 10, 2)[0]
+        remote = get_request(RELEASE_URL, 10, 2).json()[0]
 
         if not remote:
             logging.error("[!] Could not check for new update!")
@@ -307,22 +326,30 @@ def find_latest_update():
         if float(local.replace("v", "")) < float(
             remote["tag_name"].replace("v", "")
         ):
+            url = remote["html_url"]
             logging.info(
-                "[!] You are not running the latest version of Path of Accounting. Would you like to update? (y/n)"
+                f"[!] You are not running the latest version of Path of Accounting.\nNew Version available at: {url}"
             )
-            # Keep going till user makes a valid choice
-            choice_made = False
-            while not choice_made:
-                user_choice = input()
-                if user_choice.lower() == "y":
-                    choice_made = True
-                    if os.name == "nt":
+
+              # Keep going till user makes a valid choice
+            if os.name == "nt":
+
+                logging.info(
+                    f"[!] Do you want to download the new version? (y/n)"
+                )
+
+                while True:
+                    user_choice = input()
+                    if user_choice.lower() == "y":
                         # Get the sole zip url
+                        url = remote["assets"][0]["browser_download_url"]
                         r = get_request(url, 10, 2, True)
                         # Set up a progress bar
                         total_size = int(r.headers.get("content-length", 0))
                         block_size = 1024
-                        timer = tqdm(total=total_size, unit="iB", unit_scale=True)
+                        timer = tqdm(
+                            total=total_size, unit="iB", unit_scale=True
+                        )
 
                         # Write the file
                         with open("Path-of-Accounting.zip", "wb") as f:
@@ -330,40 +357,31 @@ def find_latest_update():
                                 timer.update(len(data))
                                 f.write(data)
                         timer.close()
+                        f.close()
 
                         # This means data got lost somewhere...
                         if total_size != 0 and timer.n != total_size:
                             logging.error(
-                                "[!] Error, something went wrong while downloading the file."
+                                "[!] Error, something went wrong while downloading the file.\n" +
+                                "[!] Please try download manually"
                             )
                         else:
-                            # Unzip it and tell the user where we unzipped it to.
-                            with zipfile.ZipFile(
-                                "Path-of-Accounting.zip", "wb+"
-                            ) as zip_file:
-                                zip_file.extractall()
                             logging.info(
-                                f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
+                                f"[*] Zip file downloaded to: {pathlib.Path().absolute()}\n" +
+                                "[*] Please extract it manually\n" +
+                                "[*] Program will automaticly exit in 10 seconds.."
                             )
+                            time.sleep(10)
+                            sys.exit()
+                        break
 
-                        # subprocess.Popen(f"{pathlib.Path().absolute()}\\Accounting.exe")
-                        sys.exit()
+                    elif user_choice.lower() == "n":
+                        break
                     else:
-                        logging.info(
-                            "Auto updates are not supported on non windows systems at the moment."
+                        logging.error(
+                            "I did not understand your response. Please user either y or n."
                         )
-                        logging.info(
-                            "Please clone/pull the repo at https://github.com/Ethck/Path-of-Accounting.git"
-                        )
-
-                elif user_choice.lower() == "n":
-                    choice_made = True
-                else:
-                    logging.error(
-                        "I did not understand your response. Please user either y or n."
-                    )
     except Exception:
-        traceback.print_exc()
         logging.error("[!] Could not check for new update!")
 
 
@@ -376,7 +394,7 @@ def get_ninja_bases(league: str):
     if not ninja_bases:
         try:
             addr = f"https://poe.ninja/api/data/itemoverview?league={league}&type=BaseType&language=en"
-            tbases = get_request(addr, 10, 2)
+            tbases = get_request(addr, 10, 2).json()
 
             ninja_bases = [
                 {
@@ -409,7 +427,9 @@ def get_items() -> dict:
     global item_cache
     if not item_cache:
         try:
-            items = get_request("https://www.pathofexile.com/api/trade/data/items", 10, 3)
+            items = get_request(
+                "https://www.pathofexile.com/api/trade/data/items", 10, 3
+            ).json()
             item_cache = items["result"]
             for i in item_cache:
                 i["entries"].sort(key=lambda x: len(x["type"]), reverse=True)
@@ -501,9 +521,14 @@ def get_poe_prices_info(item):
                 + b"&i="
                 + base64.b64encode(bytes(item.text, "utf-8"))
             )
-            addr = b"https://poeprices.info/api?l="+league+b"&i="+base64.b64encode(bytes(item.text, "utf-8"))
+            addr = (
+                b"https://poeprices.info/api?l="
+                + league
+                + b"&i="
+                + base64.b64encode(bytes(item.text, "utf-8"))
+            )
 
-            results = post_request(addr, 10, 2)
+            results = post_request(addr, 10, 2).json()
 
             logging.debug(results)
             return results
