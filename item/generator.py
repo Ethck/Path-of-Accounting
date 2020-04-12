@@ -1019,6 +1019,9 @@ def parse_mod(mod_text: str, mod_values, category=""):
         option = mod_values
         can_reduce = False
 
+    if mod_text.startswith(r"#% of Damage taken gained as Mana over"):
+        mod_text = r"#% of Damage taken gained as Mana over 4 seconds when Hit"
+
     if mod_text.endswith("(implicit)"):
         mod_text = mod_text[:-11]
         mod_type = ItemModifierType.IMPLICIT
@@ -1472,10 +1475,8 @@ def parse_item_info(text: str):
                     else:
                         logging.info(f"Unable to find mod: {line}")
 
-
     if rarity == "unique" and identified:
         name = name.replace(" " + base, "", 1)
-
 
     if category == "weapon":
         weapon = Weapon(
