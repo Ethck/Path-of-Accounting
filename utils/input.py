@@ -42,6 +42,7 @@ class Keyboard:
             # Do not fail
             print("Unexpected exception occurred while handling hotkey: ")
             traceback.print_exc()
+            self.lock.release()
             return False
 
     def write(self, string):
