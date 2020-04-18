@@ -800,13 +800,24 @@ class Currency(BaseItem):
             "Awakener's Orb",
         ]
         if self.name not in unsupportedCurrency:
-            json = {
-                "exchange": {
-                    "status": {"option": "online"},
-                    "have": ["chaos"],
-                    "want": [currency_global[self.name]],
-                },
-            }
+            if self.name in currency_global:
+                json = {
+                    "exchange": {
+                        "status": {"option": "online"},
+                        "have": ["chaos","exalt"],
+                        "want": [currency_global[self.name]],
+                    },
+                }
+            else:
+                name = self.name.lower()
+                name = name.replace(" ", "-")
+                json = {
+                    "exchange": {
+                        "status": {"option": "online"},
+                        "have": ["chaos","exalt"],
+                        "want": [name],
+                    },
+                }
         else:
             json = {
                 "query": {"type": self.name},
@@ -1001,9 +1012,6 @@ def parse_mod(line: str, category=""):
     """
     global prev_mod
 
-    mod_values = ""
-    mod_text = ""
-
     can_reduce = True
     m_min = None
     m_max = None
@@ -1011,109 +1019,43 @@ def parse_mod(line: str, category=""):
 
     mod = None
 
+    mod_value = None
 
-    # Some special mods exeptions
 
-    # #% increased Damage with Poison if you have at least 300 Dexterity
-    # Skills which throw Mines throw up to 1 additional Mine if you have at least 800 Dexterity , both values fixed on this one
-    # #% chance for Poisons inflicted with this Weapon to deal 100% more Damage
-    # #% of Damage taken gained as Mana over 4 seconds when Hit
-    if (
-        "if you have at least" in line
-        or "inflicted with this Weapon to deal" in line
-        or "Damage taken gained as Mana over" in line
-        ):
-        mod_values = re.search(
-            r"[+-]?\d+\.?\d?\d?", line
-        ).group(0)
-        numberIndex = re.search(
-            r"[+-]?\d+\.?\d?\d?", line
-        ).start()
+    mod_values = re.findall(r"[+-]?\d+\.?\d?\d?", line)
+    mod_text = re.sub(
+                r"[+-]?\d+\.?\d?\d?", "#", line
+            ).rstrip().lstrip()
 
-        if '%' in line:
-            mod_text = re.sub(
-                r"[+-]?\d+\.?\d?\d?", "#", line, 1
-            )
-        else: # Skills which throw Mines throw up to 1 additional Mine if you have at least 800 Dexterity
-            mod_text = line
-        can_reduce = False
 
-    else:
-        mod_values = re.findall(r"[+-]?\d+\.?\d?\d?", line)
-        if len(mod_values) > 1:
+    if len(mod_values) > 1:
+        if "Adds # to #" in mod_text:
             try:
-                mod_values = (
+                mod_values[0] = (
                     (float(mod_values[0]))
                     + float(mod_values[1])
                 ) / 2
             except ValueError:
                 mod_values = None
-        else:
-            if mod_values:
-                mod_values = mod_values[0]
-        mod_text = re.sub(r"[+-]?\d+\.?\d?\d?", "#", line)
-
-
+    if  mod_values:
+        mod_value = mod_values[0]
 
     mod_type = ItemModifierType.EXPLICIT
-
-    mod_text = mod_text.rstrip()
-
-    if mod_values == []:
-        mod_values = ""
-
-    if mod_text.startswith("Allocates"):
-        mod_text = mod_text.replace("Allocates ", "")
-        mod_text = mod_text.replace(" (enchant)", "")
-        element = ("Allocates #", ItemModifierType.ENCHANT)
-        mod = get_item_modifiers_by_text(element)
-        mod_values = mod.options[mod_text]
-        option = mod_values
-        can_reduce = False
-
+    
     if mod_text.endswith("(implicit)"):
-        mod_text = mod_text[:-11]
+        mod_text = mod_text.replace(" (implicit)", "")
         mod_type = ItemModifierType.IMPLICIT
     elif mod_text.endswith("(crafted)"):
-        mod_text = mod_text[:-10]
+        mod_text = mod_text.replace(" (crafted)", "")
         mod_type = ItemModifierType.CRAFTED
-
-    # Added Small Passive Skills grant: #% increased Damage while affected by a Herald (enchant) 10
-
-    # Added Small Passive Skills grant:
-    # 10% increased Damage while affected by a Herald (enchant)
-    # {"id":"enchant.stat_3948993189","value":{"option":26}
-
     elif mod_text.endswith("(enchant)"):
         mod_text = mod_text.replace(" (enchant)", "")
         mod_type = ItemModifierType.ENCHANT
-        can_reduce = False
+        if mod_text.startswith("Allocates"):
+            mod = get_item_modifiers_by_text(("Allocates #", mod_type))
+            option = mod.options[mod_text.replace("Allocates ", "")]
+            can_reduce = False
 
-    if (
-        "Passive Skill" in mod_text
-        or "Socketed Gems are Supported by Level" in mod_text
-    ):
-        can_reduce = False
-
-    if "Added Small Passive Skills grant:" in mod_text:
-        element = (
-            "Added Small Passive Skills grant: #",
-            ItemModifierType.ENCHANT,
-        )
-        mod = get_item_modifiers_by_text(element)
-        mod_text = mod_text.replace("Added Small Passive Skills grant: ", "")
-        mod_text = mod_text.replace("#", mod_values)
-        mod_values = mod.options[mod_text]
-        option = mod_values
-
-    # {"id":"explicit.stat_4079888060","value":{"min":1}
-    # # Added Passive Skill is a Jewel Socket -> # Added Passive Skills are Jewel Sockets
-    if "# Added Passive Skill is a Jewel Socket" in mod_text:
-        element = (
-            "# Added Passive Skills are Jewel Sockets",
-            ItemModifierType.EXPLICIT,
-        )
-        mod = get_item_modifiers_by_text(element)
 
     if category == "weapon":
         if (
@@ -1137,53 +1079,64 @@ def parse_mod(line: str, category=""):
         ):
             mod = get_item_modifiers_by_text((mod_text + " (Local)", mod_type))
 
-    if not mod and mod_type == ItemModifierType.CRAFTED:
-        mod = get_item_modifiers_by_text((mod_text, ItemModifierType.PSEUDO))
+    
+    if "# Added Passive Skill is a Jewel Socket" in mod_text:
+        mod_text = "# Added Passive Skills are Jewel Sockets"
+        can_reduce = False
+    
+    if (
+        "Passive Skill" in mod_text
+        or "Socketed Gems are Supported by Level" in mod_text
+    ):
+        can_reduce = False
+
+    if "Added Small Passive Skills grant:" in mod_text:
+        mod = get_item_modifiers_by_text(("Added Small Passive Skills grant: #", ItemModifierType.ENCHANT))
+        option = mod.options[mod_text.replace("Added Small Passive Skills grant: ", "").replace("#", mod_value)]
+        can_reduce = False            
 
     if not mod:
         mod = get_item_modifiers_by_text((mod_text, mod_type))
 
-    if not mod:
-        mod = get_item_modifiers_by_text((mod_text + " (Local)", mod_type))
+    if not mod and mod_type == ItemModifierType.CRAFTED:
+        mod = get_item_modifiers_by_text((mod_text, ItemModifierType.PSEUDO))
 
     if not mod:
-        if not mod_values:
+        if not mod_value:
             mod = get_item_modifiers_by_text(
                 ("#% chance to " + mod_text, ItemModifierType.ENCHANT)
-            )
-        else:
-            mod = get_item_modifiers_by_text(
-                (mod_text, ItemModifierType.ENCHANT)
             )
 
     try:
         if not mod:
             if "reduced" in mod_text:
                 mod_text = mod_text.replace("reduced", "increased")
-                mod_values = str(float(mod_values) * (-1))
+                mod_value = str(float(mod_value) * (-1))
             elif "increased" in mod_text:
                 mod_text = mod_text.replace("increased", "reduced")
-                mod_values = str(float(mod_values) * (-1))
+                mod_value = str(float(mod_value) * (-1))
             mod = get_item_modifiers_by_text((mod_text, mod_type))
     except ValueError:
         pass
 
-    if not mod:
-        return None
 
     if not option:
         try:
-            if float(mod_values) < 0:
-                m_max = float(mod_values)
+            if float(mod_value) < 0:
+                m_max = float(mod_value)
             else:
-                m_min = float(mod_values)
-        except ValueError:
-            if mod_values:
-                option = mod_values
+                m_min = float(mod_value)
+        except Exception:
+            pass
+
+    if not mod:
+        return None
 
     if "Adds # Passive Skills" in mod.text:
-        m_max = float(mod_values)
+        m_max = float(mod_value)
         m_min = None
+
+    
 
     prev_mod = mod_text
     m = ModInfo(mod, m_min, m_max, option, can_reduce)

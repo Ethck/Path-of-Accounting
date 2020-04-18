@@ -252,6 +252,19 @@ def build_from_json(blob: dict) -> ItemModifier:
     :param blob: A modifier found in the stats API
     :return: ItemModifier object for the given modifier
     """
+
+    t = blob["text"].rstrip()
+    if not "(Local)" in t:
+        if not "(Additional)" in t:
+            t = re.sub(r"\(([^)]*)\)", "", t)
+
+    t = t.rstrip()
+
+    t = re.sub(
+                r"[+-]?\d+\.?\d?\d?", "#", t
+            )
+
+
     if "option" in blob:
         # If the given modifier has an option section, add it.
         # This is necessary for the "Allocates #" modifier that
@@ -261,10 +274,7 @@ def build_from_json(blob: dict) -> ItemModifier:
             for i in blob["option"]["options"]:
                 options[i["text"]] = i["id"]
 
-            t = blob["text"].rstrip()
-            if not "(Local)" in t:
-                t = re.sub(r"\(([^)]*)\)", "", t)
-            t = t.rstrip()
+            
             return ItemModifier(
                 id=blob["id"],
                 text=t,
@@ -272,10 +282,7 @@ def build_from_json(blob: dict) -> ItemModifier:
                 type=ItemModifierType(blob["type"].lower()),
             )
 
-    t = blob["text"].rstrip()
-    if not "(Local)" in t:
-        t = re.sub(r"\(([^)]*)\)", "", t)
-    t = t.rstrip()
+
 
     return ItemModifier(
         id=blob["id"],
