@@ -1295,11 +1295,7 @@ def parse_item_info(text: str):
     name = re.sub(r"<<set:M?S?>>", "", regions[0][1])
 
     if len(regions[0]) > 2:
-        if rarity == "rare":
-            modname = name + " " + regions[0][2]
-            name = regions[0][2]
-        else:
-            name += " " + regions[0][2]
+        name = name + " " + regions[0][2]
 
     if len(name) > 60:
         logging.info("Not a PoE Item")
@@ -1375,8 +1371,6 @@ def parse_item_info(text: str):
         logging.info("[!] Pathofexile.com might be down")
         return None
 
-    if "modname" in locals():
-        name = modname
 
     influenceText = {
         "Elder",
@@ -1429,6 +1423,7 @@ def parse_item_info(text: str):
                             foundExplicit = True  # Dont parse flavor text
                     else:
                         logging.info(f"Unable to find mod: {line}")
+
 
     if rarity == "unique" and identified:
         name = name.replace(" " + base, "", 1)

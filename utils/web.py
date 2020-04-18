@@ -456,8 +456,9 @@ def get_base(category, name):
     try:
         for i in items:
             if i["label"] == category:
-                result = next(l for l in i["entries"] if l["type"] in name)
-                return result["type"]
+                for l in i["entries"]:
+                    if re.search(r"\b"+l["type"]+r"\b", name):
+                        return l["type"]
     except:
         pass
     return None
