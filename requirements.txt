@@ -17,5 +17,5 @@ screeninfo==0.6.1
 six==1.14.0
 tqdm==4.41.1
 typing==3.7.4.1
-urllib3==1.25.7
+urllib3==1.26.5
 timeago==1.0.13
