@@ -360,7 +360,12 @@ def find_latest_update():
                             with zipfile.ZipFile(
                                 "Path-of-Accounting.zip", "wb+"
                             ) as zip_file:
-                                zip_file.extractall()
+                                target = pathlib.Path().absolute()
+                                for member in zip_file.namelist():
+                                    member_path = (target / member).resolve()
+                                    if target not in member_path.parents and member_path != target:
+                                        raise ValueError(f"Unsafe path in release archive: {member}")
+                                    zip_file.extract(member)
                             logging.info(
                                 f"[*] Extracted zip file to: {pathlib.Path().absolute()}"
                             )
